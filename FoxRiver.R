@@ -541,6 +541,14 @@ R2.nre <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2m']
 # Extract R2 with random effect
 R2.re <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2c']
 
+# Extract coefficient values
+time.coeff <- summary(lmem.fox.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lmem.fox.tpcb)$coef[2, "Std. Error"]
+# Calculate half-life tPCB in yr (-log(2)/slope/365)
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
+# Calculate error
+t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
+
 # (3.2) log.tPCB vs. time + season + flow + temp + site (fox.log.tpcb.2)
 log.tpcb <- fox.log.tpcb.2$logtPCB
 time <- fox.log.tpcb.2$time
