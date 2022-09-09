@@ -448,6 +448,14 @@ R2.nre <- as.data.frame(r.squaredGLMM(lmem.kal.tpcb))[1, 'R2m']
 # Extract R2 with random effect
 R2.re <- as.data.frame(r.squaredGLMM(lmem.kal.tpcb))[1, 'R2c']
 
+# Extract coefficient values
+time.coeff <- summary(lmem.kal.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lmem.kal.tpcb)$coef[2, "Std. Error"]
+# Calculate half-life tPCB in yr (-log(2)/slope/365)
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
+# Calculate error
+t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
+
 # (3.2) log.tPCB vs. time + season + flow + temp + site (kal.log.tpcb.2)
 log.tpcb <- kal.log.tpcb.2$logtPCB
 time <- kal.log.tpcb.2$time
@@ -505,7 +513,10 @@ ggplot(kal.tpcb.3, aes(x = tPCB, y = 10^predicted)) +
   annotation_logticks(sides = "bl") +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
+  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
+  annotate('text', x = 10^2.3, y = 10^5,
+           label = 'Kalamazoo River', colour = 'black', size = 4,
+           fontface = 2)
 
 # Plot residuals vs. predictions
 plot(fit.values$predicted, res.kal.tpcb)
