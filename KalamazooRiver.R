@@ -187,17 +187,16 @@ kal.log.tpcb.2 <- subset(kal.log.tpcb, site != c("PlainwellDam"))
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Kalamazoo River
-siteKalN1 <- "04106500" # PORTAGE CREEK AT KALAMAZOO, MI No data!
-siteKalN2 <- "04108660" # KALAMAZOO RIVER AT NEW RICHMOND, MI
-siteKalN3 <- "04106000" # KALAMAZOO RIVER AT COMSTOCK, MI
+siteKalN1 <- "04108660" # KALAMAZOO RIVER AT NEW RICHMOND, MI
+siteKalN2 <- "04106000" # KALAMAZOO RIVER AT COMSTOCK, MI
 # Codes to retrieve data
 paramflow <- "00060" # discharge, ft3/s
-paramtemp <- "00010" # water temperature, C Not available
+# paramtemp <- "00010" # water temperature, C Not available
 
 # Flow (ft3/s)
-flow.1 <- readNWISdv(siteKalN2, paramflow,
+flow.1 <- readNWISdv(siteKalN1, paramflow,
                      min(kal.tpcb.2$date), max(kal.tpcb.2$date))
-flow.2 <- readNWISdv(siteKalN3, paramflow,
+flow.2 <- readNWISdv(siteKalN2, paramflow,
                      min(kal.tpcb.2$date), max(kal.tpcb.2$date))
 
 kal.tpcb.2$flow.1 <- flow.1$X_00060_00003[match(kal.tpcb.2$date, flow.1$Date)]
@@ -358,7 +357,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.3) tPCB vs. season
-lr.kal.tpcb.s <- lm(log10(tPCB) ~ season, data = kal.tpcb.2)
+lr.kal.tpcb.s <- lm(log10(tPCB) ~ season, data = kal.tpcb.3)
 # See results
 summary(lr.kal.tpcb.s)
 # Look at residuals
@@ -389,7 +388,7 @@ ks.test(res, 'pnorm')
 
 # (2) MLR
 # (2.1) tPCB vs. time + season
-mlr.kal.tpcb <- lm(log10(tPCB) ~ time + season, data = kal.tpcb.2)
+mlr.kal.tpcb <- lm(log10(tPCB) ~ time + season, data = kal.tpcb.3)
 # See results
 summary(mlr.kal.tpcb)
 # Look at residuals
@@ -420,11 +419,11 @@ ks.test(res, 'pnorm')
 
 # (3) Perform Linear Mixed-Effects Model (LMEM)
 # (3.1) tPCB vs. time + season + flow + temp + site (kal.tpcb.2)
-tpcb <- kal.tpcb.2$tPCB
-time <- kal.tpcb.2$time
-site <- kal.tpcb.2$site.code
-season <- kal.tpcb.2$season
-flow <- kal.tpcb.2$flow.3
+tpcb <- kal.tpcb.3$tPCB
+time <- kal.tpcb.3$time
+site <- kal.tpcb.3$site.code
+season <- kal.tpcb.3$season
+flow <- kal.tpcb.3$flow.3
 
 lmem.kal.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
                   REML = FALSE,
@@ -482,14 +481,14 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.kal.log.tpcb))[1, 'R2c']
 
 # Plots
 # Get predicted values
-fit.values <- as.data.frame(fitted(lmem.tpcb))
+fit.values <- as.data.frame(fitted(lmem.kal.tpcb))
 # Add column name
 colnames(fit.values) <- c("predicted")
-# Add predicted valuies to data.frame Kal.2
-kal.4$predicted <- fit.values$predicted
+# Add predicted values to data.frame kal.tpcb.2
+kal.tpcb.3$predicted <- fit.values$predicted
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(kal.4, aes(x = tPCB, y = 10^predicted)) +
+ggplot(kal.tpcb.3, aes(x = tPCB, y = 10^predicted)) +
   geom_point() +
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -509,125 +508,5 @@ ggplot(kal.4, aes(x = tPCB, y = 10^predicted)) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
 
 # Plot residuals vs. predictions
-plot(fit.values$predicted, res)
-abline(0, 0)
-
-# (1.8) Remove high values
-# Find values
-order(res, decreasing = TRUE)[1:2]
-res[order(res, decreasing = TRUE)[1:2]]
-kal.4 <- kal.2[-c(108, 78), ]
-
-tpcb <- kal.4$tPCB
-time <- kal.4$time
-site <- kal.4$site.code
-season <- kal.4$season
-flow <- kal.4$flow.3
-
-lmem.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
-                  REML = FALSE,
-                  control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                        check.nobs.vs.rankZ = "ignore",
-                                        check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lmem.tpcb)
-# Look at residuals
-res <- resid(lmem.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2c']
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.values.kal.tpcb <- as.data.frame(fitted(lmem.kal.tpcb))
-# Add column name
-colnames(fit.values.kal.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-kal.tpcb.2$predicted <- 10^(fit.values.kal.tpcb$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
-
-ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(10, 1e4)) +
-  scale_y_log10(limits = c(10, 1e4)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# Plot residuals vs. predictions
-plot(log10(kal.tpcb.2$predicted), res.kal.tpcb)
-abline(0, 0)
-
-# (2) Get predicted values log.tpcb
-fit.values.kal.log.tpcb <- as.data.frame(fitted(lmem.kal.log.tpcb))
-# Add column name
-colnames(fit.values.kal.log.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-kal.log.tpcb.2$predicted <- fit.values.kal.log.tpcb$predicted
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(kal.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
-
-ggplot(kal.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(5, 1e2)) +
-  scale_y_log10(limits = c(5, 1e2)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# Plot residuals vs. predictions
-plot(kal.log.tpcb.2$predicted, res.kal.log.tpcb)
+plot(fit.values$predicted, res.kal.tpcb)
 abline(0, 0)
