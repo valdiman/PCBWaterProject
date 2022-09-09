@@ -617,7 +617,10 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
+  annotation_logticks(sides = "bl") +
+  annotate('text', x = 25, y = 10000,
+           label = 'Fox River', colour = 'black', size = 4,
+           fontface = 2)
 
 # Plot residuals vs. predictions
 plot(log10(fox.tpcb.2$predicted), res.fox.tpcb)
