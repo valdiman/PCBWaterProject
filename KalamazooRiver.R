@@ -492,7 +492,7 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.kal.log.tpcb))[1, 'R2c']
 fit.values <- as.data.frame(fitted(lmem.kal.tpcb))
 # Add column name
 colnames(fit.values) <- c("predicted")
-# Add predicted values to data.frame kal.tpcb.2
+# Add predicted values to data.frame kal.tpcb.3
 kal.tpcb.3$predicted <- fit.values$predicted
 
 # Plot prediction vs. observations, 1:1 line
@@ -517,6 +517,21 @@ ggplot(kal.tpcb.3, aes(x = tPCB, y = 10^predicted)) +
   annotate('text', x = 10^2.3, y = 10^5,
            label = 'Kalamazoo River', colour = 'black', size = 4,
            fontface = 2)
+
+ggplot(kal.tpcb.3, aes(x = tPCB, y = 10^predicted)) +
+  geom_point() +
+  scale_x_log10(limits = c(10, 1e6)) +
+  scale_y_log10(limits = c(10, 1e6)) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl") +
+  annotate('text', x = 10^2.3, y = 10^5,
+           label = 'Kalamazoo River', colour = 'black', size = 4,
+           fontface = 2)
+
 
 # Plot residuals vs. predictions
 plot(fit.values$predicted, res.kal.tpcb)
