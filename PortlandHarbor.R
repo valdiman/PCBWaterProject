@@ -209,7 +209,7 @@ ggplot(por.log.tpcb, aes(x = factor(site), y = logtPCB)) +
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Portland Harbor
 sitePorN1 <- "14211720" # WILLAMETTE RIVER AT PORTLAND, OR
-sitePorN2 <- "14211820" # COLUMBIA SLOUGH AT PORTLAND, OR
+sitePorN2 <- "14211820" # COLUMBIA SLOUGH AT PORTLAND, OR No!
 
 # Codes to retrieve data
 paramflow <- "00060" # discharge, ft3/s
@@ -303,7 +303,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.5) tPCB vs. flow (fox.tpcb.2)
-lr.por.tpcb.f <- lm(log10(tPCB) ~ flow.2, data = por.tpcb)
+lr.por.tpcb.f <- lm(log10(tPCB) ~ flow.1, data = por.tpcb)
 # See results
 summary(lr.por.tpcb.f)
 # Look at residuals
@@ -333,7 +333,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.7) tPCB vs. water temperature (fox.tpcb.2)
-lr.por.tpcb.te <- lm(log10(tPCB) ~ temp.1, data = por.tpcb.2)
+lr.por.tpcb.te <- lm(log10(tPCB) ~ temp.1, data = por.tpcb)
 # See results
 summary(lr.por.tpcb.te)
 # Look at residuals
@@ -348,7 +348,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.8) log.tPCB vs. temperature (por.log.tpcb.2)
-lr.por.log.tpcb.te <- lm(logtPCB ~ temp, data = por.log.tpcb.2)
+lr.por.log.tpcb.te <- lm(logtPCB ~ temp.1, data = por.log.tpcb)
 # See results
 summary(lr.por.log.tpcb.te)
 # Look at residuals
@@ -365,7 +365,7 @@ ks.test(res, 'pnorm')
 # (2) MLR
 # (2.1) tPCB vs. time + season + flow + temp (por.tpcb)
 mlr.por.tpcb <- lm(log10(tPCB) ~ time + season + flow.1 + temp.1,
-                   data = por.tpcb.2)
+                   data = por.tpcb)
 # See results
 summary(mlr.por.tpcb)
 # Look at residuals
@@ -380,8 +380,8 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (2.2) log.tPCB vs. time + season + flow + temp (por.log.tpcb.2)
-mlr.por.log.tpcb <- lm(logtPCB ~ time + season + flow + temp,
-                       data = por.log.tpcb.2)
+mlr.por.log.tpcb <- lm(logtPCB ~ time + season + flow.1 + temp.1,
+                       data = por.log.tpcb)
 # See results
 summary(mlr.por.log.tpcb)
 # Look at residuals
