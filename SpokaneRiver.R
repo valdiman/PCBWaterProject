@@ -203,53 +203,51 @@ ggplot(spo.log.tpcb, aes(x = factor(site), y = logtPCB)) +
               shape = 1, col = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
-# Remove site -------------------------------------------------------------
-# Remove site Lake Winnebago (background site)
-# ?
-
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Spokane River
 siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
 siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
 siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
 siteSpoN4 <- "12424000" # Hangman Creek at Spokane, WA
-siteSpoN5 <- "12426000" # SPOKANE RIVER BELOW NINE MILE DAM AT SPOKANE, WA
 # Codes to retrieve data
 paramflow <- "00060" # discharge, ft3/s
-# paramtemp <- "00010" # water temperature, C
+paramtemp <- "00010" # water temperature, C
 # Retrieve USGS data
 flow.1 <- readNWISdv(siteSpoN1, paramflow,
-                   min(spo.tpcb$date), max(spo.tpcb$date))
+                     min(spo.tpcb$date), max(spo.tpcb$date))
 flow.2 <- readNWISdv(siteSpoN2, paramflow,
                      min(spo.tpcb$date), max(spo.tpcb$date))
 flow.3 <- readNWISdv(siteSpoN3, paramflow,
                      min(spo.tpcb$date), max(spo.tpcb$date))
 flow.4 <- readNWISdv(siteSpoN4, paramflow,
                      min(spo.tpcb$date), max(spo.tpcb$date))
-flow.5 <- readNWISdv(siteSpoN5, paramflow,
-                     min(spo.tpcb$date), max(spo.tpcb$date))
 
 # Add USGS data to spo.tpcb, matching dates
 spo.tpcb$flow.1 <- flow.1$X_00060_00003[match(spo.tpcb$date,
-                                              flow$Date)]
+                                              flow.1$Date)]
 spo.tpcb$flow.2 <- flow.2$X_00060_00003[match(spo.tpcb$date,
-                                              flow$Date)]
+                                              flow.2$Date)]
 spo.tpcb$flow.3 <- flow.3$X_00060_00003[match(spo.tpcb$date,
-                                              flow$Date)]
+                                              flow.3$Date)]
 spo.tpcb$flow.4 <- flow.4$X_00060_00003[match(spo.tpcb$date,
-                                              flow$Date)]
+                                              flow.4$Date)]
 spo.tpcb$flow.5 <- flow.5$X_00060_00003[match(spo.tpcb$date,
                                               flow$Date)]
 
-# Remove samples with temp = NA
-spo.tpcb.2 <- na.omit(spo.tpcb.2)
-
 # Add USGS data to spo.log.tpcb, matching dates
-spo.log.tpcb.2$flow <- flow$X_.Primary.Stream.Flow._00060_00003[match(spo.log.tpcb.2$date,
-                                                                    flow$Date)]
-spo.log.tpcb.2$temp <- temp$X_00010_00003[match(spo.log.tpcb.2$date, temp$Date)]
-# Remove samples with temp = NA
-spo.log.tpcb.2 <- na.omit(spo.log.tpcb.2)
+spo.log.tpcb$flow.1 <- flow.1$X_00060_00003[match(spo.log.tpcb$date,
+                                                  flow.1$Date)]
+spo.log.tpcb$flow.2 <- flow.2$X_00060_00003[match(spo.log.tpcb$date,
+                                                  flow.2$Date)]
+spo.log.tpcb$flow.3 <- flow.3$X_00060_00003[match(spo.log.tpcb$date,
+                                                  flow.3$Date)]
+spo.log.tpcb$flow.4 <- flow.4$X_00060_00003[match(spo.log.tpcb$date,
+                                                  flow.4$Date)]
+
+# Remove site -------------------------------------------------------------
+# ?
+
+
 
 # Regressions -------------------------------------------------------------
 # (1) Perform linear regression (lr)
@@ -269,7 +267,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.2) log.tPCB vs. time
-lr.spo.log.tpcb.t <- lm(logtPCB ~ time, data = spo.log.tpcb.2)
+lr.spo.log.tpcb.t <- lm(logtPCB ~ time, data = spo.log.tpcb)
 # See results
 summary(lr.spo.log.tpcb.t)
 # Look at residuals
@@ -299,7 +297,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.4) log.tPCB vs. season
-lr.spo.log.tpcb.s <- lm(logtPCB ~ season, data = spo.log.tpcb.2)
+lr.spo.log.tpcb.s <- lm(logtPCB ~ season, data = spo.log.tpcb)
 # See results
 summary(lr.spo.log.tpcb.s)
 # Look at residuals
@@ -313,8 +311,8 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.5) tPCB vs. flow (spo.tpcb.2)
-lr.spo.tpcb.f <- lm(log10(tPCB) ~ flow.5, data = spo.tpcb)
+# (1.5) tPCB vs. flow
+lr.spo.tpcb.f <- lm(log10(tPCB) ~ flow.4, data = spo.tpcb)
 # See results
 summary(lr.spo.tpcb.f)
 # Look at residuals
@@ -328,8 +326,8 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.6) log.tPCB vs. flow (spo.log.tpcb.2)
-lr.spo.log.tpcb.f <- lm(logtPCB ~ flow, data = spo.log.tpcb.2)
+# (1.6) log.tPCB vs. flow
+lr.spo.log.tpcb.f <- lm(logtPCB ~ flow.4, data = spo.log.tpcb)
 # See results
 summary(lr.spo.log.tpcb.f)
 # Look at residuals
@@ -343,39 +341,9 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.7) tPCB vs. water temperature (spo.tpcb.2)
-lr.spo.tpcb.te <- lm(log10(tPCB) ~ temp, data = spo.tpcb.2)
-# See results
-summary(lr.spo.tpcb.te)
-# Look at residuals
-res <- resid(lr.spo.tpcb.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.8) log.tPCB vs. temperature (spo.log.tpcb.2)
-lr.spo.log.tpcb.te <- lm(logtPCB ~ temp, data = spo.log.tpcb.2)
-# See results
-summary(lr.spo.log.tpcb.te)
-# Look at residuals
-res <- resid(lr.spo.log.tpcb.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
 # (2) MLR
-# (2.1) tPCB vs. time + season + flow (spo.tpcb)
-mlr.spo.tpcb <- lm(log10(tPCB) ~ time + season + flow.1,
+# (2.1) tPCB vs. time + season + flow
+mlr.spo.tpcb <- lm(log10(tPCB) ~ time + season + flow.4,
                    data = spo.tpcb)
 # See results
 summary(mlr.spo.tpcb)
@@ -390,9 +358,9 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (2.2) log.tPCB vs. time + season + flow + temp (spo.log.tpcb.2)
-mlr.spo.log.tpcb <- lm(logtPCB ~ time + season + flow + temp,
-                       data = spo.log.tpcb.2)
+# (2.2) log.tPCB vs. time + season + flow
+mlr.spo.log.tpcb <- lm(logtPCB ~ time + season + flow.1,
+                       data = spo.log.tpcb)
 # See results
 summary(mlr.spo.log.tpcb)
 # Look at residuals
@@ -407,12 +375,12 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (3) Perform Linear Mixed-Effects Model (LMEM)
-# (3.1) tPCB vs. time + season + flow + site (spo.tpcb.2)
+# (3.1) tPCB vs. time + season + flow + site
 tpcb <- spo.tpcb$tPCB
 time <- spo.tpcb$time
 site <- spo.tpcb$site.code
 season <- spo.tpcb$season
-flow <- spo.tpcb$flow.4
+flow <- spo.tpcb$flow.1
 
 lmem.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
                   REML = FALSE,
@@ -506,8 +474,8 @@ ggplot(spo.tpcb, aes(x = tPCB, y = predicted)) +
 
 ggplot(spo.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point() +
-  scale_x_log10(limits = c(10, 1e4)) +
-  scale_y_log10(limits = c(10, 1e4)) +
+  scale_x_log10(limits = c(10, 1e5)) +
+  scale_y_log10(limits = c(10, 1e5)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
