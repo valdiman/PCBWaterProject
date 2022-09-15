@@ -1,5 +1,6 @@
 ## Water PCB concentrations data analysis per site
 # Housatonic River
+# GE facility map @https://semspub.epa.gov/work/01/574882.pdf
 
 # Install packages
 install.packages("tidyverse")
@@ -163,8 +164,16 @@ ggplot(hou.log.tpcb, aes(x = season, y = logtPCB)) +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # (4) Sites
+# From ~ north to south
+sites <- c("CranePaperCompany", "HubbardAveBridge", "UnkametBrookConfluence",
+           "DownstreamUnkametBrookConfluence", "NewellStBridge", "NewellStParkingLotFootbridge",
+           "LymanStBridge", "SilverLake", "SilverLakeOutlet", "ElmStBridge", "DawesAveBridge",
+           "PomeroyAveBridge", "WestBranch", "HolmesRdBridge", "AdjJosephDrW",
+           "AdjJosephDrE", "UpstreamPittsfieldWWTF", "EPRIFacility", "NewLenoxRdBridge",
+           "HeadwatersWoodsPond", "UpstreamofWoodsPondDam", "LenoxdaleBridge",
+           "DivisionStBridge", "AndrusRdBridge")
 # (4.1) tPCB
-ggplot(hou.tpcb, aes(x = factor(site), y = tPCB)) + 
+ggplot(hou.tpcb, aes(x = factor(site, levels = sites), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -428,7 +437,7 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.hou.log.tpcb))[1, 'R2c']
 # analysis
 hou.tpcb.hab <- subset(hou.tpcb, site == "HubbardAveBridge") # flow.1
 
-hou.tpcb.2 <- subset(hou.tpcb, site == 'PomeroyAveBridge')
+hou.tpcb.2 <- subset(hou.tpcb, site == 'NewellStBridge')
 
 ggplot(hou.tpcb.2, aes(y = tPCB,
                        x = format(date,'%Y'))) +
