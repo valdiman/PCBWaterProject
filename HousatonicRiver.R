@@ -94,7 +94,7 @@ hist(log10(hou.log.tpcb$logtPCB))
 
 # (2) Time trend plots
 # (2.1) tPCB
-ggplot(hou.tpcb, aes(y = tPCB,
+ggplot(hou.tpcb.n, aes(y = tPCB,
                      x = format(date,'%Y'))) +
   geom_point() +
   xlab("") +
@@ -205,53 +205,31 @@ ggplot(hou.log.tpcb, aes(x = factor(site), y = logtPCB)) +
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Housatonic River
-siteHouRN1 <- "01197000" # EAST BRANCH HOUSATONIC RIVER AT COLTSVILLE, MA
-siteHouRN2 <- "01197500" # HOUSATONIC RIVER NEAR GREAT BARRINGTON, MA
-siteHouRN3 <- "01198125" # HOUSATONIC RIVER NEAR ASHLEY FALLS, MA
-siteHouRN4 <- "01199000" # HOUSATONIC RIVER AT FALLS VILLAGE, CT
+siteHouN1 <- "01197000" # EAST BRANCH HOUSATONIC RIVER AT COLTSVILLE, MA
+siteHouN2 <- "01197500" # HOUSATONIC RIVER NEAR GREAT BARRINGTON, MA
 # Codes to retrieve data
 paramflow <- "00060" # discharge, ft3/s
-paramtemp <- "00010" # water temperature, C
+# paramtemp <- "00010" # water temperature, C No data available
 # Retrieve USGS data
 flow.1 <- readNWISdv(siteHouN1, paramflow,
                      min(hou.tpcb$date), max(hou.tpcb$date))
 flow.2 <- readNWISdv(siteHouN2, paramflow,
                      min(hou.tpcb$date), max(hou.tpcb$date))
-flow.3 <- readNWISdv(siteHouN3, paramflow,
-                     min(hou.tpcb$date), max(hou.tpcb$date))
-flow.4 <- readNWISdv(siteHouN4, paramflow,
-                     min(hou.tpcb$date), max(hou.tpcb$date))
-
 # Add USGS data to hou.tpcb, matching dates
 hou.tpcb$flow.1 <- flow.1$X_00060_00003[match(hou.tpcb$date,
                                               flow.1$Date)]
 hou.tpcb$flow.2 <- flow.2$X_00060_00003[match(hou.tpcb$date,
                                               flow.2$Date)]
-hou.tpcb$flow.3 <- flow.3$X_00060_00003[match(hou.tpcb$date,
-                                              flow.3$Date)]
-hou.tpcb$flow.4 <- flow.4$X_00060_00003[match(hou.tpcb$date,
-                                              flow.4$Date)]
-hou.tpcb$flow.5 <- flow.5$X_00060_00003[match(hou.tpcb$date,
-                                              flow$Date)]
-
 # Add USGS data to hou.log.tpcb, matching dates
 hou.log.tpcb$flow.1 <- flow.1$X_00060_00003[match(hou.log.tpcb$date,
                                                   flow.1$Date)]
 hou.log.tpcb$flow.2 <- flow.2$X_00060_00003[match(hou.log.tpcb$date,
                                                   flow.2$Date)]
-hou.log.tpcb$flow.3 <- flow.3$X_00060_00003[match(hou.log.tpcb$date,
-                                                  flow.3$Date)]
-hou.log.tpcb$flow.4 <- flow.4$X_00060_00003[match(hou.log.tpcb$date,
-                                                  flow.4$Date)]
-
-# Remove site -------------------------------------------------------------
-# Silver Lake
-hou.tpcb.2 <- subset(hou.tpcb, site != c("SilverLake"))
-
 
 # Regressions -------------------------------------------------------------
-# (1) Perform linear regression (lr)
-# (1.1) tPCB vs. time
+# (1) All sites ---------------------------------------------------------------
+# (1.1) Perform linear regression (lr)
+# (1.1.1) tPCB vs. time
 lr.hou.tpcb.t <- lm(log10(tPCB) ~ time, data = hou.tpcb)
 # See results
 summary(lr.hou.tpcb.t)
@@ -266,7 +244,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.2) log.tPCB vs. time
+# (1.1.2) log.tPCB vs. time
 lr.hou.log.tpcb.t <- lm(logtPCB ~ time, data = hou.log.tpcb)
 # See results
 summary(lr.hou.log.tpcb.t)
@@ -281,7 +259,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.3) tPCB vs. season
+# (1.1.3) tPCB vs. season
 lr.hou.tpcb.s <- lm(log10(tPCB) ~ season, data = hou.tpcb)
 # See results
 summary(lr.hou.tpcb.s)
@@ -296,7 +274,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.4) log.tPCB vs. season
+# (1.1.4) log.tPCB vs. season
 lr.hou.log.tpcb.s <- lm(logtPCB ~ season, data = hou.log.tpcb)
 # See results
 summary(lr.hou.log.tpcb.s)
@@ -311,8 +289,8 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.5) tPCB vs. flow
-lr.hou.tpcb.f <- lm(log10(tPCB) ~ flow.4, data = hou.tpcb)
+# (1.1.5) tPCB vs. flow
+lr.hou.tpcb.f <- lm(log10(tPCB) ~ flow.2, data = hou.tpcb)
 # See results
 summary(lr.hou.tpcb.f)
 # Look at residuals
@@ -326,8 +304,8 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.6) log.tPCB vs. flow
-lr.hou.log.tpcb.f <- lm(logtPCB ~ flow.4, data = hou.log.tpcb)
+# (1.1.6) log.tPCB vs. flow
+lr.hou.log.tpcb.f <- lm(logtPCB ~ flow.1, data = hou.log.tpcb)
 # See results
 summary(lr.hou.log.tpcb.f)
 # Look at residuals
@@ -341,10 +319,10 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (2) MLR
-# (2.1) tPCB vs. time + season + flow
-mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season,
-                   data = hou.tpcb)
+# (1.2) MLR
+# (1.2.1) tPCB vs. time + season + flow
+mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season + flow.1,
+                   data = hou.tpcb.hab)
 # See results
 summary(mlr.hou.tpcb)
 # Look at residuals
@@ -358,9 +336,9 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (2.2) log.tPCB vs. time + season + flow
+# (1.2.2) log.tPCB vs. time + season + flow
 mlr.hou.log.tpcb <- lm(logtPCB ~ time + season + flow.1,
-                       data = hou.log.tpcb)
+                       data = hou.log.tpcb.2)
 # See results
 summary(mlr.hou.log.tpcb)
 # Look at residuals
@@ -374,8 +352,8 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (3) Perform Linear Mixed-Effects Model (LMEM)
-# (3.1) tPCB vs. time + season + flow + site
+# (1.3) Perform Linear Mixed-Effects Model (LMEM)
+# (1.3.1) tPCB vs. time + season + flow + site
 tpcb <- hou.tpcb$tPCB
 time <- hou.tpcb$time
 site <- hou.tpcb$site.code
@@ -413,13 +391,13 @@ t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
-# (3.2) log.tPCB vs. time + season + flow + temp + site (hou.log.tpcb.2)
-log.tpcb <- hou.log.tpcb.2$logtPCB
-time <- hou.log.tpcb.2$time
-site <- hou.log.tpcb.2$site.code
-season <- hou.log.tpcb.2$season
-flow <- hou.log.tpcb.2$flow
-tem <- hou.log.tpcb.2$temp
+# (1.3.2) log.tPCB vs. time + season + flow + temp + site (hou.log.tpcb.2)
+log.tpcb <- hou.log.tpcb$logtPCB
+time <- hou.log.tpcb$time
+site <- hou.log.tpcb$site.code
+season <- hou.log.tpcb$season
+flow <- hou.log.tpcb$flow
+tem <- hou.log.tpcb$temp
 
 lmem.hou.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + flow + tem + (1|site),
                       REML = FALSE,
@@ -444,16 +422,169 @@ R2.nre <- as.data.frame(r.squaredGLMM(lmem.hou.log.tpcb))[1, 'R2m']
 # Extract R2 with random effect
 R2.re <- as.data.frame(r.squaredGLMM(lmem.hou.log.tpcb))[1, 'R2c']
 
+# (2) Selected sites ----------------------------------------------------------
+# Due to many dredging operations and issues with data
+# only sites close to USGS station were selected for regression
+# analysis
+hou.tpcb.hab <- subset(hou.tpcb, site == "HubbardAveBridge") # flow.1
+
+hou.tpcb.2 <- subset(hou.tpcb, site == 'PomeroyAveBridge')
+
+ggplot(hou.tpcb.2, aes(y = tPCB,
+                       x = format(date,'%Y'))) +
+  geom_point() +
+  xlab("") +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black"))
+
+
+
+# (2.1) Perform linear regression (lr)
+# (2.1.1) tPCB vs. time
+lr.hou.tpcb.t <- lm(log10(tPCB) ~ time, data = hou.tpcb.2)
+# See results
+summary(lr.hou.tpcb.t)
+# Look at residuals
+res <- resid(lr.hou.tpcb.t) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# (2.1.2) log.tPCB vs. time
+lr.hou.log.tpcb.t <- lm(logtPCB ~ time, data = hou.log.tpcb)
+# See results
+summary(lr.hou.log.tpcb.t)
+# Look at residuals
+res <- resid(lr.hou.log.tpcb.t) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# (2.1.3) tPCB vs. season
+lr.hou.tpcb.s <- lm(log10(tPCB) ~ season, data = hou.tpcb.2)
+# See results
+summary(lr.hou.tpcb.s)
+# Look at residuals
+res <- resid(lr.hou.tpcb.s) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# (2.1.4) log.tPCB vs. season
+lr.hou.log.tpcb.s <- lm(logtPCB ~ season, data = hou.log.tpcb)
+# See results
+summary(lr.hou.log.tpcb.s)
+# Look at residuals
+res <- resid(lr.hou.log.tpcb.s) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# (2.1.5) tPCB vs. flow
+lr.hou.tpcb.f <- lm(log10(tPCB) ~ flow.2, data = hou.tpcb.2)
+# See results
+summary(lr.hou.tpcb.f)
+# Look at residuals
+res <- resid(lr.hou.tpcb.f) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# (2.1.6) log.tPCB vs. flow
+lr.hou.log.tpcb.f <- lm(logtPCB ~ flow.1, data = hou.log.tpcb)
+# See results
+summary(lr.hou.log.tpcb.f)
+# Look at residuals
+res <- resid(lr.hou.log.tpcb.f) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# (2.2) MLR
+# (2.2.1) tPCB vs. time + season + flow
+mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season + flow.2,
+                   data = hou.tpcb.2)
+# See results
+summary(mlr.hou.tpcb)
+# Look at residuals
+res <- resid(mlr.hou.tpcb) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# (2.2.2) log.tPCB vs. time + season + flow
+mlr.hou.log.tpcb <- lm(logtPCB ~ time + season + flow.1,
+                       data = hou.log.tpcb.2)
+# See results
+summary(mlr.hou.log.tpcb)
+# Look at residuals
+res <- resid(mlr.hou.log.tpcb) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+
+# Extract coefficient values
+time.coeff <- summary(lmem.hou.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lmem.hou.tpcb)$coef[2, "Std. Error"]
+# Calculate half-life tPCB in yr (-log(2)/slope/365)
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
+
+# Predictions -------------------------------------------------------------
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.hou.tpcb <- as.data.frame(fitted(lmem.hou.tpcb))
+fit.values.hou.tpcb <- as.data.frame(fitted(mlr.hou.tpcb))
 # Add column name
 colnames(fit.values.hou.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-hou.tpcb$predicted <- 10^(fit.values.hou.tpcb$predicted)
+hou.tpcb.hab$predicted <- 10^(fit.values.hou.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(hou.tpcb, aes(x = tPCB, y = predicted)) +
+ggplot(hou.tpcb.n, aes(x = tPCB, y = predicted)) +
   geom_point() +
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -472,22 +603,22 @@ ggplot(hou.tpcb, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
 
-ggplot(hou.tpcb, aes(x = tPCB, y = predicted)) +
+ggplot(hou.tpcb.n, aes(x = tPCB, y = predicted)) +
   geom_point() +
-  scale_x_log10(limits = c(10, 1e5)) +
-  scale_y_log10(limits = c(10, 1e5)) +
+  scale_x_log10(limits = c(1, 1e3)) +
+  scale_y_log10(limits = c(1, 1e3)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 40, y = 10000,
-           label = 'houkane River', colour = 'black', size = 4,
+  annotate('text', x = 5, y = 1000,
+           label = 'Housatonic River', colour = 'black', size = 4,
            fontface = 2)
 
 # Plot residuals vs. predictions
-plot(log10(hou.tpcb.2$predicted), res.hou.tpcb)
+plot(log10(hou.tpcb.n$predicted), res.hou.tpcb)
 abline(0, 0)
 
 # (2) Get predicted values log.tpcb
