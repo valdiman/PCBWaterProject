@@ -164,7 +164,8 @@ ggplot(hou.log.tpcb, aes(x = season, y = logtPCB)) +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # (4) Sites
-# From ~ north to south
+# From ~north to ~south
+# Highlight sites nearby contamination
 sites <- c("CranePaperCompany", "HubbardAveBridge", "UnkametBrookConfluence",
            "DownstreamUnkametBrookConfluence", "NewellStBridge", "NewellStParkingLotFootbridge",
            "LymanStBridge", "SilverLake", "SilverLakeOutlet", "ElmStBridge", "DawesAveBridge",
@@ -172,8 +173,10 @@ sites <- c("CranePaperCompany", "HubbardAveBridge", "UnkametBrookConfluence",
            "AdjJosephDrE", "UpstreamPittsfieldWWTF", "EPRIFacility", "NewLenoxRdBridge",
            "HeadwatersWoodsPond", "UpstreamofWoodsPondDam", "LenoxdaleBridge",
            "DivisionStBridge", "AndrusRdBridge")
+
 # (4.1) tPCB
-ggplot(hou.tpcb, aes(x = factor(site, levels = sites), y = tPCB)) + 
+ggplot(hou.tpcb, aes(x = factor(site, levels = sites), y = tPCB,
+                     color = site)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -189,8 +192,31 @@ ggplot(hou.tpcb, aes(x = factor(site, levels = sites), y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 1) +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0, color = "black") +
+  scale_color_manual(values = c("CranePaperCompany" = "#66ccff",
+                                "HubbardAveBridge" = "#66ccff",
+                                "UnkametBrookConfluence" ="#FF7F00",
+                                "DownstreamUnkametBrookConfluence" = "#FF7F00",
+                                "NewellStBridge"= "#FF7F00",
+                                "NewellStParkingLotFootbridge" ="#FF7F00",
+                                "LymanStBridge" = "#FF7F00", "SilverLake" ="#FF7F00",
+                                "SilverLakeOutlet" = "#FF7F00", "ElmStBridge" = "#FF7F00",
+                                "DawesAveBridge" = "#FF7F00",
+                                "PomeroyAveBridge" = "#66ccff",
+                                "WestBranch" ="#66ccff",
+                                "HolmesRdBridge" = "#66ccff",
+                                "AdjJosephDrW" = "#66ccff",
+                                "AdjJosephDrE" = "#66ccff",
+                                "UpstreamPittsfieldWWTF" = "#66ccff",
+                                "EPRIFacility" = "#66ccff",
+                                "NewLenoxRdBridge" ="#66ccff",
+                                "HeadwatersWoodsPond" ="#66ccff",
+                                "UpstreamofWoodsPondDam" = "#66ccff",
+                                "LenoxdaleBridge" = "#66ccff",
+                                "DivisionStBridge" = "#66ccff",
+                                "AndrusRdBridge" = "#66ccff")) +
+  theme(legend.position = "none")
 
 # (4.2) log.tPCB
 ggplot(hou.log.tpcb, aes(x = factor(site), y = logtPCB)) + 
@@ -437,7 +463,7 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.hou.log.tpcb))[1, 'R2c']
 # analysis
 hou.tpcb.hab <- subset(hou.tpcb, site == "HubbardAveBridge") # flow.1
 
-hou.tpcb.2 <- subset(hou.tpcb, site == 'NewellStBridge')
+hou.tpcb.2 <- subset(hou.tpcb, site == 'DivisionStBridge')
 
 ggplot(hou.tpcb.2, aes(y = tPCB,
                        x = format(date,'%Y'))) +
