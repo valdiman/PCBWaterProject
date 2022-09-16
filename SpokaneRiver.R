@@ -31,7 +31,7 @@ library(dataRetrieval) # read data from USGS
 # Data in pg/L
 wdc <- read.csv("WaterDataCongenerAroclor08052022.csv")
 
-# Select spo River data ---------------------------------------------------
+# Select Spokane River data ---------------------------------------------------
 spo.0 <- wdc[str_detect(wdc$SiteName, 'SpokaneRiver'),]
 
 # Data preparation --------------------------------------------------------
@@ -163,8 +163,17 @@ ggplot(spo.log.tpcb, aes(x = season, y = logtPCB)) +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # (4) Sites
+# From ~east to ~west
+sites <- c("NinemileDam", "HangmanCreek", "SpokaneWRF",
+           "TrentStreetBridge", "GreeneStreetBridge",
+           "RegionalWRF", "InlandEmpirePaper",
+           "KaiserAluminum", "BarkerRoadBridge",
+           "LibertyLakeSewer", "PostFalls",
+           "PostFallsWWTP", "Coeurd'AleneWWTP",
+           "LakeCoeurd'Alene")
+
 # (4.1) tPCB
-ggplot(spo.tpcb, aes(x = factor(site), y = tPCB)) + 
+ggplot(spo.tpcb, aes(x = factor(site, levels = sites), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -211,7 +220,7 @@ siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
 siteSpoN4 <- "12424000" # Hangman Creek at Spokane, WA
 # Codes to retrieve data
 paramflow <- "00060" # discharge, ft3/s
-paramtemp <- "00010" # water temperature, C
+# paramtemp <- "00010" # water temperature, C No data
 # Retrieve USGS data
 flow.1 <- readNWISdv(siteSpoN1, paramflow,
                      min(spo.tpcb$date), max(spo.tpcb$date))
@@ -231,8 +240,6 @@ spo.tpcb$flow.3 <- flow.3$X_00060_00003[match(spo.tpcb$date,
                                               flow.3$Date)]
 spo.tpcb$flow.4 <- flow.4$X_00060_00003[match(spo.tpcb$date,
                                               flow.4$Date)]
-spo.tpcb$flow.5 <- flow.5$X_00060_00003[match(spo.tpcb$date,
-                                              flow$Date)]
 
 # Add USGS data to spo.log.tpcb, matching dates
 spo.log.tpcb$flow.1 <- flow.1$X_00060_00003[match(spo.log.tpcb$date,
@@ -245,14 +252,21 @@ spo.log.tpcb$flow.4 <- flow.4$X_00060_00003[match(spo.log.tpcb$date,
                                                   flow.4$Date)]
 
 # Remove site -------------------------------------------------------------
-# ?
+# Coeurd'AleneWWTP
+# PostFallsWWTP
+# LibertyLakeSewer
+# KaiserAluminum
+spo.tpcb.2 <- subset(spo.tpcb, site != c("Coeurd'AleneWWTP"))
+spo.tpcb.2 <- subset(spo.tpcb.2, site != c("PostFallsWWTP"))
+spo.tpcb.2 <- subset(spo.tpcb.2, site != c("LibertyLakeSewer"))
+spo.tpcb.2 <- subset(spo.tpcb.2, site != c("KaiserAluminum"))
 
 
 
 # Regressions -------------------------------------------------------------
 # (1) Perform linear regression (lr)
 # (1.1) tPCB vs. time
-lr.spo.tpcb.t <- lm(log10(tPCB) ~ time, data = spo.tpcb)
+lr.spo.tpcb.t <- lm(log10(tPCB) ~ time, data = spo.tpcb.2)
 # See results
 summary(lr.spo.tpcb.t)
 # Look at residuals
@@ -312,7 +326,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.5) tPCB vs. flow
-lr.spo.tpcb.f <- lm(log10(tPCB) ~ flow.4, data = spo.tpcb)
+lr.spo.tpcb.f <- lm(log10(tPCB) ~ flow.4, data = spo.tpcb.2)
 # See results
 summary(lr.spo.tpcb.f)
 # Look at residuals
@@ -343,8 +357,8 @@ ks.test(res, 'pnorm')
 
 # (2) MLR
 # (2.1) tPCB vs. time + season + flow
-mlr.spo.tpcb <- lm(log10(tPCB) ~ time + season + flow.4,
-                   data = spo.tpcb)
+mlr.spo.tpcb <- lm(log10(tPCB) ~ time + season + flow.1,
+                   data = spo.tpcb.2)
 # See results
 summary(mlr.spo.tpcb)
 # Look at residuals
@@ -376,11 +390,11 @@ ks.test(res, 'pnorm')
 
 # (3) Perform Linear Mixed-Effects Model (LMEM)
 # (3.1) tPCB vs. time + season + flow + site
-tpcb <- spo.tpcb$tPCB
-time <- spo.tpcb$time
-site <- spo.tpcb$site.code
-season <- spo.tpcb$season
-flow <- spo.tpcb$flow.1
+tpcb <- spo.tpcb.2$tPCB
+time <- spo.tpcb.2$time
+site <- spo.tpcb.2$site.code
+season <- spo.tpcb.2$season
+flow <- spo.tpcb.2$flow.1
 
 lmem.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
                   REML = FALSE,
@@ -450,10 +464,10 @@ fit.values.spo.tpcb <- as.data.frame(fitted(lmem.spo.tpcb))
 # Add column name
 colnames(fit.values.spo.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-spo.tpcb$predicted <- 10^(fit.values.spo.tpcb$predicted)
+spo.tpcb.2$predicted <- 10^(fit.values.spo.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(spo.tpcb, aes(x = tPCB, y = predicted)) +
+ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point() +
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -472,7 +486,7 @@ ggplot(spo.tpcb, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
 
-ggplot(spo.tpcb, aes(x = tPCB, y = predicted)) +
+ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point() +
   scale_x_log10(limits = c(10, 1e5)) +
   scale_y_log10(limits = c(10, 1e5)) +
