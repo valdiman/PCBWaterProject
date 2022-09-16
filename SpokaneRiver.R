@@ -179,7 +179,7 @@ ggplot(spo.tpcb, aes(x = factor(site, levels = sites), y = tPCB)) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2014 - 2016 (pg/L)"))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
@@ -261,12 +261,15 @@ spo.tpcb.2 <- subset(spo.tpcb.2, site != c("PostFallsWWTP"))
 spo.tpcb.2 <- subset(spo.tpcb.2, site != c("LibertyLakeSewer"))
 spo.tpcb.2 <- subset(spo.tpcb.2, site != c("KaiserAluminum"))
 
+# Select sites
+spo.tpcb.PF <- subset(spo.tpcb, site == "PostFalls") # flow.2
+spo.tpcb.WRF <- subset(spo.tpcb, site == "SpokaneWRF") # flow.3
 
 
 # Regressions -------------------------------------------------------------
 # (1) Perform linear regression (lr)
 # (1.1) tPCB vs. time
-lr.spo.tpcb.t <- lm(log10(tPCB) ~ time, data = spo.tpcb.2)
+lr.spo.tpcb.t <- lm(log10(tPCB) ~ time, data = spo.tpcb.WRF)
 # See results
 summary(lr.spo.tpcb.t)
 # Look at residuals
@@ -326,7 +329,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.5) tPCB vs. flow
-lr.spo.tpcb.f <- lm(log10(tPCB) ~ flow.4, data = spo.tpcb.2)
+lr.spo.tpcb.f <- lm(log10(tPCB) ~ flow.3, data = spo.tpcb.WRF)
 # See results
 summary(lr.spo.tpcb.f)
 # Look at residuals
@@ -357,8 +360,8 @@ ks.test(res, 'pnorm')
 
 # (2) MLR
 # (2.1) tPCB vs. time + season + flow
-mlr.spo.tpcb <- lm(log10(tPCB) ~ time + season + flow.1,
-                   data = spo.tpcb.2)
+mlr.spo.tpcb <- lm(log10(tPCB) ~ time + season + flow.3,
+                   data = spo.tpcb.WRF)
 # See results
 summary(mlr.spo.tpcb)
 # Look at residuals
