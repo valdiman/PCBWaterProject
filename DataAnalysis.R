@@ -33,7 +33,7 @@ library(MuMIn) # get Rs from lme
 library(lmerTest) # get the p-value from lme
 
 # Data in pg/L
-wdc.0 <- read.csv("WaterDataCongenerAroclor072122.csv")
+wdc.0 <- read.csv("WaterDataCongenerAroclor08052022.csv")
 
 # Summary plots -----------------------------------------------------------
 
