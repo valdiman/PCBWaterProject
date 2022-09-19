@@ -26,8 +26,6 @@ library(ggplot2)
 library(ggmap) # function map_data
 library(maps)
 library(leaflet)
-#library(raster)
-#library(GISTools)
 library(rgeos)
 library(ggsn)
 library(ggrepel)
@@ -37,7 +35,6 @@ library(ggpmisc)
 # Read data ---------------------------------------------------------------
 # Data in pg/L
 wdc.0 <- read.csv("WaterDataCongenerAroclor08052022.csv")
-
 
 # Global maps -------------------------------------------------------------
 us <- map_data("usa")
@@ -58,13 +55,13 @@ ggplot() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
              colour = "white") +
   geom_polygon(color = "black", fill = NA) +
-  geom_point(data = wdc.0, aes(x = Longitude, y = Latitude), color = "black",
+  geom_point(data = wdc.0, aes(x = Longitude, y = Latitude),
+             color = "black",
              size = 1.2, shape = 20) +
-  annotate(geom = 'table', x = -57, y = 32,
+  annotate(geom = 'table', x = -52, y = 20,
            label = list(wdc.1), size = 2.5) # add table with info
 
-# tPCB map 
-# Determine a time range (e.g., 2010 - 2019) and few locations
+# tPCB map
 # Prepare data
 # Remove samples (rows) with total PCBs  = 0
 wdc.2 <- wdc.0[!(rowSums(wdc.0[, c(12:115)], na.rm = TRUE)==0),]
@@ -74,7 +71,8 @@ wdc.tPCB <- data.frame(cbind(wdc.2$Latitude, wdc.2$Longitude,
 # Name the columns
 colnames(wdc.tPCB) <- c("Latitude", "Longitude", "tPCB")
 # Average tPCB per site
-wdc.tPCB.mean <- aggregate(tPCB ~ Latitude + Longitude, data = wdc.tPCB, mean)
+wdc.tPCB.mean <- aggregate(tPCB ~ Latitude + Longitude,
+                           data = wdc.tPCB, mean)
 
 # (2) Map + tPCB
 # Cannot include legend
@@ -82,15 +80,18 @@ ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
                color = "black", fill = "lightblue") +
   coord_fixed(1.3) +
-  theme_nothing() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
             colour = "white") +
   geom_polygon(color = "black", fill = NA) +
   geom_point(data = wdc.tPCB.mean, aes(x = Longitude, y = Latitude,
-                                       size = tPCB), color = "red")
-
+                                       size = tPCB/1000),
+             color = "red") +
+  theme(legend.position = "right") +
+  scale_size_area(breaks = c(50, 500, 1000, 1500, 2000),
+                  name = expression(bold(atop(Sigma*"PCBs (mean)",
+                  paste("1990-2020 (ng/L)")))), max_size = 5)
+  
 # Specific locations ------------------------------------------------------
-
 # Portland Harbor ---------------------------------------------------------
 # Select only OR
 wdc.OR <- subset(wdc.0, StateSampled == "OR")
@@ -172,8 +173,8 @@ tPCB.mean <- aggregate(tPCB ~ Site + Latitude + Longitude,
 
 # (1) Plot map + locations
 ggmap(WI.map) +
-  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude), shape = 21,
-             color = "red",
+  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude),
+             shape = 21, color = "red",
              fill = "white", size = 1.75, stroke = 0.75) +
   geom_label_repel(aes(x = Longitude, y = Latitude, label = Site),
                    data = tPCB.mean, family = 'Times', size = 4, 
@@ -183,7 +184,8 @@ ggmap(WI.map) +
 # (2) Plot map + tPCB
 ggmap(WI.map) +
   geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude,
-                                   size = tPCB), alpha = 1, color  = "red") +
+                                   size = tPCB), alpha = 1,
+             color  = "red") +
   scale_size_area(breaks = c(100, 125, 150, 175, 200),
                   name = "Ave. PCBs \n2018-2019 (pg/L)") +
   xlab("Longitude") +
@@ -222,8 +224,8 @@ tPCB.mean <- aggregate(tPCB ~ Site + Latitude + Longitude,
 
 # (1) Plot map + locations
 ggmap(NY.map) +
-  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude), shape = 21,
-             color = "red",
+  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude),
+             shape = 21, color = "red",
              fill = "white", size = 1.75, stroke = 0.75) +
   geom_label_repel(aes(x = Longitude, y = Latitude, label = Site),
                    data = tPCB.mean, family = 'Times', size = 1.8, 
@@ -233,7 +235,8 @@ ggmap(NY.map) +
 # (2) Plot map + tPCB
 ggmap(NY.map) +
   geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude,
-                                   size = tPCB), alpha = 1, color  = "red") +
+                                   size = tPCB), alpha = 1,
+             color  = "red") +
   scale_size_area(breaks = c(100, 125, 150, 175, 200),
                   name = "Ave. PCBs \n2018-2019 (pg/L)") +
   xlab("Longitude") +
@@ -271,8 +274,8 @@ tPCB.mean <- aggregate(tPCB ~ Site + Latitude + Longitude,
 
 # (1) Plot map + locations
 ggmap(HR.map) +
-  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude), shape = 21,
-             color = "red",
+  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude),
+             shape = 21, color = "red",
              fill = "white", size = 1.75, stroke = 0.75)
   #geom_label_repel(aes(x = Longitude, y = Latitude, label = Site),
   #                 data = tPCB.mean, family = 'Times', size = 1.8, 
