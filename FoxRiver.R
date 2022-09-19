@@ -96,7 +96,7 @@ hist(log10(fox.log.tpcb$logtPCB))
 # (2) Time trend plots
 # (2.1) tPCB
 ggplot(fox.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y%m'))) +
+                     x = format(date,'%Y'))) +
   geom_point() +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
