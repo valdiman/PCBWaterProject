@@ -233,7 +233,6 @@ ggmap(WI.map) +
                   name = expression(bold(atop("log10("*Sigma*"PCBs) (mean)",
                                               paste("2006-2018 (pg/L)")))), max_size = 5)
 
-
 # Hudson River ------------------------------------------------------------
 # Select only WI
 wdc.NY <- subset(wdc.0, StateSampled == "NY")
