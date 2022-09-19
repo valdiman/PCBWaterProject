@@ -14,6 +14,7 @@ install.packages("usethis")
 install.packages("GISTools")
 install.packages("rgeos")
 install.packages("ggsn")
+install.packages("sf")
 install.packages("ggrepel")
 install.packages("ggpp")
 install.packages("raster")
@@ -80,6 +81,8 @@ ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
                color = "black", fill = "lightblue") +
   coord_fixed(1.3) +
+  xlab("Longitude") +
+  ylab("Latitude") +
   geom_path(data = states, aes(x = long, y = lat, group = group),
             colour = "white") +
   geom_polygon(color = "black", fill = NA) +
@@ -124,11 +127,11 @@ tPCB.mean <- aggregate(tPCB ~ Latitude + Longitude + Site,
 
 # (1) Plot map + locations
 ggmap(PO.map) +
-  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude), shape = 21,
-             color = "red",
+  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude),
+             shape = 21, color = "red",
              fill = "white", size = 1.75, stroke = 0.75) +
   geom_label_repel(aes(x = Longitude, y = Latitude, label = Site),
-                   data = tPCB.mean, family = 'Times', size = 4, 
+                   data = tPCB.mean, family = 'Times New Roman', size = 3, 
                    box.padding = 0.2, point.padding = 0.3,
                    segment.color = 'grey50')
 
@@ -148,8 +151,9 @@ wdc.WI <- subset(wdc.0, StateSampled == "WI")
 wdc.WI <- subset(wdc.WI, SiteName == "FoxRiver")
 
 # Create general map
-WI.box <- make_bbox(lon = wdc.WI$Longitude, lat = wdc.WI$Latitude, f = 0.8)
-WI.map <- get_stamenmap(bbox = WI.box, zoom = 10)
+WI.box <- make_bbox(lon = wdc.WI$Longitude, lat = wdc.WI$Latitude,
+                    f = 0.8) # f = 0.2 for all WI, 0.8 for Fox River
+WI.map <- get_stamenmap(bbox = WI.box, zoom = 10) # zoom = 8 for all WI, 10 for Fox River
 
 # Plot map with sites
 # Prepare data
@@ -172,24 +176,62 @@ tPCB.mean <- aggregate(tPCB ~ Site + Latitude + Longitude,
                        data = tPCB.WI, FUN = mean)
 
 # (1) Plot map + locations
+# For all locations in WI
 ggmap(WI.map) +
   geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude),
              shape = 21, color = "red",
              fill = "white", size = 1.75, stroke = 0.75) +
+  annotate('text', x = -87.5, y = 45,
+           label = 'Green Bay', colour = 'black', size = 3,
+           fontface = 2) +
+  annotate('text', x = -87.1, y = 44,
+           label = 'Lake Michigan', colour = 'black', size = 3,
+           fontface = 2) +
+  annotate('text', x = -88.3, y = 44.4,
+           label = 'Fox River', colour = 'black', size = 3,
+           fontface = 2) +
+  xlab("Longitude") +
+  ylab("Latitude")
+
+# For Fox River locations
+ggmap(WI.map) +
+  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude),
+             shape = 21, color = "red",
+             fill = "white", size = 1.75, stroke = 0.75) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  annotate('text', x = -87.5, y = 45,
+           label = 'Green Bay', colour = 'black', size = 3,
+           fontface = 2) +
+  annotate('text', x = -88.2, y = 44.435,
+           label = 'Fox River', colour = 'black', size = 3,
+           fontface = 2) +
+  annotate('text', x = -87.85, y = 44.7,
+           label = 'Green Bay', colour = 'black', size = 3,
+           fontface = 2) +
   geom_label_repel(aes(x = Longitude, y = Latitude, label = Site),
-                   data = tPCB.mean, family = 'Times', size = 4, 
+                   data = tPCB.mean, family = 'Times New Roman', size = 2.8, 
                    box.padding = 0.2, point.padding = 0.3,
                    segment.color = 'grey50')
 
 # (2) Plot map + tPCB
 ggmap(WI.map) +
   geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude,
-                                   size = tPCB), alpha = 1,
+                                   size = log10(tPCB)), alpha = 1,
              color  = "red") +
-  scale_size_area(breaks = c(100, 125, 150, 175, 200),
-                  name = "Ave. PCBs \n2018-2019 (pg/L)") +
   xlab("Longitude") +
-  ylab("Latitude")
+  ylab("Latitude") +
+  theme(legend.position = "right") +
+  annotate('text', x = -88.2, y = 44.435,
+           label = 'Fox River', colour = 'black', size = 3,
+           fontface = 2) +
+  annotate('text', x = -87.85, y = 44.7,
+           label = 'Green Bay', colour = 'black', size = 3,
+           fontface = 2) +
+  scale_size_area(breaks = c(2, 3, 4),
+                  labels = c(100, 1000, 10000),
+                  name = expression(bold(atop("log10("*Sigma*"PCBs) (mean)",
+                                              paste("2006-2018 (pg/L)")))), max_size = 5)
 
 
 # Hudson River ------------------------------------------------------------
