@@ -128,7 +128,7 @@ ggplot(nbh.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2006 - 2006 (pg/L)"))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
@@ -149,7 +149,7 @@ ggplot(nbh.log.tpcb, aes(x = season, y = logtPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2006 - 2016 (pg/L)"))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
@@ -170,7 +170,7 @@ ggplot(nbh.tpcb, aes(x = factor(site), y = tPCB)) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2006 - 2016 (pg/L)"))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
@@ -204,11 +204,20 @@ ggplot(nbh.log.tpcb, aes(x = factor(site), y = logtPCB)) +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # Remove site -------------------------------------------------------------
-# Remove site Lake Winnebago (background site)
-nbh.tpcb.2 <- subset(nbh.tpcb, site != c("LakeWinnebago"))
+# Remove samples during dredging 2015-2016
+nbh.tpcb.2 <- subset(nbh.tpcb, date != c("2015-08-10"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2015-08-11"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2015-08-12"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2015-11-10"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2015-11-12"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2015-11-16"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2016-02-02"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2016-02-03"))
+nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2016-02-04"))
+
 nbh.log.tpcb.2 <- subset(nbh.log.tpcb, site != c("LakeWinnebago"))
 
-# Plots w/o Lake Winnebago ------------------------------------------------
+# Plots w/o Dredging samples ------------------------------------------------
 # (1) Histograms
 # (1.1) tPCB
 hist(nbh.tpcb.2$tPCB)
@@ -331,7 +340,7 @@ ggplot(nbh.log.tpcb.2, aes(x = factor(site), y = logtPCB)) +
 # Regressions -------------------------------------------------------------
 # (1) Perform linear regression (lr)
 # (1.1) tPCB vs. time
-lr.nbh.tpcb.t <- lm(log10(tPCB) ~ time, data = nbh.tpcb)
+lr.nbh.tpcb.t <- lm(log10(tPCB) ~ time, data = nbh.tpcb.2)
 # See results
 summary(lr.nbh.tpcb.t)
 # Look at residuals
@@ -361,7 +370,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.3) tPCB vs. season
-lr.nbh.tpcb.s <- lm(log10(tPCB) ~ season, data = nbh.tpcb)
+lr.nbh.tpcb.s <- lm(log10(tPCB) ~ season, data = nbh.tpcb.2)
 # See results
 summary(lr.nbh.tpcb.s)
 # Look at residuals
@@ -392,7 +401,7 @@ ks.test(res, 'pnorm')
 
 # (2) MLR
 # (2.1) tPCB vs. time + season (nbh.tpcb)
-mlr.nbh.tpcb <- lm(log10(tPCB) ~ time + season, data = nbh.tpcb)
+mlr.nbh.tpcb <- lm(log10(tPCB) ~ time + season, data = nbh.tpcb.2)
 # See results
 summary(mlr.nbh.tpcb)
 # Look at residuals
@@ -424,10 +433,10 @@ ks.test(res, 'pnorm')
 
 # (3) Perform Linear Mixed-Effects Model (LMEM)
 # (3.1) tPCB vs. time + season + site (nbh.tpcb)
-tpcb <- nbh.tpcb$tPCB
-time <- nbh.tpcb$time
-site <- nbh.tpcb$site.code
-season <- nbh.tpcb$season
+tpcb <- nbh.tpcb.2$tPCB
+time <- nbh.tpcb.2$time
+site <- nbh.tpcb.2$site.code
+season <- nbh.tpcb.2$season
 
 lmem.nbh.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
                   REML = FALSE,
@@ -491,14 +500,14 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.nbh.log.tpcb))[1, 'R2c']
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.nbh.tpcb <- as.data.frame(fitted(mlr.nbh.tpcb))
+fit.values.nbh.tpcb <- as.data.frame(fitted(lmem.nbh.tpcb))
 # Add column name
 colnames(fit.values.nbh.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-nbh.tpcb$predicted <- 10^(fit.values.nbh.tpcb$predicted)
+nbh.tpcb.2$predicted <- 10^(fit.values.nbh.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
+ggplot(nbh.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point() +
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -517,22 +526,22 @@ ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
 
-ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
+ggplot(nbh.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point() +
-  scale_x_log10(limits = c(10, 1e6)) +
-  scale_y_log10(limits = c(10, 1e6)) +
+  scale_x_log10(limits = c(10, 1e5)) +
+  scale_y_log10(limits = c(10, 1e5)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 100, y = 1000000,
+  annotate('text', x = 100, y = 100000,
            label = 'New Bedford Harbor', colour = 'black', size = 4,
            fontface = 2)
 
 # Plot residuals vs. predictions
-plot(log10(nbh.tpcb$predicted), res.nbh.tpcb)
+plot(log10(nbh.tpcb.2$predicted), res.nbh.tpcb)
 abline(0, 0)
 
 # (2) Get predicted values log.tpcb
