@@ -67,13 +67,17 @@ ggplot() +
 # Remove samples (rows) with total PCBs  = 0
 wdc.2 <- wdc.0[!(rowSums(wdc.0[, c(12:115)], na.rm = TRUE)==0),]
 # Get tPCB and coordinates
-wdc.tPCB <- data.frame(cbind(wdc.2$Latitude, wdc.2$Longitude,
+wdc.tPCB <- data.frame(cbind(wdc.2$SiteSampled, wdc.2$Latitude, wdc.2$Longitude,
                             rowSums(wdc.2[, c(12:115)], na.rm = TRUE)))
 # Name the columns
-colnames(wdc.tPCB) <- c("Latitude", "Longitude", "tPCB")
+colnames(wdc.tPCB) <- c("Site", "Latitude", "Longitude", "tPCB")
+# Get coordinates per site to plot in Google Earth
+wdc.location <- wdc.tPCB[c('Site', 'Latitude', 'Longitude', 'tPCB')]
+
+
 # Average tPCB per site
-wdc.tPCB.mean <- aggregate(tPCB ~ Latitude + Longitude,
-                           data = wdc.tPCB, mean)
+wdc.location <- aggregate(tPCB ~ Site + Latitude + Longitude,
+                           data = wdc.location, mean)
 
 # (2) Map + tPCB
 # Cannot include legend
