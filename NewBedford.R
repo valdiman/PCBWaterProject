@@ -328,36 +328,10 @@ ggplot(nbh.log.tpcb.2, aes(x = factor(site), y = logtPCB)) +
               shape = 1, col = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
-# Include USGS flow data --------------------------------------------------
-# Include flow data from USGS station nbh River
-sitenbhN1 <- "04084445" # flow @ OX RIVER AT APPLETON, WI
-sitenbhN2 <- "040851385" # water temperature @ nbh RIVER AT OIL TANK DEPOT AT GREEN BAY, WI
-# Codes to retrieve data
-paramflow <- "00060" # discharge, ft3/s
-paramtemp <- "00010" # water temperature, C
-# Retrieve USGS data
-flow <- readNWISdv(sitenbhN1, paramflow,
-                   min(nbh.tpcb.2$date), max(nbh.tpcb.2$date))
-temp <- readNWISdv(sitenbhN2, paramtemp,
-                   min(nbh.tpcb.2$date), max(nbh.tpcb.2$date))
-# Add USGS data to nbh.tpcb, matching dates
-nbh.tpcb.2$flow <- flow$X_.Primary.Stream.Flow._00060_00003[match(nbh.tpcb.2$date,
-                                                                flow$Date)]
-nbh.tpcb.2$temp <- temp$X_00010_00003[match(nbh.tpcb.2$date, temp$Date)]
-# Remove samples with temp = NA
-nbh.tpcb.2 <- na.omit(nbh.tpcb.2)
-
-# Add USGS data to nbh.log.tpcb, matching dates
-nbh.log.tpcb.2$flow <- flow$X_.Primary.Stream.Flow._00060_00003[match(nbh.log.tpcb.2$date,
-                                                                    flow$Date)]
-nbh.log.tpcb.2$temp <- temp$X_00010_00003[match(nbh.log.tpcb.2$date, temp$Date)]
-# Remove samples with temp = NA
-nbh.log.tpcb.2 <- na.omit(nbh.log.tpcb.2)
-
 # Regressions -------------------------------------------------------------
 # (1) Perform linear regression (lr)
 # (1.1) tPCB vs. time
-lr.nbh.tpcb.t <- lm(log10(tPCB) ~ time, data = nbh.tpcb.2)
+lr.nbh.tpcb.t <- lm(log10(tPCB) ~ time, data = nbh.tpcb)
 # See results
 summary(lr.nbh.tpcb.t)
 # Look at residuals
@@ -372,7 +346,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.2) log.tPCB vs. time
-lr.nbh.log.tpcb.t <- lm(logtPCB ~ time, data = nbh.log.tpcb.2)
+lr.nbh.log.tpcb.t <- lm(logtPCB ~ time, data = nbh.log.tpcb)
 # See results
 summary(lr.nbh.log.tpcb.t)
 # Look at residuals
@@ -387,7 +361,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.3) tPCB vs. season
-lr.nbh.tpcb.s <- lm(log10(tPCB) ~ season, data = nbh.tpcb.2)
+lr.nbh.tpcb.s <- lm(log10(tPCB) ~ season, data = nbh.tpcb)
 # See results
 summary(lr.nbh.tpcb.s)
 # Look at residuals
@@ -402,7 +376,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.4) log.tPCB vs. season
-lr.nbh.log.tpcb.s <- lm(logtPCB ~ season, data = nbh.log.tpcb.2)
+lr.nbh.log.tpcb.s <- lm(logtPCB ~ season, data = nbh.log.tpcb)
 # See results
 summary(lr.nbh.log.tpcb.s)
 # Look at residuals
@@ -416,69 +390,9 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.5) tPCB vs. flow (nbh.tpcb.2)
-lr.nbh.tpcb.f <- lm(log10(tPCB) ~ flow, data = nbh.tpcb.2)
-# See results
-summary(lr.nbh.tpcb.f)
-# Look at residuals
-res <- resid(lr.nbh.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.6) log.tPCB vs. flow (nbh.log.tpcb.2)
-lr.nbh.log.tpcb.f <- lm(logtPCB ~ flow, data = nbh.log.tpcb.2)
-# See results
-summary(lr.nbh.log.tpcb.f)
-# Look at residuals
-res <- resid(lr.nbh.log.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.7) tPCB vs. water temperature (nbh.tpcb.2)
-lr.nbh.tpcb.te <- lm(log10(tPCB) ~ temp, data = nbh.tpcb.2)
-# See results
-summary(lr.nbh.tpcb.te)
-# Look at residuals
-res <- resid(lr.nbh.tpcb.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.8) log.tPCB vs. temperature (nbh.log.tpcb.2)
-lr.nbh.log.tpcb.te <- lm(logtPCB ~ temp, data = nbh.log.tpcb.2)
-# See results
-summary(lr.nbh.log.tpcb.te)
-# Look at residuals
-res <- resid(lr.nbh.log.tpcb.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
 # (2) MLR
-# (2.1) tPCB vs. time + season + flow + temp (nbh.tpcb.2)
-mlr.nbh.tpcb <- lm(log10(tPCB) ~ time + season + flow + temp, data = nbh.tpcb.2)
+# (2.1) tPCB vs. time + season (nbh.tpcb)
+mlr.nbh.tpcb <- lm(log10(tPCB) ~ time + season, data = nbh.tpcb)
 # See results
 summary(mlr.nbh.tpcb)
 # Look at residuals
@@ -492,9 +406,9 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (2.2) log.tPCB vs. time + season + flow + temp (nbh.log.tpcb.2)
-mlr.nbh.log.tpcb <- lm(logtPCB ~ time + season + flow + temp,
-                       data = nbh.log.tpcb.2)
+# (2.2) log.tPCB vs. time + season (nbh.log.tpcb)
+mlr.nbh.log.tpcb <- lm(logtPCB ~ time + season,
+                       data = nbh.log.tpcb)
 # See results
 summary(mlr.nbh.log.tpcb)
 # Look at residuals
@@ -509,15 +423,13 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (3) Perform Linear Mixed-Effects Model (LMEM)
-# (3.1) tPCB vs. time + season + flow + temp + site (nbh.tpcb.2)
-tpcb <- nbh.tpcb.2$tPCB
-time <- nbh.tpcb.2$time
-site <- nbh.tpcb.2$site.code
-season <- nbh.tpcb.2$season
-flow <- nbh.tpcb.2$flow
-tem <- nbh.tpcb.2$temp
+# (3.1) tPCB vs. time + season + site (nbh.tpcb)
+tpcb <- nbh.tpcb$tPCB
+time <- nbh.tpcb$time
+site <- nbh.tpcb$site.code
+season <- nbh.tpcb$season
 
-lmem.nbh.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + tem + (1|site),
+lmem.nbh.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
@@ -548,15 +460,13 @@ t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
-# (3.2) log.tPCB vs. time + season + flow + temp + site (nbh.log.tpcb.2)
-log.tpcb <- nbh.log.tpcb.2$logtPCB
-time <- nbh.log.tpcb.2$time
-site <- nbh.log.tpcb.2$site.code
-season <- nbh.log.tpcb.2$season
-flow <- nbh.log.tpcb.2$flow
-tem <- nbh.log.tpcb.2$temp
+# (3.2) log.tPCB vs. time + season + site (nbh.log.tpcb.2)
+log.tpcb <- nbh.log.tpcb$logtPCB
+time <- nbh.log.tpcb$time
+site <- nbh.log.tpcb$site.code
+season <- nbh.log.tpcb$season
 
-lmem.nbh.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + flow + tem + (1|site),
+lmem.nbh.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
                                             check.nobs.vs.rankZ = "ignore",
@@ -581,14 +491,14 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.nbh.log.tpcb))[1, 'R2c']
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.nbh.tpcb <- as.data.frame(fitted(lmem.nbh.tpcb))
+fit.values.nbh.tpcb <- as.data.frame(fitted(mlr.nbh.tpcb))
 # Add column name
 colnames(fit.values.nbh.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-nbh.tpcb.2$predicted <- 10^(fit.values.nbh.tpcb$predicted)
+nbh.tpcb$predicted <- 10^(fit.values.nbh.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(nbh.tpcb.2, aes(x = tPCB, y = predicted)) +
+ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point() +
   scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -607,22 +517,22 @@ ggplot(nbh.tpcb.2, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
 
-ggplot(nbh.tpcb.2, aes(x = tPCB, y = predicted)) +
+ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point() +
-  scale_x_log10(limits = c(10, 1e4)) +
-  scale_y_log10(limits = c(10, 1e4)) +
+  scale_x_log10(limits = c(10, 1e6)) +
+  scale_y_log10(limits = c(10, 1e6)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 25, y = 10000,
-           label = 'nbh River', colour = 'black', size = 4,
+  annotate('text', x = 100, y = 1000000,
+           label = 'New Bedford Harbor', colour = 'black', size = 4,
            fontface = 2)
 
 # Plot residuals vs. predictions
-plot(log10(nbh.tpcb.2$predicted), res.nbh.tpcb)
+plot(log10(nbh.tpcb$predicted), res.nbh.tpcb)
 abline(0, 0)
 
 # (2) Get predicted values log.tpcb
