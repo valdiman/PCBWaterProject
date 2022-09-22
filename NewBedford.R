@@ -215,7 +215,15 @@ nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2016-02-02"))
 nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2016-02-03"))
 nbh.tpcb.2 <- subset(nbh.tpcb.2, date != c("2016-02-04"))
 
-nbh.log.tpcb.2 <- subset(nbh.log.tpcb, site != c("LakeWinnebago"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb, date != c("2015-08-10"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2015-08-11"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2015-08-12"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2015-11-10"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2015-11-12"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2015-11-16"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2016-02-02"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2016-02-03"))
+nbh.log.tpcb.2 <- subset(nbh.log.tpcb.2, date != c("2016-02-04"))
 
 # Plots w/o Dredging samples ------------------------------------------------
 # (1) Histograms
@@ -355,7 +363,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.2) log.tPCB vs. time
-lr.nbh.log.tpcb.t <- lm(logtPCB ~ time, data = nbh.log.tpcb)
+lr.nbh.log.tpcb.t <- lm(logtPCB ~ time, data = nbh.log.tpcb.2)
 # See results
 summary(lr.nbh.log.tpcb.t)
 # Look at residuals
@@ -385,7 +393,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (1.4) log.tPCB vs. season
-lr.nbh.log.tpcb.s <- lm(logtPCB ~ season, data = nbh.log.tpcb)
+lr.nbh.log.tpcb.s <- lm(logtPCB ~ season, data = nbh.log.tpcb.2)
 # See results
 summary(lr.nbh.log.tpcb.s)
 # Look at residuals
@@ -417,7 +425,7 @@ ks.test(res, 'pnorm')
 
 # (2.2) log.tPCB vs. time + season (nbh.log.tpcb)
 mlr.nbh.log.tpcb <- lm(logtPCB ~ time + season,
-                       data = nbh.log.tpcb)
+                       data = nbh.log.tpcb.2)
 # See results
 summary(mlr.nbh.log.tpcb)
 # Look at residuals
@@ -470,10 +478,10 @@ t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
 # (3.2) log.tPCB vs. time + season + site (nbh.log.tpcb.2)
-log.tpcb <- nbh.log.tpcb$logtPCB
-time <- nbh.log.tpcb$time
-site <- nbh.log.tpcb$site.code
-season <- nbh.log.tpcb$season
+log.tpcb <- nbh.log.tpcb.2$logtPCB
+time <- nbh.log.tpcb.2$time
+site <- nbh.log.tpcb.2$site.code
+season <- nbh.log.tpcb.2$season
 
 lmem.nbh.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + (1|site),
                       REML = FALSE,
