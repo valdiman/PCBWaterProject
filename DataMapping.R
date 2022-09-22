@@ -37,6 +37,18 @@ library(ggpmisc)
 # Data in pg/L
 wdc.0 <- read.csv("WaterDataCongenerAroclor08052022.csv")
 
+# Extract sample site locations -------------------------------------------
+# Calculate total PCB
+tpcb <- rowSums(wdc.0[, c(12:115)], na.rm = T)
+# Select and combine sample sites anf tPCB
+wdc.location <- cbind.data.frame(wdc.0$SiteSampled, wdc.0$Latitude, wdc.0$Longitude,
+                      tpcb)
+# Name the columns
+colnames(wdc.location) <- c("site", "Latitude", "Longitude", "tPCB")
+# Average tPCB per sample site
+wdc.location <- aggregate(tPCB ~ site + Latitude + Longitude,
+                          data = wdc.location, mean)
+
 # Global maps -------------------------------------------------------------
 us <- map_data("usa")
 states <- map_data("state")
@@ -63,21 +75,6 @@ ggplot() +
            label = list(wdc.1), size = 2.5) # add table with info
 
 # tPCB map
-# Prepare data
-# Remove samples (rows) with total PCBs  = 0
-wdc.2 <- wdc.0[!(rowSums(wdc.0[, c(12:115)], na.rm = TRUE)==0),]
-# Get tPCB and coordinates
-wdc.tPCB <- data.frame(cbind(wdc.2$SiteSampled, wdc.2$Latitude, wdc.2$Longitude,
-                            rowSums(wdc.2[, c(12:115)], na.rm = TRUE)))
-# Name the columns
-colnames(wdc.tPCB) <- c("Site", "Latitude", "Longitude", "tPCB")
-# Get coordinates per site to plot in Google Earth
-wdc.location <- wdc.tPCB[c('Site', 'Latitude', 'Longitude', 'tPCB')]
-
-
-# Average tPCB per site
-wdc.location <- aggregate(tPCB ~ Site + Latitude + Longitude,
-                           data = wdc.location, mean)
 
 # (2) Map + tPCB
 # Cannot include legend
