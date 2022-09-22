@@ -65,16 +65,16 @@ ggplot() +
                color = "black", fill = "lightblue") +
   coord_fixed(1.3) +
   theme_nothing() +
+  xlab("Longitude") +
+  ylab("Latitude") +
   geom_path(data = states, aes(x = long, y = lat, group = group),
              colour = "white") +
   geom_polygon(color = "black", fill = NA) +
   geom_point(data = wdc.0, aes(x = Longitude, y = Latitude),
              color = "black",
              size = 1.2, shape = 20) +
-  annotate(geom = 'table', x = -52, y = 20,
+  annotate(geom = 'table', x = -50, y = 20,
            label = list(wdc.1), size = 2.5) # add table with info
-
-# tPCB map
 
 # (2) Map + tPCB
 # Cannot include legend
@@ -87,7 +87,7 @@ ggplot() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
             colour = "white") +
   geom_polygon(color = "black", fill = NA) +
-  geom_point(data = wdc.tPCB.mean, aes(x = Longitude, y = Latitude,
+  geom_point(data = wdc.location, aes(x = Longitude, y = Latitude,
                                        size = tPCB/1000),
              color = "red") +
   theme(legend.position = "right") +
