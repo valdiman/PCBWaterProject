@@ -32,26 +32,24 @@ library(dataRetrieval) # read data from USGS
 wdc <- read.csv("WaterDataCongenerAroclor08052022.csv")
 
 # Select Chesapeake Bay & Delaware Canal data ---------------------------------------------------
-che.0 <- wdc[str_detect(wdc$SiteName, 'che_TMDL'),]
+che.0 <- wdc[str_detect(wdc$SiteName, 'ChesapeakeBay'),]
 
 # Data preparation --------------------------------------------------------
-# Remove samples (rows) with total PCBs  = 0
-che.1 <- che.0[!(rowSums(che.0[, c(12:115)], na.rm = TRUE)==0),]
 # Calculate total PCB
-tpcb.che <- rowSums(che.1[, c(12:115)], na.rm = T)
+tpcb.che <- rowSums(che.0[, c(12:115)], na.rm = T)
 # Change date format
-che.1$SampleDate <- as.Date(che.1$SampleDate, format = "%m/%d/%y")
+che.0$SampleDate <- as.Date(che.0$SampleDate, format = "%m/%d/%y")
 # Calculate sampling time
-time.day <- data.frame(as.Date(che.1$SampleDate) - min(as.Date(che.1$SampleDate)))
+time.day <- data.frame(as.Date(che.0$SampleDate) - min(as.Date(che.0$SampleDate)))
 # Create individual code for each site sampled
-site.numb <- che.1$SiteSampled %>% as.factor() %>% as.numeric
+site.numb <- che.0$SiteSampled %>% as.factor() %>% as.numeric
 # Include season
-yq.s <- as.yearqtr(as.yearmon(che.1$SampleDate, "%m/%d/%Y") + 1/12)
+yq.s <- as.yearqtr(as.yearmon(che.0$SampleDate, "%m/%d/%Y") + 1/12)
 season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                    labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
 # Create data frame
-che.tpcb <- cbind(factor(che.1$SiteSampled), che.1$SampleDate,
-                  che.1$Latitude, che.1$Longitude, as.matrix(tpcb.che),
+che.tpcb <- cbind(factor(che.0$SiteSampled), che.0$SampleDate,
+                  che.0$Latitude, che.0$Longitude, as.matrix(tpcb.che),
                   data.frame(time.day), site.numb, season.s)
 # Add column names
 colnames(che.tpcb) <- c("site", "date", "Latitude", "Longitude",
@@ -65,7 +63,7 @@ che.location <- aggregate(tPCB ~ site + Latitude + Longitude,
 
 # (2) Calculate total log PCB
 # Remove metadata
-che.log <- subset(che.1, select = -c(ID:AroclorCongener))
+che.log <- subset(che.0, select = -c(ID:AroclorCongener))
 # Remove Aroclor data
 che.log <- subset(che.log, select = -c(A1016:A1260))
 # Log 10 individual PCBs 
@@ -77,7 +75,7 @@ che.log <- do.call(data.frame,
 # Sum individual log 10 PCBs
 che.log.tpcb <- rowSums(che.log, na.rm = T)
 # Generate data.frame for analysis and plots
-che.log.tpcb <- cbind(factor(che.1$SiteSampled), che.1$SampleDate,
+che.log.tpcb <- cbind(factor(che.0$SiteSampled), che.0$SampleDate,
                       as.matrix(che.log.tpcb), data.frame(time.day),
                       site.numb, season.s)
 colnames(che.log.tpcb) <- c("site", "date", "logtPCB", "time",
@@ -163,6 +161,65 @@ ggplot(che.log.tpcb, aes(x = season, y = logtPCB)) +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # (4) Sites
+# From ~north to ~south
+# Highlight sites nearby contamination
+sites <- c("SusquehannaRiverMDPABorder", "LittleElkCreekTelegraphRd", "SusquehannaRiverConowingoBridge",
+           "DownstreamUnkametBrookConfluence", "BigElkCreekHWY40", "NorthEastRiverNEIslesDr",
+           "ScottRunBiddlePoint", "NorthEastRiverRoachsShore", "PennysShoalParkIsland", "ChesapeakeAndDelawareCanalGoosePt",
+           "CranberryRunCranberryRd", "ChurchCreekPulaskiHwy", "GreatBohemiaCreekOldTelegraphRd",
+           "GreatBohemiaCreekWoodstockFarmLn", "BohemiaRiverFreeSchoolPt", "TurkeyPoint", "LakeRolandSunsetRock",
+           "HenIslandCreekWilsonPt", "BackRiverHWY40", "ChesapeakeBayBowleyPt",
+           "BullneckCreekMerrittPoint", "HawkCovePleasureIsland", "ChesapeakeBayArcadia",
+           "MagothyRiverGibsonIsland", "CorsicaRiverYellowBankStream",
+           "SevernRiverMouth", "RhodeRiverCadleCreekConflux",
+           "RhodeWestConflux", "PatuxentRiverEagleHarbor", "StLeonardCreekParranRd",
+           "PatuxentRiverBarrettIsland", "PatuxentRiverMouth", "CorsicaRiverYellowBankStream")
+
+
+ggplot(che.tpcb, aes(x = factor(site, levels = sites), y = tPCB,
+                     color = site)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 5/20) +
+  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 9)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 1) +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0, color = "black")
+  scale_color_manual(values = c("CranePaperCompany" = "#66ccff",
+                                "HubbardAveBridge" = "#66ccff",
+                                "UnkametBrookConfluence" ="#FF7F00",
+                                "DownstreamUnkametBrookConfluence" = "#FF7F00",
+                                "NewellStBridge"= "#FF7F00",
+                                "NewellStParkingLotFootbridge" ="#FF7F00",
+                                "LymanStBridge" = "#FF7F00", "SilverLake" ="#FF7F00",
+                                "SilverLakeOutlet" = "#FF7F00", "ElmStBridge" = "#FF7F00",
+                                "DawesAveBridge" = "#FF7F00",
+                                "PomeroyAveBridge" = "#66ccff",
+                                "WestBranch" ="#66ccff",
+                                "HolmesRdBridge" = "#66ccff",
+                                "AdjJosephDrW" = "#66ccff",
+                                "AdjJosephDrE" = "#66ccff",
+                                "UpstreamPittsfieldWWTF" = "#66ccff",
+                                "EPRIFacility" = "#66ccff",
+                                "NewLenoxRdBridge" ="#66ccff",
+                                "HeadwatersWoodsPond" ="#66ccff",
+                                "UpstreamofWoodsPondDam" = "#66ccff",
+                                "LenoxdaleBridge" = "#66ccff",
+                                "DivisionStBridge" = "#66ccff",
+                                "AndrusRdBridge" = "#66ccff")) +
+  theme(legend.position = "none")
+
+
 # (4.1) tPCB
 ggplot(che.tpcb, aes(x = factor(site), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
