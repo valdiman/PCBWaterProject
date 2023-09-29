@@ -4,11 +4,15 @@
 install.packages("dplyr")
 install.packages("tidyr")
 install.packages("readr")
+install.packages("jsonlite")
 
 # Load libraries
-library(dplyr)
-library(tidyr)
-library(readr)
+{
+  library(dplyr)
+  library(tidyr)
+  library(readr)
+  library(jsonlite)
+}
 
 # Read the CSV file into a data frame
 PS_data <- read_csv("Data/PassaicRiver/2012 CPG CWCM Sampling - Low Flow.csv")
@@ -44,7 +48,7 @@ transposed_data <- PS_data %>%
   )
 
 # Read the JSON file with new congener list from code NewPCBList.R
-pcb_groups <- read_json("pcb_groups.json")
+pcb_groups <- read_json("Data/pcb_groups.json")
 
 # Create an empty data frame to store the grouped data
 grouped_data <- PS_data %>%
@@ -89,15 +93,11 @@ grouped_data <- grouped_data %>%
   filter(!is.na(SAMPLE_NAME))
 
 # Change the name of columns to be consistent
-colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "LATITUDE"
-colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "LONGITUDE"
+colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
+colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "Latitude"
+colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "Longitude"
+colnames(grouped_data)[colnames(grouped_data) == "RESULT_UNIT"] <- "Units"
 
 # Export results
 write.csv(grouped_data, file = "Data/PassaicRiver/2012 CPG CWCM Sampling - Low FlowFV.csv")
 # pass.3 in CombinePassaicData.R
-
-
-
-
-
-
