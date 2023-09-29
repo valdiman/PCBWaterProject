@@ -114,6 +114,12 @@ colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "Latitude"
 colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "Longitude"
 colnames(grouped_data)[colnames(grouped_data) == "RESULT_UNIT"] <- "Units"
 
+# Convert SampleDate to the desired format "m/d/yy"
+grouped_data$SampleDate <- as.Date(grouped_data$SampleDate, format = "%m/%d/%y")
+
+# Convert it back to character with the desired format
+grouped_data$SampleDate <- format(grouped_data$SampleDate, format = "%m/%d/%y")
+
 # Export results
-write.csv(grouped_data, file = "Data/PassaicRiver/2013 CPG CWCM Sampling - High Flow 2FV.csv")
-# pass.8 in CombinePassaicdata.R
+write.csv(grouped_data, file = "Data/PassaicRiver/pass07.csv")
+
