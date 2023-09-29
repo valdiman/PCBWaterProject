@@ -13,6 +13,8 @@ install.packages("readr")
   library(jsonlite)
 }
 
+# Check!!
+
 # Read the CSV file into a data frame
 PS_data <- read_csv("Data/PassaicRiver/2017-2019_OU2_PDI_Water_Column_20210924.csv")
 
@@ -110,15 +112,19 @@ colnames(grouped_data)[colnames(grouped_data) == "LATITUDE"] <- "Latitude"
 colnames(grouped_data)[colnames(grouped_data) == "LONGITUDE"] <- "Longitude"
 colnames(grouped_data)[colnames(grouped_data) == "REPORT_RESULT_UNIT"] <- "Units"
 
+# Convert SampleDate to the desired format "m/d/yy"
+grouped_data$SampleDate <- as.Date(grouped_data$SampleDate, format = "%m/%d/%y")
+
+# Convert it back to character with the desired format
+grouped_data$SampleDate <- format(grouped_data$SampleDate, format = "%m/%d/%y")
+
 # Export results
-write.csv(grouped_data,
-          file = "Data/PassaicRiver/2017-2019_OU2_PDI_Water_Column_20210924V0.csv")
+write.csv(grouped_data, file = "Data/PassaicRiver/pass09V0.csv")
 
 # Remove SAMPLETIME columns from grouped_data & create a new data.frame
 grouped_dataFV <- grouped_data %>%
   select(-SAMPLETIME)
 
 # Export results
-write.csv(grouped_dataFV,
-          file = "Data/PassaicRiver/2017-2019_OU2_PDI_Water_Column_20210924FV.csv")
-# pass.9 in CombinePassaicdata.R
+write.csv(grouped_dataFV, file = "Data/PassaicRiver/pass09.csv")
+
