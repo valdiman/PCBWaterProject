@@ -4,13 +4,15 @@ install.packages("dplyr")
 install.packages("tidyr")
 install.packages("readr")
 install.packages("jsonlite")
+install.packages("stringr")
 
 # Load libraries
 {
   library(dplyr)
   library(tidyr)
   library(readr)
-  library(jsonlite) 
+  library(jsonlite)
+  library(stringr)
 }
 
 # Read the CSV file into a data frame
@@ -51,7 +53,7 @@ transposed_data <- PS_data %>%
   )
 
 # Read the JSON file with new congener list from code NewPCBList.R
-pcb_groups <- read_json("pcb_groups.json")
+pcb_groups <- read_json("Data/pcb_groups.json")
 
 # Create an empty data frame to store the grouped data
 grouped_data <- PS_data %>%
@@ -110,11 +112,11 @@ grouped_data <- grouped_data %>%
   filter(!is.na(sys_sample_code))
 
 # Change the name of columns to be consistent
-colnames(grouped_data)[colnames(grouped_data) == "result_unit"] <- "RESULT_UNIT"
-colnames(grouped_data)[colnames(grouped_data) == "latitude"] <- "LATITUDE"
-colnames(grouped_data)[colnames(grouped_data) == "longitude"] <- "LONGITUDE"
-colnames(grouped_data)[colnames(grouped_data) == "sample_date"] <- "SAMPLE_DATE"
+colnames(grouped_data)[colnames(grouped_data) == "latitude"] <- "Latitude"
+colnames(grouped_data)[colnames(grouped_data) == "longitude"] <- "Longitude"
+colnames(grouped_data)[colnames(grouped_data) == "sample_date"] <- "SampleDate"
 colnames(grouped_data)[colnames(grouped_data) == "sys_sample_code"] <- "SAMPLE_NAME"
+colnames(grouped_data)[colnames(grouped_data) == "result_unit"] <- "Units"
 
 # Export results
 write.csv(grouped_data,
