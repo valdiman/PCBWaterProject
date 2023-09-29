@@ -5,15 +5,22 @@ install.packages("tidyr")
 install.packages("readr")
 
 # Load libraries
-library(dplyr)
-library(tidyr)
-library(readr)
+{
+  library(dplyr)
+  library(tidyr)
+  library(readr)
+  library(jsonlite)
+}
 
 # Read the CSV file into a data frame
 PS_data <- read_csv("Data/PassaicRiver/2013 CPG CWCM Sampling - High Flow 2.csv")
 
 # Arrange the data to ensure it's ordered correctly (if needed)
 PS_data <- PS_data %>% arrange(SAMPLE_NAME, SAMPLE_DATE)
+
+# Change SAMPLE_DATE format to mm/dd/yy from mm/dd/yyyy
+PS_data$SAMPLE_DATE <- as.Date(PS_data$SAMPLE_DATE, format = "%m/%d/%Y")
+PS_data$SAMPLE_DATE <- format(PS_data$SAMPLE_DATE, "%m/%d/%y")
 
 # Filter and keep only the columns you need
 PS_data <- PS_data %>%
@@ -44,7 +51,7 @@ transposed_data <- PS_data %>%
   )
 
 # Read the JSON file with new congener list from code NewPCBList.R
-pcb_groups <- read_json("pcb_groups.json")
+pcb_groups <- read_json("Data/pcb_groups.json")
 
 # Create an empty data frame to store the grouped data
 grouped_data <- PS_data %>%
@@ -102,9 +109,11 @@ grouped_data <- grouped_data %>%
   filter(!is.na(SAMPLE_NAME))
 
 # Change the name of columns to be consistent
-colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "LATITUDE"
-colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "LONGITUDE"
+colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
+colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "Latitude"
+colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "Longitude"
+colnames(grouped_data)[colnames(grouped_data) == "RESULT_UNIT"] <- "Units"
 
 # Export results
 write.csv(grouped_data, file = "Data/PassaicRiver/2013 CPG CWCM Sampling - High Flow 2FV.csv")
-
+# pass.8 in CombinePassaicdata.R
