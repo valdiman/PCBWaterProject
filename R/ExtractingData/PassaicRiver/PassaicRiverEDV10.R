@@ -1,5 +1,4 @@
 
-
 # Install packages
 install.packages("dplyr")
 install.packages("tidyr")
@@ -7,10 +6,12 @@ install.packages("readr")
 install.packages("jsonlite")
 
 # Load libraries
-library(dplyr)
-library(tidyr)
-library(readr)
-library(jsonlite)
+{
+  library(dplyr)
+  library(tidyr)
+  library(readr)
+  library(jsonlite) 
+}
 
 # Read the CSV file into a data frame
 PS_data <- read_csv("Data/PassaicRiver/2007-08 USEPA-MPI.csv")
