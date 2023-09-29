@@ -118,7 +118,12 @@ colnames(grouped_data)[colnames(grouped_data) == "sample_date"] <- "SampleDate"
 colnames(grouped_data)[colnames(grouped_data) == "sys_sample_code"] <- "SAMPLE_NAME"
 colnames(grouped_data)[colnames(grouped_data) == "result_unit"] <- "Units"
 
+# Convert SampleDate to the desired format "m/d/yy"
+grouped_data$SampleDate <- as.Date(grouped_data$SampleDate, format = "%m/%d/%y")
+
+# Convert it back to character with the desired format
+grouped_data$SampleDate <- format(grouped_data$SampleDate, format = "%m/%d/%y")
+
 # Export results
-write.csv(grouped_data,
-          file = "Data/PassaicRiver/2007-08 USEPA-MPI.csv")
-# pass.10 in CombinePassaicdata.R
+write.csv(grouped_data, file = "Data/PassaicRiver/pass10.csv")
+
