@@ -6,9 +6,12 @@ install.packages("tidyr")
 install.packages("readr")
 
 # Load libraries
-library(dplyr)
-library(tidyr)
-library(readr)
+{
+  library(dplyr)
+  library(tidyr)
+  library(readr)
+  library(jsonlite)
+}
 
 # Read the CSV file into a data frame
 PS_data <- read_csv("Data/PassaicRiver/2017-2019_OU2_PDI_Water_Column_20210924.csv")
@@ -51,7 +54,7 @@ transposed_data <- PS_data %>%
   )
 
 # Read the JSON file with new congener list from code NewPCBList.R
-pcb_groups <- read_json("pcb_groups.json")
+pcb_groups <- read_json("Data/pcb_groups.json")
 
 # Create an empty data frame to store the grouped data
 grouped_data <- PS_data %>%
@@ -102,7 +105,10 @@ grouped_data <- grouped_data %>%
   filter(!is.na(SAMPLE_NAME))
 
 # Change the name of columns to be consistent
-colnames(grouped_data)[colnames(grouped_data) == "REPORT_RESULT_UNIT"] <- "RESULT_UNIT"
+colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
+colnames(grouped_data)[colnames(grouped_data) == "LATITUDE"] <- "Latitude"
+colnames(grouped_data)[colnames(grouped_data) == "LONGITUDE"] <- "Longitude"
+colnames(grouped_data)[colnames(grouped_data) == "REPORT_RESULT_UNIT"] <- "Units"
 
 # Export results
 write.csv(grouped_data,
