@@ -103,19 +103,22 @@ grouped_data <- grouped_data %>%
 # Change the name of columns to be consistent
 colnames(grouped_data)[colnames(grouped_data) == "SYS_SAMPLE_CODE"] <- "SAMPLE_NAME"
 colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
-colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "Latitude"
-colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "Longitude"
+colnames(grouped_data)[colnames(grouped_data) == "LATITUDE"] <- "Latitude"
+colnames(grouped_data)[colnames(grouped_data) == "LONGITUDE"] <- "Longitude"
 colnames(grouped_data)[colnames(grouped_data) == "RESULT_UNIT"] <- "Units"
 
+# Convert SampleDate to the desired format "m/d/yy"
+grouped_data$SampleDate <- as.Date(grouped_data$SampleDate, format = "%m/%d/%y")
+
+# Convert it back to character with the desired format
+grouped_data$SampleDate <- format(grouped_data$SampleDate, format = "%m/%d/%y")
+
 # Export results
-write.csv(grouped_data,
-          file = "Data/PassaicRiver/2010-2016_Diamond-Alkali_OU3_EPA-NBSA-Split-samplesV0.csv")
+write.csv(grouped_data, file = "Data/PassaicRiver/pass08V0.csv")
 
 # Remove SAMPLETIME columns from grouped_data & create a new data.frame
 grouped_dataFV <- grouped_data %>%
   select(-SAMPLETIME)
 
 # Export results
-write.csv(grouped_dataFV,
-          file = "Data/PassaicRiver/2010-2016_Diamond-Alkali_OU3_EPA-NBSA-Split-samplesFV.csv")
-# pass.1 in CombinePassaicdata.R
+write.csv(grouped_dataFV, file = "Data/PassaicRiver/pass08.csv")
