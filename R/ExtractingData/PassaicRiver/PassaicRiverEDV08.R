@@ -6,9 +6,12 @@ install.packages("tidyr")
 install.packages("readr")
 
 # Load libraries
-library(dplyr)
-library(tidyr)
-library(readr)
+{
+  library(dplyr)
+  library(tidyr)
+  library(readr)
+  library(jsonlite)
+}
 
 # Read the CSV file into a data frame
 PS_data <- read_csv("Data/PassaicRiver/2010-2016_Diamond-Alkali_OU3_EPA-NBSA-Split-samples.csv")
@@ -47,7 +50,7 @@ transposed_data <- PS_data %>%
   )
 
 # Read the JSON file with new congener list from code NewPCBList.R
-pcb_groups <- read_json("pcb_groups.json")
+pcb_groups <- read_json("Data/pcb_groups.json")
 
 # Create an empty data frame to store the grouped data
 grouped_data <- PS_data %>%
@@ -93,20 +96,20 @@ grouped_data <- grouped_data %>%
 grouped_data <- grouped_data %>%
   mutate(SYS_SAMPLE_CODE = substr(SYS_SAMPLE_CODE, 1, nchar(SYS_SAMPLE_CODE) - 6))
 
-grouped_data <- grouped_data %>%
-  mutate(SYS_SAMPLE_CODE = substr(SYS_SAMPLE_CODE, 1, nchar(SYS_SAMPLE_CODE) - 6))
-
 # Remove SYS_SAMPLE_CODE with no name (NA)
 grouped_data <- grouped_data %>%
   filter(!is.na(SYS_SAMPLE_CODE))
 
 # Change the name of columns to be consistent
 colnames(grouped_data)[colnames(grouped_data) == "SYS_SAMPLE_CODE"] <- "SAMPLE_NAME"
+colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
+colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "Latitude"
+colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "Longitude"
+colnames(grouped_data)[colnames(grouped_data) == "RESULT_UNIT"] <- "Units"
 
 # Export results
 write.csv(grouped_data,
           file = "Data/PassaicRiver/2010-2016_Diamond-Alkali_OU3_EPA-NBSA-Split-samplesV0.csv")
-# pass.1 in CombinePassaicdata.R
 
 # Remove SAMPLETIME columns from grouped_data & create a new data.frame
 grouped_dataFV <- grouped_data %>%
@@ -115,5 +118,4 @@ grouped_dataFV <- grouped_data %>%
 # Export results
 write.csv(grouped_dataFV,
           file = "Data/PassaicRiver/2010-2016_Diamond-Alkali_OU3_EPA-NBSA-Split-samplesFV.csv")
-
-# in CombinePassaicData: Pass.1
+# pass.1 in CombinePassaicdata.R
