@@ -94,8 +94,8 @@ grouped_data <- grouped_data %>%
 colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
 colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "Latitude"
 colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "Longitude"
-colnames(grouped_data)[colnames(grouped_data) == "RESULT_UNIT"] <- "Units"
+colnames(grouped_data)[colnames(grouped_data) == "REPORT_RESULT_UNIT"] <- "Units"
 
 # Export results
-write.csv(grouped_data, file = "Data/PassaicRiver/2011 CPG CWCM Sampling  - Round 1FV.csv")
-# pass.2 for CombinePassaicdata.R
+write.csv(grouped_data, file = "Data/PassaicRiver/pass02.csv")
+
