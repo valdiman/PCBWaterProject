@@ -116,5 +116,9 @@ grouped_data$SampleDate <- as.Date(grouped_data$SampleDate, format = "%m/%d/%y")
 # Convert it back to character with the desired format
 grouped_data$SampleDate <- format(grouped_data$SampleDate, format = "%m/%d/%y")
 
+# Remove rows where tPCB is equal to 0
+grouped_data <- grouped_data %>%
+  filter(tPCB != 0)
+
 # Export results
 write.csv(grouped_data, file = "Data/PassaicRiver/pass06.csv")
