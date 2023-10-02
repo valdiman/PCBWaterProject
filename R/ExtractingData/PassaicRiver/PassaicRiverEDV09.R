@@ -22,15 +22,15 @@ PS_data <- PS_data %>% arrange(SAMPLE_NAME, SAMPLE_DATE)
 
 # Filter and keep only the columns you need
 PS_data <- PS_data %>%
-  select(SAMPLE_NAME, SAMPLE_DATE, SAMPLETIME, SAMPLE_TYPE_CODE, MATRIX_CODE,
-         ANALYTIC_METHOD, LATITUDE, LONGITUDE, REPORT_RESULT_UNIT, CHEMICAL_NAME,
-         RESULT_NUMERIC, TEST_TYPE)
+  select(SAMPLE_NAME, SAMPLE_DATE, SAMPLETIME, MATRIX_CODE,
+         ANALYTIC_METHOD, FRACTION, LATITUDE, LONGITUDE, RESULT_UNIT2,
+         CHEMICAL_NAME, RESULT_NUMERIC2)
 
 # Filter rows based on the ANALYTIC_METHOD condition & just water samples (i.e., pg/l)
-# and initial analysis
+# initial analysis and dissolved phase.
 PS_data <- PS_data %>%
-  filter(ANALYTIC_METHOD == "E1668A", REPORT_RESULT_UNIT == "pg/l",
-         TEST_TYPE == "INITIAL", SAMPLE_TYPE_CODE == "N")
+  filter(ANALYTIC_METHOD == "E1668A", RESULT_UNIT2 == "pg/l",
+         FRACTION == "D")
 
 # Modify the CHEMICAL_NAME column to extract "PCB X" where X is the number
 PS_data <- PS_data %>%
@@ -46,11 +46,10 @@ PS_data <- PS_data %>%
 # Create a new data frame with transposed values
 transposed_data <- PS_data %>%
   pivot_wider(
-    id_cols = c(SAMPLE_NAME, SAMPLE_DATE, SAMPLETIME, SAMPLE_TYPE_CODE,
-                MATRIX_CODE, ANALYTIC_METHOD, LATITUDE, LONGITUDE,
-                REPORT_RESULT_UNIT),
+    id_cols = c(SAMPLE_NAME, SAMPLE_DATE, SAMPLETIME, ANALYTIC_METHOD,
+                LATITUDE, LONGITUDE, RESULT_UNIT2),
     names_from = CHEMICAL_NAME,
-    values_from = RESULT_NUMERIC,
+    values_from = RESULT_NUMERIC2,
     values_fn = list  # Treat duplicate values as lists
   )
 
@@ -59,8 +58,8 @@ pcb_groups <- read_json("Data/pcb_groups.json")
 
 # Create an empty data frame to store the grouped data
 grouped_data <- PS_data %>%
-  distinct(SAMPLE_NAME, SAMPLE_DATE, SAMPLETIME, SAMPLE_TYPE_CODE, MATRIX_CODE,
-           ANALYTIC_METHOD, LATITUDE, LONGITUDE, REPORT_RESULT_UNIT)
+  distinct(SAMPLE_NAME, SAMPLE_DATE, SAMPLETIME, ANALYTIC_METHOD,
+           LATITUDE, LONGITUDE, RESULT_UNIT2)
 
 # Remove spaces and special characters from column names in transposed_data
 colnames(transposed_data) <- gsub("[^[:alnum:]]", "", colnames(transposed_data))
@@ -87,7 +86,7 @@ for (group_name in names(pcb_groups)) {
 
 # Remove SAMPLE_TYPE_CODE and MATRIX_CODE columns from grouped_data
 grouped_data <- grouped_data %>%
-  select(-SAMPLE_TYPE_CODE, -MATRIX_CODE, -ANALYTIC_METHOD)
+  select(-ANALYTIC_METHOD)
 
 # Create a new column named "tPCB" that sums columns 6 to 109
 grouped_data <- grouped_data %>%
@@ -109,13 +108,17 @@ grouped_data <- grouped_data %>%
 colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
 colnames(grouped_data)[colnames(grouped_data) == "LATITUDE"] <- "Latitude"
 colnames(grouped_data)[colnames(grouped_data) == "LONGITUDE"] <- "Longitude"
-colnames(grouped_data)[colnames(grouped_data) == "REPORT_RESULT_UNIT"] <- "Units"
+colnames(grouped_data)[colnames(grouped_data) == "RESULT_UNIT2"] <- "Units"
 
 # Convert SampleDate to the desired format "m/d/yy"
 grouped_data$SampleDate <- as.Date(grouped_data$SampleDate, format = "%m/%d/%y")
 
 # Convert it back to character with the desired format
 grouped_data$SampleDate <- format(grouped_data$SampleDate, format = "%m/%d/%y")
+
+# Remove rows where tPCB is equal to 0
+grouped_data <- grouped_data %>%
+  filter(tPCB != 0)
 
 # Export results
 write.csv(grouped_data, file = "Data/PassaicRiver/pass09V0.csv")
