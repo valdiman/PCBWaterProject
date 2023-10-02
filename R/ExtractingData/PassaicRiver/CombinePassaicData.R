@@ -69,6 +69,37 @@ generate_SiteID <- function(lat, lon) {
 merged_pass <- merged_pass %>%
   mutate(SiteID = mapply(generate_SiteID, Latitude, Longitude))
 
+# Create a new column "SampleDate_yyyymmdd" with the date in yyyymmdd format
+merged_pass$SampleDate_yyyymmdd <- format(as.Date(merged_pass$SampleDate,
+                                                  format = "%m/%d/%y"), format = "%Y%m%d")
+
+# Create SampleID by concatenating SiteID and SampleDate_yyyymmdd
+merged_pass$SampleID <- paste(merged_pass$SiteID,
+                              merged_pass$SampleDate_yyyymmdd, sep = "-")
+
+# Create a new column "SampleCount" to count samples with the same SampleID
+merged_pass <- merged_pass %>%
+  group_by(SampleID) %>%
+  mutate(SampleCount = row_number())
+
+# Add a dot and SampleCount to SampleID if SampleCount is greater than 1
+for (i in unique(merged_pass$SampleID)) {
+  subset_df <- merged_pass[merged_pass$SampleID == i, ]
+  num_samples <- nrow(subset_df)
+  if (num_samples > 1) {
+    for (j in 1:num_samples) {
+      subset_df$SampleID[j] <- paste(subset_df$SampleID[j], ".", j, sep = "")
+    }
+    merged_pass[merged_pass$SampleID == i, ] <- subset_df
+  } else {
+    merged_pass[merged_pass$SampleID == i, "SampleID"] <- paste(i, ".1", sep = "")
+  }
+}
+
+# Remove the SampleCount and SampleDate_yyyymmdd columns if no longer needed
+merged_pass$SampleCount <- NULL
+merged_pass$SampleDate_yyyymmdd <- NULL
+
 # Define the values for the new columns
 PhaseMeasuredValue <- "SurfaceWater"
 EPAMethodValue <- "M1668"
@@ -76,7 +107,8 @@ AroclorCongenerValue <- "Congener"
 
 # Insert the new columns at position 11
 merged_pass <- merged_pass %>%
-  mutate(PhaseMeasured = PhaseMeasuredValue, EPAMethod = EPAMethodValue, AroclorCongener = AroclorCongenerValue) %>%
+  mutate(PhaseMeasured = PhaseMeasuredValue, EPAMethod = EPAMethodValue,
+         AroclorCongener = AroclorCongenerValue) %>%
   select(1:10, PhaseMeasured, EPAMethod, AroclorCongener, everything())
 
 # Define the column names
