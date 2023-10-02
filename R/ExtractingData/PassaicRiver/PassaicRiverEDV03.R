@@ -105,4 +105,3 @@ grouped_data$SampleDate <- format(grouped_data$SampleDate, format = "%m/%d/%y")
 # Export results
 write.csv(grouped_data, file = "Data/PassaicRiver/pass03.csv")
 
-
