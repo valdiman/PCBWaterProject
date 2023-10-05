@@ -16,68 +16,36 @@ install.packages("lubridate")
   library(lubridate)
 }
 
+
 # Read the CSV file into a data frame
 LMMB_data <- read_csv("Data/LMMB/results.csv")
 
-# Check issues with the data before any modifications
-data_problems <- problems(LMMB_data)
+# Generate a vector of column names from "VALUE_1" to "VALUE_127"
+value_columns <- paste0("VALUE_", 1:127)
 
-# Display data problems, if any
-if (nrow(data_problems) > 0) {
-  print(data_problems)
-} else {
-  cat("No initial data problems found.\n")
+# Columns to fix, including logic columns
+columns_to_fix <- c("VALUE_123", "VALUE_124", "VALUE_125", "VALUE_126", "VALUE_127")
+
+# Define a function to handle the transformation
+transform_column <- function(x) {
+  # Replace "*INVALID" and numbers with an asterisk (*) with NA
+  x <- ifelse(grepl("^\\*[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", x), NA_real_, x)
+  # Replace values starting with "*" with NA
+  x <- ifelse(grepl("^\\*", x), NA_real_, x)
+  # Remove asterisks and convert to numeric (including scientific notation)
+  as.numeric(gsub("[*]", "", x, perl = TRUE))
 }
 
-# Fix issues
+# Apply transformations using lapply for each column
+LMMB_data[, value_columns] <- lapply(LMMB_data[, value_columns], transform_column)
+
+# Apply transformations for logic columns
+LMMB_data[, columns_to_fix] <- lapply(LMMB_data[, columns_to_fix], function(x) as.integer(x != "INVALID"))
+
 # Remove asterisks from all cells in the data frame
 LMMB_data <- data.frame(lapply(LMMB_data, function(x) gsub("\\*", "", x)))
 
-# Make values to numeric values
-# Select columns that start with "VALUE"
-value_columns <- grep("^VALUE", names(LMMB_data), value = TRUE)
-
-# Check if warnings exist and clear them
-if (length(warnings()) > 0) {
-  warnings()
-  warnings(NULL)
-}
-
-# Check issues with the data before any modifications
-data_problems <- problems(LMMB_data)
-
-# Transform non-numeric columns to numeric values
-LMMB_data <- LMMB_data %>%
-  mutate_at(vars(all_of(value_columns)), ~{
-    numeric_value <- as.numeric(as.character(.))
-    ifelse(is.na(numeric_value) | is.infinite(numeric_value), NA, numeric_value)
-  })
-
-# Check for problems in the dataframe
-data_problems <- problems(LMMB_data)
-
-# Print the rows and columns with problems
-print(data_problems)
-
-# No problems, but still some columns that need to be numeric are not numeric
-# Check the format of each selected column
-format_info <- sapply(LMMB_data[, value_columns], class)
-print(format_info)
-
-# Select columns that need fixing
-columns_to_fix <- c("VALUE_123", "VALUE_124", "VALUE_125", "VALUE_126", "VALUE_127")
-
-# Loop through the selected columns and convert problematic values
-for (col in columns_to_fix) {
-  LMMB_data[[col]] <- as.numeric(as.character(LMMB_data[[col]]))
-  # Identify non-numeric values and replace them with NA
-  LMMB_data[[col]][!is.na(LMMB_data[[col]]) & !is.finite(LMMB_data[[col]])] <- NA
-}
-
-# Verify that the columns are now numeric
-str(LMMB_data[, columns_to_fix])
-
-# Work on the reshaping the data
+# Work on reshaping the data
 # Remove the "STAT_TYPE" column
 LMMB_data <- LMMB_data %>%
   select(-STAT_TYPE)
@@ -94,16 +62,29 @@ LMMB_data_long <- LMMB_data %>%
   ) %>%
   filter(!is.na(VALUE))  # Remove rows with NA values in VALUE column
 
-# Remove a few columns not needed.
+# Remove unnecessary columns
 LMMB_data_long <- LMMB_data_long %>%
   select(-Row, -PROJECT, -PROJ_CODE, -YEAR, -MONTH, -SEASON, -CRUISE_ID,
          -TIME_ZONE, -STN_DEPTH_M, -SAMPLE_DEPTH_M, -VISIT_ID, -Chemical, -ANL, -RESULT)
 
+# Check for data problems
+data_problems <- problems(LMMB_data_long)
+
+# Display data problems, if any
+if (nrow(data_problems) > 0) {
+  print(data_problems)
+} else {
+  cat("No data problems found.\n")
+}
+
+# Data look good!
+# Select correct samples
 LMMB_data_long <- LMMB_data_long %>%
   filter(FRACTION == "Filtrate", SAMPLE_TYPE == "Individual", UNITS == "ng/l")
 
 # Change date format
 LMMB_data_long$SAMPLING_DATE <- sub(" \\d+:\\d+", "", LMMB_data_long$SAMPLING_DATE)
+
 
 
 
