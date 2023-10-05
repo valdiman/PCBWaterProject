@@ -24,12 +24,14 @@ LMMB_data <- read_csv("Data/LMMB/results.csv")
 value_columns <- paste0("VALUE_", 1:127)
 
 # Columns to fix, including logic columns
-columns_to_fix <- c("VALUE_123", "VALUE_124", "VALUE_125", "VALUE_126", "VALUE_127")
+columns_to_fix <- c("VALUE_123", "VALUE_124", "VALUE_125", "VALUE_126",
+                    "VALUE_127")
 
 # Define a function to handle the transformation
 transform_column <- function(x) {
   # Replace "*INVALID" and numbers with an asterisk (*) with NA
-  x <- ifelse(grepl("^\\*[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", x), NA_real_, x)
+  x <- ifelse(grepl("^\\*[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", x),
+              NA_real_, x)
   # Replace values starting with "*" with NA
   x <- ifelse(grepl("^\\*", x), NA_real_, x)
   # Remove asterisks and convert to numeric (including scientific notation)
@@ -37,10 +39,12 @@ transform_column <- function(x) {
 }
 
 # Apply transformations using lapply for each column
-LMMB_data[, value_columns] <- lapply(LMMB_data[, value_columns], transform_column)
+LMMB_data[, value_columns] <- lapply(LMMB_data[, value_columns],
+                                     transform_column)
 
 # Apply transformations for logic columns
-LMMB_data[, columns_to_fix] <- lapply(LMMB_data[, columns_to_fix], function(x) as.integer(x != "INVALID"))
+LMMB_data[, columns_to_fix] <- lapply(LMMB_data[, columns_to_fix],
+                                      function(x) as.integer(x != "INVALID"))
 
 # Remove asterisks from all cells in the data frame
 LMMB_data <- data.frame(lapply(LMMB_data, function(x) gsub("\\*", "", x)))
@@ -65,7 +69,8 @@ LMMB_data_long <- LMMB_data %>%
 # Remove unnecessary columns
 LMMB_data_long <- LMMB_data_long %>%
   select(-Row, -PROJECT, -PROJ_CODE, -YEAR, -MONTH, -SEASON, -CRUISE_ID,
-         -TIME_ZONE, -STN_DEPTH_M, -SAMPLE_DEPTH_M, -VISIT_ID, -Chemical, -ANL, -RESULT)
+         -TIME_ZONE, -STN_DEPTH_M, -SAMPLE_DEPTH_M, -VISIT_ID, -Chemical,
+         -ANL, -RESULT)
 
 # Check for data problems
 data_problems <- problems(LMMB_data_long)
@@ -84,6 +89,32 @@ LMMB_data_long <- LMMB_data_long %>%
 
 # Change date format
 LMMB_data_long$SAMPLING_DATE <- sub(" \\d+:\\d+", "", LMMB_data_long$SAMPLING_DATE)
+
+# Remove again unnecessary columns
+LMMB_data_long <- LMMB_data_long %>%
+  select(-STATION_ID, -SAMPLE_TYPE, -QC_TYPE, -FRACTION)
+
+# Replace "?" with "'" in the "ANALYTE" column
+LMMB_data_long$ANALYTE <- gsub("\\?", "'", LMMB_data_long$ANALYTE)
+
+# Filter out rows with NAs and 0s in the "VALUE" column
+filtered_data <- LMMB_data_long %>%
+  filter(!is.na(VALUE) & as.numeric(VALUE) != 0)
+
+# Group by specified columns and calculate the average of "VALUE" while keeping "UNITS"
+averaged_data <- filtered_data %>%
+  group_by(LATITUDE, LONGITUDE, SAMPLING_DATE, SAMPLE_ID, ANALYTE, UNITS,
+           .drop = FALSE) %>%
+  summarize(AVG_VALUE = mean(as.numeric(VALUE)), .groups = "keep") %>%
+  select(LATITUDE, LONGITUDE, SAMPLING_DATE, SAMPLE_ID, ANALYTE,
+         AVG_VALUE, UNITS)
+
+transposed_data <- averaged_data %>%
+  pivot_wider(
+    id_cols = c(LATITUDE, LONGITUDE, SAMPLING_DATE, SAMPLE_ID, UNITS),
+    names_from = ANALYTE,
+    values_from = AVG_VALUE
+  )
 
 
 
