@@ -80,8 +80,8 @@ PASSTime <- ggplot(pass.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
-    breaks = c(1, 10, 100, 1000, 10000),  # Specify the desired breaks
-    labels = label_comma()(c(1, 10, 100, 1000, 10000))  # Specify the desired labels
+    breaks = c(10, 100, 1000, 10000, 100000),  # Specify the desired breaks
+    labels = label_comma()(c(10, 100, 1000, 10000, 100000))  # Specify the desired labels
   ) +
   theme_classic() +
   ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
@@ -146,6 +146,50 @@ ggplot(pass.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   annotate("text", x = 5, y = 20, label = "Passaic River",
            size = 3)
 
+# Include USGS flow and temperature data --------------------------------------------------
+{
+  # Include flow data from USGS station Passaic River
+  sitepassN1 <- "01381900" # No temp
+  sitepassN2 <- "01379500" # No temp
+  sitepassN3 <- "01389005" # No flow
+  sitepassN4 <- "01389010" # No temp
+  sitepassN5 <- "01389500" # No temp
+  sitepassN6 <- "01389890" # No temp
+
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  paramtemp <- "00010" # water temperature, C
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(sitepassN1, paramflow,
+                     min(pass.tpcb$date), max(pass.tpcb$date))
+  flow.2 <- readNWISdv(sitepassN2, paramflow,
+                     min(pass.tpcb$date), max(pass.tpcb$date))
+  flow.3 <- readNWISdv(sitepassN4, paramflow,
+                     min(pass.tpcb$date), max(pass.tpcb$date))
+  flow.4 <- readNWISdv(sitepassN5, paramflow,
+                     min(pass.tpcb$date), max(pass.tpcb$date))
+  flow.5 <- readNWISdv(sitepassN6, paramflow,
+                     min(pass.tpcb$date), max(pass.tpcb$date))
+  temp <- readNWISdv(sitepassN3, paramtemp,
+                     min(pass.tpcb$date), max(pass.tpcb$date))
+  
+  # Add USGS data to pass.tpcb.2, matching dates, conversion to m3/s
+  pass.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+                                                      flow.1$Date)]
+  pass.tpcb$flow.2 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+                                                      flow.2$Date)]
+  pass.tpcb$flow.3 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+                                                      flow.3$Date)]
+  pass.tpcb$flow.4 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+                                                      flow.4$Date)]
+  pass.tpcb$flow.5 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+                                                      flow.5$Date)]
+  pass.tpcb$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pass.tpcb$date,
+                                                       temp$Date)]
+  # Remove samples with flow.3 = NA
+  pass.tpcb <- na.omit(pass.tpcb)
+}
+
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
@@ -153,12 +197,14 @@ tpcb <- pass.tpcb$tPCB
 time <- pass.tpcb$time
 site <- pass.tpcb$site.code
 season <- pass.tpcb$season
+flow <- pass.tpcb$flow.4
+tem <- pass.tpcb$temp
 # tPCB vs. time + season + flow + temp + site
-lme.pass.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
-                     REML = FALSE,
-                     control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                           check.nobs.vs.rankZ = "ignore",
-                                           check.nobs.vs.nRE="ignore"))
+lme.pass.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
+                      REML = FALSE,
+                      control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                            check.nobs.vs.rankZ = "ignore",
+                                            check.nobs.vs.nRE="ignore"))
 
 # See results
 summary(lme.pass.tpcb)
@@ -168,7 +214,7 @@ summary(lme.pass.tpcb)
   # Create Q-Q plot for residuals
   # Create pdf file
   pdf("Output/Plots/Sites/Q-Q/PassaicRiverQ-QtPCB.pdf")
-  qqnorm(res.che.tpcb,
+  qqnorm(res.pass.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
@@ -180,28 +226,31 @@ shapiro.test(resid(lme.pass.tpcb))
 
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 21)
+  lme.tpcb <- matrix(nrow = 1, ncol = 24)
   lme.tpcb[1] <- fixef(lme.pass.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.pass.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.pass.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
   lme.tpcb[4] <- fixef(lme.pass.tpcb)[2] # time
   lme.tpcb[5] <- summary(lme.pass.tpcb)$coef[2,"Std. Error"] # time error
   lme.tpcb[6] <- summary(lme.pass.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.pass.tpcb)[3] # season 1
-  lme.tpcb[8] <- summary(lme.pass.tpcb)$coef[3,"Std. Error"] # season 1 error
-  lme.tpcb[9] <- summary(lme.pass.tpcb)$coef[3,"Pr(>|t|)"] # season 1 p-value
-  lme.tpcb[10] <- fixef(lme.pass.tpcb)[4] # season 2
-  lme.tpcb[11] <- summary(lme.pass.tpcb)$coef[4,"Std. Error"] # season 2 error
-  lme.tpcb[12] <- summary(lme.pass.tpcb)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[13] <- fixef(lme.pass.tpcb)[5] # season 3
-  lme.tpcb[14] <- summary(lme.pass.tpcb)$coef[5,"Std. Error"] # season 3 error
-  lme.tpcb[15] <- summary(lme.pass.tpcb)$coef[5,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[16] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[17] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[18] <- as.data.frame(VarCorr(lme.pass.tpcb))[1,'sdcor']
-  lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2m']
-  lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2c']
-  lme.tpcb[21] <- shapiro.test(resid(lme.pass.tpcb))$p.value
+  lme.tpcb[7] <- fixef(lme.pass.tpcb)[3] # flow
+  lme.tpcb[8] <- summary(lme.pass.tpcb)$coef[3,"Std. Error"] # flow error
+  lme.tpcb[9] <- summary(lme.pass.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.tpcb[10] <- fixef(lme.pass.tpcb)[4] # temperature
+  lme.tpcb[11] <- summary(lme.pass.tpcb)$coef[4,"Std. Error"] # temperature error
+  lme.tpcb[12] <- summary(lme.pass.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
+  lme.tpcb[13] <- fixef(lme.pass.tpcb)[5] # season 2
+  lme.tpcb[14] <- summary(lme.pass.tpcb)$coef[5,"Std. Error"] # season 2 error
+  lme.tpcb[15] <- summary(lme.pass.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[16] <- fixef(lme.pass.tpcb)[6] # season 3
+  lme.tpcb[17] <- summary(lme.pass.tpcb)$coef[6,"Std. Error"] # season 3 error
+  lme.tpcb[18] <- summary(lme.pass.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[21] <- as.data.frame(VarCorr(lme.pass.tpcb))[1,'sdcor']
+  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2m']
+  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2c']
+  lme.tpcb[24] <- shapiro.test(resid(lme.pass.tpcb))$p.value
 }
 
 # Just 3 significant figures
@@ -209,7 +258,8 @@ lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 # Add column names
 colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Intercept.pv", "time", "time.error", "time.pv",
-                        "season1", "season1.error", "season1.pv", "season2",
+                        "flow", "flow.error", "flow.pv", "temperature",
+                        "temperature.error", "temperature.pv", "season2",
                         "season2.error", "season2, pv", "season3",
                         "season3.error", "season3.pv", "t05", "t05.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
