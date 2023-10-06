@@ -117,9 +117,9 @@ column_names <- c("A1016", "A1221", "A1232", "A1242", "A1248", "A1254", "A1260")
 # Initialize these columns with "NA"
 merged_pass[, column_names] <- NA
 
-# Insert the columns at position 117
+# Insert the columns at position 118
 merged_pass <- merged_pass %>%
-  select(1:116, all_of(column_names), everything())
+  select(1:117, all_of(column_names), everything())
 
 # Export results
 write.csv(merged_pass, file = "Data/PassaicRiver/PassaicRiverData.csv")
