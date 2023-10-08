@@ -516,8 +516,9 @@ ggsave("Output/Plots/Global/tPCBObsPredV03.png", plot = tPCBObsPred,
 
 # Spatial Plots and Analysis ----------------------------------------------
 # States
-sites <- c("CA", "CT", "DC*", "DE", "ID", "IN", "MA", "MD", "MI", "MO",
-           "MT", "NM", "NY", "OH", "ON*", "OR", "PA", "TX", "VA", "WA", "WI")
+sites <- c("CA", "CT", "DC*", "DE", "ID", "IL", "IN", "MA", "MD", "MI",
+           "MN", "MO", "MT", "NM", "NJ", "NY", "OH", "ON*", "OR", "PA",
+           "TX", "VA", "WA", "WI")
 
 # Total PCBs
 tpcb.state <- ggplot(wdc, aes(x = factor(StateSampled, levels = sites),
