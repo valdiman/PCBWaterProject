@@ -478,6 +478,71 @@ maptPCBNB <- ggmap(NB.map) +
 ggsave("Output/Maps/Sites/maptPCBNBHAveV01.png",
        plot = maptPCBNB, width = 9, height = 4, dpi = 300)
 
+# Passaic River -----------------------------------------------------------
+{
+  # Select only from Hudson River
+  wdc.Pas <- subset(wdc, LocationName == "Passaic River")
+  
+  # Increase the longitude range to make the map wider
+  lon_range <- 0.1  # Modify this value to control the width
+  
+  # Create a new bounding box with the adjusted longitude range
+  Pas.box <- make_bbox(
+    lat = wdc.Pas$Latitude,
+    lon = c(min(wdc.Pas$Longitude) - lon_range, max(wdc.Pas$Longitude) + lon_range),
+    f = 0.12)
+  Pas.map <- get_stamenmap(bbox = Pas.box, zoom = 10)
+  
+  # Plot map with sites
+  # Prepare data
+  # Get tPCB and coordinates
+  tPCB.Pas <- data.frame(cbind(wdc.Pas$SiteID, wdc.Pas$Latitude,
+                               wdc.Pas$Longitude, wdc.Pas$tPCB))
+  # Name the columns
+  colnames(tPCB.Pas) <- c("SiteID", "Latitude", "Longitude", "tPCB")
+  # Change no numeric to numeric
+  tPCB.Pas$Latitude <- as.numeric(tPCB.Pas$Latitude)
+  tPCB.Pas$Longitude <- as.numeric(tPCB.Pas$Longitude)
+  tPCB.Pas$tPCB <- as.numeric(tPCB.Pas$tPCB)
+  # Average tPCB per site
+  tPCB.Pas.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                            data = tPCB.Pas, FUN = mean)
+}
+
+# (1) Plot map + locations
+ggmap(Pas.map) +
+  geom_point(data = tPCB.Pas.ave, aes(x = Longitude, y = Latitude), shape = 21,
+             color = "red",
+             fill = "white", size = 1.75, stroke = 0.75) +
+  geom_label_repel(aes(x = Longitude, y = Latitude, label = SiteID),
+                   data = tPCB.Pas.ave, family = 'Times', size = 1.8, 
+                   box.padding = 0.2, point.padding = 0.3,
+                   segment.color = 'grey50')
+
+# (2) Plot map + tPCB
+maptPCBPas <- ggmap(Pas.map) +
+  geom_point(data = tPCB.Pas.ave, aes(x = Longitude, y = Latitude,
+                                      size = tPCB), alpha = 1,
+             color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  annotate('text', x = -117.43, y = 47.83,
+           label = 'Passaic River (NJ)', colour = 'black', size = 3.4,
+           fontface = 2) +
+  scale_size_area(breaks = c(10, 100, 1000, 10000, 100000), labels = comma,
+                  name = expression(bold(atop(Sigma*"PCBs (mean) 2014-2016 (pg/L)"))),
+                  max_size = 8) +
+  guides(size = guide_legend(label.hjust = 0.5)) +
+  theme(legend.position = c(1.23, 0.75),  # Adjust the legend.position values
+        legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBSpoAveV01.png",
+       plot = maptPCBSpo, width = 12, height = 4, dpi = 300)
+
+
+
 # Spokane River -----------------------------------------------------------
 {
   # Select only from Hudson River
