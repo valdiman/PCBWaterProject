@@ -85,10 +85,12 @@ if (nrow(data_problems) > 0) {
 # Data look good!
 # Select correct samples
 LMMB_data_long <- LMMB_data_long %>%
-  filter(FRACTION == "Filtrate", SAMPLE_TYPE == "Individual", UNITS == "ng/l")
+  filter(FRACTION == "Filtrate", SAMPLE_TYPE == "Individual",
+         UNITS == "ng/l")
 
 # Change date format
-LMMB_data_long$SAMPLING_DATE <- sub(" \\d+:\\d+", "", LMMB_data_long$SAMPLING_DATE)
+LMMB_data_long$SAMPLING_DATE <- sub(" \\d+:\\d+", "",
+                                    LMMB_data_long$SAMPLING_DATE)
 
 # Remove again unnecessary columns
 LMMB_data_long <- LMMB_data_long %>%
