@@ -133,6 +133,9 @@ transposed_data <- transposed_data %>%
 
 # Export results
 write.csv(transposed_data, file = "Data/LMMB/Tributaries/1994T.csv")
+## need to continue working on excel. The congener list is too complicated
+## to be fixed here. 
+
 
 
 ## Not sure about this in this code
