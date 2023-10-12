@@ -3,6 +3,8 @@
 dir.create("Data")
 dir.create("Data/PassaicRiver")
 dir.create("Data/LMMB")
+dir.create("Data/LMMB/Tributaries")
+dir.create("Data/LMMB/OpenLake")
 dir.create("R")
 dir.create("R/ExtractingData")
 dir.create("R/ExtractingData/LMMB")
