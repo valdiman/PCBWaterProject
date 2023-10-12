@@ -105,7 +105,6 @@ transform_ANL_CODE <- function(anl_code) {
 # Apply function to change the PCB names
 LMMB_data_long$Transformed_ANL_CODE <- sapply(LMMB_data_long$ANL_CODE,
                                               transform_ANL_CODE)
-
 # Reshape the dataset
 transposed_data <- LMMB_data_long %>%
   pivot_wider(
