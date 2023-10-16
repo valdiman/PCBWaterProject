@@ -4,7 +4,9 @@
 install.packages("dplyr")
 
 # Load libraries
-library(dplyr)
+{
+  library(dplyr)
+}
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
@@ -22,6 +24,10 @@ merged_tri <- merged_tri[, -1]
 # Names and values for the new columns
 new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName")
 new_col_values <- c("SampleIDValue", "R5", "NA", "LMMB")
+
+
+
+
 
 # Add new columns at the beginning (from column 1)
 merged_tri <- cbind(setNames(data.frame(matrix(NA, nrow = nrow(merged_tri),
