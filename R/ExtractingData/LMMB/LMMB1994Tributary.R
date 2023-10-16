@@ -250,8 +250,17 @@ transposed_data <- transposed_data %>%
 # Remove tPCB.2
 transposed_data <- transposed_data[, !colnames(transposed_data) %in% c("tPCB.2")]
 
+# Change the name of columns to be consistent
+colnames(transposed_data)[colnames(transposed_data) == "SAMPLING_DATE"] <- "SampleDate"
+colnames(transposed_data)[colnames(transposed_data) == "LATITUDE"] <- "Latitude"
+colnames(transposed_data)[colnames(transposed_data) == "LONGITUDE"] <- "Longitude"
+colnames(transposed_data)[colnames(transposed_data) == "UNITS"] <- "Units"
+
 # Export results
 write.csv(transposed_data, file = "Data/LMMB/Tributaries/1994T.csv")
+
+
+
 
 
 
