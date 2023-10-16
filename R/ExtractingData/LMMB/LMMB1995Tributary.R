@@ -124,6 +124,104 @@ transposed_data$PCB <- transposed_data$PCB * 1000
 # Update RESULT_UNIT to "pg/l"
 transposed_data$UNITS <- "pg/l"
 
+# Fix and create new PCB congener list
+# List of column renaming rules
+column_renaming_rules <- list(
+  "PCB18" = "PCB18+30",
+  "PCB26" = "PCB26+29",
+  "PCB44" = "PCB44+47+65",
+  "PCB47+48" = "PCB48+59+62+75",
+  "PCB91" = "PCB88+91",
+  "PCB101" = "PCB90+101+113",
+  "PCB118" = "PCB106+118",
+  "PCB146" = "PCB114+122+131+133+142+146+165",
+  "PCB123+149" = "PCB123+139+140+147+149",
+  "PCB105+132+153" = "PCB132+153+161+168",
+  "PCB172" = "PCB156+157+172+197+200",
+  "PCB171+202" = "PCB171+173+202",
+  "PCB194" = "PCB194+205"
+)
+
+# Apply column renaming rules
+for (old_name in names(column_renaming_rules)) {
+  new_name <- column_renaming_rules[[old_name]]
+  colnames(transposed_data)[colnames(transposed_data) == old_name] <- new_name
+}
+
+# Change NA to 0s
+transposed_data[is.na(transposed_data)] <- 0
+
+# Function to combine columns and remove original columns
+combine_and_remove <- function(data, new_column, columns_to_combine) {
+  data[[new_column]] <- rowSums(data[columns_to_combine], na.rm = TRUE)
+  data <- data[, !colnames(data) %in% columns_to_combine]
+  return(data)
+}
+
+# Specify the combinations and call the function for each
+combinations <- list(
+  list("PCB20+21+28+31+33+50+53", c("PCB28+31", "PCB33", "PCB53")),
+  list("PCB40+41+64+71+72", c("PCB41+64+71", "PCB40")),
+  list("PCB43+49+52+69+73", c("PCB49", "PCB52")),
+  list("PCB45+51", c("PCB45", "PCB51")),
+  list("PCB61+66+70+74+76+93+95+98+100+102", c("PCB66", "PCB70+76", "PCB74", "PCB95")),
+  list("PCB77+85+110+111+115+116+117", c("PCB77+110", "PCB85")),
+  list("PCB81+86+87+97+107+108+109+112+119+124+125", c("PCB87", "PCB97")),
+  list("PCB82+135+144+151+154", c("PCB82", "PCB135+144", "PCB151")),
+  list("PCB83+99", c("PCB83", "PCB99")),
+  list("PCB128+162+166+167", c("PCB128", "PCB167")),
+  list("PCB129+137+138+158+160+163+164+176+178", c("PCB137+176", "PCB138+163", "PCB158", "PCB178")),
+  list("PCB180+193", c("PCB180", "PCB193")),
+  list("PCB183+185", c("PCB183", "PCB185")),
+  list("PCB198+199+201", c("PCB198", "PCB199", "PCB201"))
+)
+
+# Apply the function for each combination
+for (combo in combinations) {
+  transposed_data <- combine_and_remove(transposed_data, combo[[1]], combo[[2]])
+}
+
+# Especial column cases
+{
+  # Create new columns newPCB15 and newPCB17
+  transposed_data$PCB15 <- transposed_data$'PCB15+17' * 0.5
+  transposed_data$PCB17 <- transposed_data$'PCB15+17' * 0.5
+  
+  # Remove the original PCB15+17 and newPCB17 columns
+  transposed_data <- transposed_data[, !colnames(transposed_data) %in% c("PCB15+17")]
+  
+}
+
+# Define the desired order of columns
+desired_column_order <- c(
+  "LATITUDE", "LONGITUDE", "SAMPLING_DATE", "SAMPLE_ID", "UNITS", "PCB", "PCB1", "PCB2", "PCB3",
+  "PCB4+10", "PCB5+8", "PCB6", "PCB7+9", "PCB11", "PCB12+13",
+  "PCB14", "PCB15", "PCB16+32", "PCB17", "PCB18+30", "PCB19", "PCB20+21+28+31+33+50+53",
+  "PCB22", "PCB23", "PCB24+27", "PCB25", "PCB26+29", "PCB34", "PCB35", "PCB36", "PCB37+42",
+  "PCB38", "PCB39", "PCB40+41+64+71+72", "PCB43+49+52+69+73", "PCB44+47+65", "PCB45+51", "PCB46",
+  "PCB48+59+62+75", "PCB54", "PCB55", "PCB56+60", "PCB57", "PCB58", "PCB61+66+70+74+76+93+95+98+100+102",
+  "PCB63", "PCB67", "PCB68", "PCB77+85+110+111+115+116+117", "PCB78", "PCB79", "PCB80",
+  "PCB81+86+87+97+107+108+109+112+119+124+125", "PCB82+135+144+151+154", "PCB83+99", "PCB84+92",
+  "PCB88+91", "PCB89", "PCB90+101+113", "PCB94", "PCB96", "PCB103", "PCB104", "PCB105",
+  "PCB106+118", "PCB114+122+131+133+142+146+165", "PCB120", "PCB121", "PCB123+139+140+147+149",
+  "PCB126", "PCB127", "PCB128+162+166+167", "PCB129+137+138+158+160+163+164+176+178",
+  "PCB130", "PCB132+153+161+168", "PCB134+143", "PCB136", "PCB141", "PCB145", "PCB148", "PCB150",
+  "PCB152", "PCB155", "PCB156+157+172+197+200", "PCB159", "PCB169", "PCB170+190", "PCB171+173+202",
+  "PCB174", "PCB175", "PCB177", "PCB179", "PCB180+193", "PCB181", "PCB182+187", "PCB183+185",
+  "PCB184", "PCB186", "PCB188", "PCB189", "PCB191", "PCB192", "PCB194+205", "PCB195+208",
+  "PCB196+203", "PCB198+199+201", "PCB204", "PCB206", "PCB207", "PCB209"
+)
+
+# Check and add missing columns
+missing_columns <- setdiff(desired_column_order, colnames(transposed_data))
+transposed_data[missing_columns] <- NA
+
+# Reorder the columns based on the desired order
+transposed_data <- transposed_data[desired_column_order]
+
+# Change NA to 0s
+transposed_data[is.na(transposed_data)] <- 0
+
 # Rename the "PCB" column to "tPCB"
 colnames(transposed_data)[colnames(transposed_data) == "PCB"] <- "tPCB"
 
@@ -131,76 +229,13 @@ colnames(transposed_data)[colnames(transposed_data) == "PCB"] <- "tPCB"
 transposed_data <- transposed_data %>%
   select(-tPCB, everything())
 
+# Create a new column named "tPCB.2" that sums columns 5 to 109 to check original tPCB value
+transposed_data <- transposed_data %>%
+  mutate(tPCB.2 = rowSums(select(., starts_with("PCB")), na.rm = TRUE))
+
+# Remove tPCB.2
+transposed_data <- transposed_data[, !colnames(transposed_data) %in% c("tPCB.2")]
+
 # Export results
 write.csv(transposed_data, file = "Data/LMMB/Tributaries/1995T.csv")
-
-
-## Not sure about this in this code
-# Define a mapping between codes and names
-code_to_name <- c(
-  "TFOXRB01" = "Tributary Fox River",
-  "TFOXRB02" = "Tributary Fox River",
-  "TFOXRB03" = "Tributary Fox River",
-  "TFOXRB04" = "Tributary Fox River",
-  "TFOXRB05" = "Tributary Fox River",
-  "TGRANH01" = "Tributary Grand River",
-  "TGRANH02" = "Tributary Grand River",
-  "TGRANH03" = "Tributary Grand River",
-  "TGRANH04" = "Tributary Grand River",
-  "TGRANH05" = "Tributary Grand River",
-  "TGRANH06" = "Tributary Grand River",
-  "TGRANH07" = "Tributary Grand River",
-  "TGRANH08" = "Tributary Grand River",
-  "TKALAG01" = "Tributary Kalamazoo River",
-  "TKALAG02" = "Tributary Kalamazoo River",
-  "TKALAG03" = "Tributary Kalamazoo River",
-  "TKALAG05" = "Tributary Kalamazoo River",
-  "TKALAG06" = "Tributary Kalamazoo River",
-  "TMANIK01" = "Tributary Manistique River",
-  "TMANIK02" = "Tributary Manistique River",
-  "TMANIK03" = "Tributary Manistique River",
-  "TMANIK04" = "Tributary Manistique River",
-  "TMANIK05" = "Tributary Manistique River",
-  "TMANIK06" = "Tributary Manistique River",
-  "TMENOA01" = "Tributary Menominee River",
-  "TMENOA02" = "Tributary Menominee River",
-  "TMENOA03" = "Tributary Menominee River",
-  "TMENOA04" = "Tributary Menominee River",
-  "TMILWD01" = "Tributary Milwaukee River",
-  "TMILWD02" = "Tributary Milwaukee River",
-  "TMILWD03" = "Tributary Milwaukee River",
-  "TMILWD04" = "Tributary Milwaukee River",
-  "TMUSKI01" = "Tributary Muskegon River",
-  "TMUSKI02" = "Tributary Muskegon River",
-  "TMUSKI03" = "Tributary Muskegon River",
-  "TMUSKI04" = "Tributary Muskegon River",
-  "TMUSKI05" = "Tributary Muskegon River",
-  "TPEREJ01" = "Tributary Pere Marquette River",
-  "TPEREJ02" = "Tributary Pere Marquette River",
-  "TPEREJ03" = "Tributary Pere Marquette River",
-  "TPEREJ04" = "Tributary Pere Marquette River",
-  "TPEREJ05" = "Tributary Pere Marquette River",
-  "TSHEBC01" = "Tributary Sheboygan River",
-  "TSHEBC02" = "Tributary Sheboygan River",
-  "TSHEBC03" = "Tributary Sheboygan River",
-  "TSHEBC04" = "Tributary Sheboygan River",
-  "TSHEBC06" = "Tributary Sheboygan River",
-  "TSTJOF01" = "Tributary St. Joseph River",
-  "TSTJOF02" = "Tributary St. Joseph River",
-  "TSTJOF03" = "Tributary St. Joseph River",
-  "TSTJOF04" = "Tributary St. Joseph River",
-  "TSTJOF05" = "Tributary St. Joseph River"
-)
-
-# Create SiteName column
-transposed_data <- transposed_data %>%
-  mutate(SiteName = code_to_name[SAMPLE_ID])
-
-# Create SiteID Column
-transposed_data <- transposed_data %>%
-  mutate(SiteID = sprintf("WCPCB-LMM%03d",
-                          as.integer(factor(SiteName, levels = unique(SiteName)))))
-         
-
-
 
