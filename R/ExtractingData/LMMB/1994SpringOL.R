@@ -124,8 +124,6 @@ transposed_data$PCB <- transposed_data$PCB * 1000
 # Update RESULT_UNIT to "pg/l"
 transposed_data$UNITS <- "pg/l"
 
-write.csv(transposed_data, file = "Data/LMMB/OpenLake/1994SOL.csv")
-
 # Fix and create new PCB congener list
 # List of column renaming rules
 column_renaming_rules <- list(
@@ -135,7 +133,8 @@ column_renaming_rules <- list(
   "PCB91" = "PCB88+91",
   "PCB101" = "PCB90+101+113",
   "PCB118" = "PCB106+118",
-  "PCB171+202" = "PCB171+173+202",
+  "PCB105+132+153" = "PCB132+153+161+168", # Issue with the original PCB coelution
+  "PCB134" = "PCB134+143"
 )
 
 # Apply column renaming rules
@@ -156,20 +155,29 @@ combine_and_remove <- function(data, new_column, columns_to_combine) {
 
 # Specify the combinations and call the function for each
 combinations <- list(
-  list("PCB20+21+28+31+33+50+53", c("PCB28+31", "PCB33", "PCB53")),
-  list("PCB40+41+64+71+72", c("PCB41+64+71", "PCB40")),
-  list("PCB43+49+52+69+73", c("PCB49", "PCB52")),
+  list("PCB12+13", c("PCB12", "PCB13")),
+  list("PCB16+32", c("PCB16", "PCB32")),
+  list("PCB20+21+28+31+33+50+53", c("PCB21", "PCB28+31", "PCB33", "PCB53")),
+  list("PCB24+27", c("PCB24", "PCB27")),
+  list("PCB26+29", c("PCB26", "PCB29")),
+  list("PCB40+41+64+71+72", c("PCB40", "PCB41+71", "PCB64")),
+  list("PCB43+49+52+69+73", c("PCB43", "PCB49", "PCB52")),
   list("PCB45+51", c("PCB45", "PCB51")),
-  list("PCB61+66+70+74+76+93+95+98+100+102", c("PCB66+95", "PCB70+76", "PCB74")),
+  list("PCB61+66+70+74+76+93+95+98+100+102", c("PCB66", "PCB70+76", "PCB74", "PCB95", "PCB100")),
   list("PCB77+85+110+111+115+116+117", c("PCB77+110", "PCB85")),
-  list("PCB81+86+87+97+107+108+109+112+119+124+125", c("PCB87", "PCB97")),
+  list("PCB81+86+87+97+107+108+109+112+119+124+125", c("PCB81", "PCB87", "PCB97", "PCB107")),
   list("PCB82+135+144+151+154", c("PCB82", "PCB135+144", "PCB151")),
   list("PCB83+99", c("PCB83", "PCB99")),
-  list("PCB123+139+140+147+149", c("PCB123+149", "PCB149")),
+  list("PCB114+122+131+133+142+146+165", c("PCB114+131", "PCB146")),
+  list("PCB123+139+140+147+149", c("PCB123+149", "PCB124+147")), # issue with the original coelution.
   list("PCB128+162+166+167", c("PCB128", "PCB167")),
-  list("PCB129+137+138+158+160+163+164+176+178", c("PCB137+176", "PCB138+163", "PCB158", "PCB178")),
+  list("PCB129+137+138+158+160+163+164+176+178", c("PCB129", "PCB137+176", "PCB138+163", "PCB158", "PCB178")),
+  list("PCB156+157+172+197+200", c("PCB156", "PCB157+200", "PCB172+197")),
+  list("PCB171+173+202", c("PCB171+202", "PCB173")),
   list("PCB180+193", c("PCB180", "PCB193")),
   list("PCB183+185", c("PCB183", "PCB185")),
+  list("PCB194+205", c("PCB194", "PCB205")),
+  list("PCB196+203", c("PCB196", "PCB203")),
   list("PCB198+199+201", c("PCB198", "PCB199", "PCB201"))
 )
 
@@ -179,28 +187,13 @@ for (combo in combinations) {
 }
 
 # Especial column cases
-# Sum PCB7 and PCB7+9 and create a new column PCB7+9
 {
-  transposed_data$PCB7_plus_9 <- transposed_data$PCB7 + transposed_data$`PCB7+9`
-  
-  # Remove the original PCB7 and PCB7+9 columns
-  transposed_data <- transposed_data[, !colnames(transposed_data) %in% c("PCB7", "PCB7+9")]
-  
-  # Rename the new column
-  colnames(transposed_data)[colnames(transposed_data) == "PCB7_plus_9"] <- "PCB7+9"
-  
   # Create new columns newPCB15 and newPCB17
-  transposed_data$newPCB15 <- transposed_data$'PCB15+17' * 0.5
-  transposed_data$newPCB17 <- transposed_data$'PCB15+17' * 0.5
-  
-  # Add the values of newPCB17 to PCB17
-  transposed_data$PCB17 <- transposed_data$PCB17 + transposed_data$newPCB17
+  transposed_data$PCB15 <- transposed_data$'PCB15+17' * 0.5
+  transposed_data$PCB17 <- transposed_data$'PCB15+17' * 0.5
   
   # Remove the original PCB15+17 and newPCB17 columns
-  transposed_data <- transposed_data[, !colnames(transposed_data) %in% c("PCB15+17", "newPCB17")]
-  
-  # Rename newPCB15 to PCB15
-  colnames(transposed_data)[colnames(transposed_data) == "newPCB15"] <- "PCB15"
+  transposed_data <- transposed_data[, !colnames(transposed_data) %in% c("PCB15+17")]
 }
 
 # Define the desired order of columns
@@ -254,5 +247,5 @@ colnames(transposed_data)[colnames(transposed_data) == "LONGITUDE"] <- "Longitud
 colnames(transposed_data)[colnames(transposed_data) == "UNITS"] <- "Units"
 
 # Export results
-write.csv(transposed_data, file = "Data/LMMB/Tributaries/1994T.csv")
+write.csv(transposed_data, file = "Data/LMMB/OpenLake/1994SOL.csv")
 
