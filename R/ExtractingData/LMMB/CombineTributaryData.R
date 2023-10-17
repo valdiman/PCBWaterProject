@@ -21,13 +21,26 @@ merged_tri <- rbind(tri.1, tri.2)
 # Delete the first column
 merged_tri <- merged_tri[, -1]
 
+# Define a mapping between codes and names
+code_to_name <- c(
+  "TFOXRB01" = "Tributary Fox River", #WI
+  "TGRANH01" = "Tributary Grand River", # MI
+  "TIHCAE01" = "Tributary Indiana Harbor Canal", # IN
+  "TKALAG01" = "Tributary Kalamazoo River", # MI
+  "TMANIK06" = "Tributary Manistique River", #WI?
+  "TMENOA01" = "Tributary Menominee River", #WI
+  "TMILWD04" = "Tributary Milwaukee River", #WI
+  "TMUSKI01" = "Tributary Muskegon River", #MI
+  "TPEREJ05" = "Tributary Pere Marquette River", #MI
+  "TSHEBC01" = "Tributary Sheboygan River", #WI
+  "TSTJOF05" = "Tributary St. Joseph River" #MI
+)
+
+
 # Names and values for the new columns
-new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName")
-new_col_values <- c("SampleIDValue", "R5", "NA", "LMMB")
-
-
-
-
+new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName",
+                   "SiteName")
+new_col_values <- c("SampleIDValue", "R5", "NA", "LMMB", "NA")
 
 # Add new columns at the beginning (from column 1)
 merged_tri <- cbind(setNames(data.frame(matrix(NA, nrow = nrow(merged_tri),
