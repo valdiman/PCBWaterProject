@@ -21,26 +21,52 @@ merged_tri <- rbind(tri.1, tri.2)
 # Delete the first column
 merged_tri <- merged_tri[, -1]
 
-# Define a mapping between codes and names
+# Define the code_to_name mapping
 code_to_name <- c(
-  "TFOXRB01" = "Tributary Fox River", #WI
-  "TGRANH01" = "Tributary Grand River", # MI
-  "TIHCAE01" = "Tributary Indiana Harbor Canal", # IN
-  "TKALAG01" = "Tributary Kalamazoo River", # MI
-  "TMANIK06" = "Tributary Manistique River", #WI?
-  "TMENOA01" = "Tributary Menominee River", #WI
-  "TMILWD04" = "Tributary Milwaukee River", #WI
-  "TMUSKI01" = "Tributary Muskegon River", #MI
-  "TPEREJ05" = "Tributary Pere Marquette River", #MI
-  "TSHEBC01" = "Tributary Sheboygan River", #WI
-  "TSTJOF05" = "Tributary St. Joseph River" #MI
+  "TFOXRB" = "Tributary Fox River", #WI
+  "TGRANH" = "Tributary Grand River", #MI
+  "TIHCAE" = "Tributary Indiana Harbor Canal", #IN
+  "TKALAG" = "Tributary Kalamazoo River", #MI
+  "TMANIS" = "Tributary Manistee River", #MI
+  "TMANIK" = "Tributary Manistique River", #MI
+  "TMENOA" = "Tributary Menominee River", #WI
+  "TMILWD" = "Tributary Milwaukee River", #WI
+  "TMUSKI" = "Tributary Muskegon River", #MI
+  "TPEREJ" = "Tributary Pere Marquette River", #MI
+  "TSHEBC" = "Tributary Sheboygan River", #WI
+  "TSTJOF" = "Tributary St. Joseph River" #MI
 )
 
+# Extract the relevant part of SAMPLE_ID and create the SiteName columns
+merged_tri$SiteName <- sapply(merged_tri$SAMPLE_ID, function(sample_id) {
+  match_key <- gsub("[0-9]", "", sample_id)
+  return(code_to_name[match_key])
+})
+
+# Define the code_to_name mapping (site names to state abbreviations)
+code_to_state <- c(
+  "Tributary Fox River" = "WI",
+  "Tributary Grand River" = "MI",
+  "Tributary Indiana Harbor Canal" = "IN",
+  "Tributary Kalamazoo River" = "MI",
+  "Tributary Manistee River" = "MI",
+  "Tributary Manistique River" = "MI",
+  "Tributary Menominee River" = "WI",
+  "Tributary Milwaukee River" = "WI",
+  "Tributary Muskegon River" = "MI",
+  "Tributary Pere Marquette River" = "MI",
+  "Tributary Sheboygan River" = "WI",
+  "Tributary St. Joseph River" = "MI"
+)
+
+# Create the StateSampled column based on the SiteName column
+merged_tri$StateSampled <- sapply(merged_tri$SiteName, function(site_name) {
+  return(code_to_state[site_name])
+})
 
 # Names and values for the new columns
-new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName",
-                   "SiteName")
-new_col_values <- c("SampleIDValue", "R5", "NA", "LMMB", "NA")
+new_col_names <- c("SampleID", "EPARegion", "LocationName")
+new_col_values <- c("SampleIDValue", "R5", "LMMB")
 
 # Add new columns at the beginning (from column 1)
 merged_tri <- cbind(setNames(data.frame(matrix(NA, nrow = nrow(merged_tri),
@@ -61,6 +87,26 @@ site_id_col_value <- "SiteIDValue"
 # Add the "SiteID" column at position 6
 merged_tri <- merged_tri %>%
   dplyr::mutate(!!site_id_col_name := site_id_col_value, .before = 6)
+
+# Organize column order
+desired_column_order <- c(
+  "SampleID",
+  "EPARegion",
+  "StateSampled",
+  "LocationName",
+  "SiteName",
+  "SiteID",
+  "SampleDate",
+  "Latitude",
+  "Longitude",
+  "Units"
+)
+
+merged_tri <- merged_tri %>%
+  select(desired_column_order, everything())
+
+## Until here !
+
 
 # Create a data frame with unique Latitude and Longitude combinations
 unique_combinations <- merged_tri %>%
