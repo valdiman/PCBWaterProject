@@ -21,6 +21,12 @@ merged_tri <- rbind(tri.1, tri.2)
 # Delete the first column
 merged_tri <- merged_tri[, -1]
 
+# Transform SampleDate into date format
+merged_tri$SampleDate <- as.Date(merged_tri$SampleDate, format = "%Y/%m/%d")
+
+# Convert it back to character with the desired format
+merged_tri$SampleDate <- format(merged_tri$SampleDate, format = "%m/%d/%y")
+
 # Names and values for the new columns
 new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName",
                    "SiteID")
