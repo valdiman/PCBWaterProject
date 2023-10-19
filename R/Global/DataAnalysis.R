@@ -15,6 +15,9 @@ install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
+install.packages("sf")
+install.packages("sfheaders")
+
 
 # Load libraries
 {
@@ -30,6 +33,8 @@ install.packages("reshape")
   library(zoo) # yields seasons
   library(dataRetrieval) # read data from USGS
   library(reshape)
+  library(sf)
+  library(sfheaders) # Create file to be used in Google Earth
 }
 
 # Read data ---------------------------------------------------------------
@@ -161,7 +166,7 @@ plot.cong.freq <- ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)
 print(plot.cong.freq)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Plots/Global/FreqPCBV01.png", plot = plot.cong.freq,
+ggsave("Output/Plots/Global/FreqPCBV02.png", plot = plot.cong.freq,
        width = 5, height = 10, dpi = 300)
 
 # Total Concentration Analysis --------------------------------------------
@@ -191,6 +196,14 @@ location <- tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
 location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                       data = location, mean)
+# Create an sf data frame
+sf_location <- st_as_sf(location, coords = c("Longitude", "Latitude"))
+# Set the CRS to WGS 84 (EPSG:4326)
+sf_location <- st_set_crs(sf_location, 4326)
+# Define the full file path for the KML file
+kmlFilePath <- "Output/Data/Global/PCBSampleLocations.kml"
+# Write the KML file to the specified directory
+st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
 # Summary statistic of total PCB (congeners + Aroclor) in pg/L not including 0s
 summary(wdc$tPCB)
