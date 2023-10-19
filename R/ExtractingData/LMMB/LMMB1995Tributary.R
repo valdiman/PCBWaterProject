@@ -1,4 +1,11 @@
- # https://cdxapps.epa.gov/cdx-glenda/action/querytool/querySystem
+# https://www.epa.gov/greatlakes/lake-michigan-mass-balance-results-and-publications
+# Data: https://cdxapps.epa.gov/cdx-glenda/action/querytool/querySystem
+# Welcome to the Great Lakes Environmental Database System (GLENDA)
+# GLENDA Query System
+# Selected Query: lake Michigan Mass Balance Results
+# Project Code: LHTP: TRIB PCB 
+# Year: 1995
+# Medium: surface water
 
 # Install packages
 install.packages("dplyr")
