@@ -21,6 +21,25 @@ merged_tri <- rbind(tri.1, tri.2)
 # Delete the first column
 merged_tri <- merged_tri[, -1]
 
+# Names and values for the new columns
+new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName",
+                   "SiteID")
+new_col_values <- c("SampleIDValue", "R5", NA, "Lake Michigan Mass Balance",
+                    "SiteIDValue")
+
+# Add new columns at the beginning (from column 1)
+merged_tri <- cbind(setNames(data.frame(matrix(NA, nrow = nrow(merged_tri),
+                                               ncol = length(new_col_names))),
+                             new_col_names), merged_tri)
+
+# Fill the new columns with values
+for (i in 1:length(new_col_names)) {
+  col_name <- new_col_names[i]
+  col_value <- new_col_values[i]
+  merged_tri[, col_name] <- col_value
+}
+
+# Create SiteName column
 # Define the code_to_name mapping
 code_to_name <- c(
   "TFOXRB" = "Tributary Fox River", #WI
@@ -64,30 +83,6 @@ merged_tri$StateSampled <- sapply(merged_tri$SiteName, function(site_name) {
   return(code_to_state[site_name])
 })
 
-# Names and values for the new columns
-new_col_names <- c("SampleID", "EPARegion", "LocationName")
-new_col_values <- c("SampleIDValue", "R5", "LMMB")
-
-# Add new columns at the beginning (from column 1)
-merged_tri <- cbind(setNames(data.frame(matrix(NA, nrow = nrow(merged_tri),
-                                               ncol = length(new_col_names))),
-                             new_col_names), merged_tri)
-
-# Fill the new columns with values
-for (i in 1:length(new_col_names)) {
-  col_name <- new_col_names[i]
-  col_value <- new_col_values[i]
-  merged_tri[, col_name] <- col_value
-}
-
-# Name and value for the "SiteID" column
-site_id_col_name <- "SiteID"
-site_id_col_value <- "SiteIDValue"
-
-# Add the "SiteID" column at position 6
-merged_tri <- merged_tri %>%
-  dplyr::mutate(!!site_id_col_name := site_id_col_value, .before = 6)
-
 # Organize column order
 desired_column_order <- c(
   "SampleID",
@@ -104,6 +99,33 @@ desired_column_order <- c(
 
 merged_tri <- merged_tri %>%
   select(desired_column_order, everything())
+
+# Remove SAMPLE_ID column
+merged_tri$SAMPLE_ID <- NULL
+
+# Define the values for the new columns
+PhaseMeasuredValue <- "SurfaceWater"
+EPAMethodValue <- "M1668"
+AroclorCongenerValue <- "Congener"
+
+# Insert the new columns at position 11
+merged_tri <- merged_tri %>%
+  mutate(PhaseMeasured = PhaseMeasuredValue, EPAMethod = EPAMethodValue,
+         AroclorCongener = AroclorCongenerValue) %>%
+  select(1:10, PhaseMeasured, EPAMethod, AroclorCongener, everything())
+
+# Define the column names
+column_names <- c("A1016", "A1221", "A1232", "A1242", "A1248", "A1254", "A1260")
+
+# Initialize these columns with "NA"
+merged_tri[, column_names] <- NA
+
+# Insert the columns at position 118
+merged_tri <- merged_tri %>%
+  select(1:117, all_of(column_names), everything())
+
+
+
 
 ## Until here !
 
