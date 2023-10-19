@@ -23,6 +23,12 @@ merged_ope <- rbind(ope.1, ope.2, ope.3, ope.4)
 # Delete the first column
 merged_ope <- merged_ope[, -1]
 
+# Transform SampleDate into date format
+merged_ope$SampleDate <- as.Date(merged_ope$SampleDate, format = "%Y/%m/%d")
+
+# Convert it back to character with the desired format
+merged_ope$SampleDate <- format(merged_ope$SampleDate, format = "%m/%d/%y")
+
 # Rename SAMPLE_ID to SiteName and change the name of the SAMPLE_ID
 names(merged_ope)[names(merged_ope) == "SAMPLE_ID"] <- "SiteName"
 merged_ope$SiteName <- sub("^[^-]*-", "", merged_ope$SiteName)
