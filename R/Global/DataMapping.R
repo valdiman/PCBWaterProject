@@ -78,7 +78,7 @@ maploc <- ggplot() +
 print(maploc)
 
 # Save map in folder
-ggsave("Output/Maps/Global/maplocV02.png", plot = maploc,
+ggsave("Output/Maps/Global/maplocV03.png", plot = maploc,
        width = 9, height = 4, dpi = 300)
 
 # (2) Map + tPCB
@@ -105,7 +105,7 @@ maptPCB <- ggplot() +
 print(maptPCB)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/maptPCBV02.png", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBV03.png", plot = maptPCB,
        width = 14, height = 4, dpi = 300)
 
 # Specific locations ------------------------------------------------------
