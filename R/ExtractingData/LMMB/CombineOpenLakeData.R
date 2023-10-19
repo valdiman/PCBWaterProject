@@ -28,8 +28,10 @@ names(merged_ope)[names(merged_ope) == "SAMPLE_ID"] <- "SiteName"
 merged_ope$SiteName <- sub("^[^-]*-", "", merged_ope$SiteName)
 
 # Names and values for the new columns
-new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName", "SiteID")
-new_col_values <- c("SampleIDValue", "R5", "NA", "LMMB", "SiteIDValue")
+new_col_names <- c("SampleID", "EPARegion", "StateSampled", "LocationName",
+                   "SiteID")
+new_col_values <- c("SampleIDValue", "R5", NA, "Lake Michigan Mass Balance",
+                    "SiteIDValue")
 
 # Add new columns at the beginning (from column 1)
 merged_ope <- cbind(setNames(data.frame(matrix(NA, nrow = nrow(merged_ope),
@@ -60,17 +62,57 @@ desired_column_order <- c(
 merged_ope <- merged_ope %>%
   select(desired_column_order, everything())
 
-## Until here !
-# Add State to StateSampled column
-merged_ope$StateSampled[merged_ope$SiteName %in% c(1, "1-7m", "1-8m", 3,
-                                                   "3-10m", "3-8m")] <- "IN"
-merged_ope$StateSampled[merged_ope$SiteName %in% c(5, "MB9")] <- "IL"
-merged_ope$StateSampled[merged_ope$SiteName %in% c(17, "MB21", "MB21-5m", "MB21-24m",
-                                                   280, 240,
-                                                   "MB25", 31, 110, 140,
-                                                   180, "40M", "MB38",
-                                                   45, "GB100M", "GB24M",
-                                                   "GB17")] <- "WI"
+# Fill StatedSampled column
+state_mapping <- list(
+  IN = c(1, "1-7m", "1-8m", 3, "3-10m", "3-8m"),
+  IL = c(5, "5-17m", "5-25m", "5-3m", "5-8m", "MB9", "MB9-20m", "MB9-7m"),
+  WI = c("17-10m", "17-50m", "17-74m", "180-13m", "180-34m", "180-50m", "180-58m", "180-5m",
+         "180-7m", "24-25m", "240-30m", "240-37m", "240-7m", "280-10m", "280-42m", "280-42m-285L", "280-42m-380L",
+         "280-54m", "280-5m", "280-62m", "31-13m", "31-6m", "40M-10m", "40M-110m", "40M-113m", "40M-116m",
+         "40M-116m", "40M-15m", "40M-25m", "40M-5m", "40M-82m", "45-14m", "45-15m", "45-5m", "GB100M",
+         "GB100M-10m", "GB100M-34m", "GB100M-44m", "GB100M-45m", "GB100M-50m", "GB100M-8m", "GB17-11m",
+         "GB17-11m-190L-Full", "GB17-11m-190L-Half", "GB17-11m-285L-Half", "GB17-17m", "GB17-7m", "GB24M-10m",
+         "GB24M-22m", "GB24M-25m", "GB24M-37m", "GB24M-39m", "GB24M-6m", "GB24M-8m", "GM100M-10m", "GM100M-34m",
+         "GM100M-44m", "GM100M-45m", "GM100M-50m", "GM100M-8m", "MB21-24m", "MB21-5m", "MB25-15m",
+         "MB25-22m", "MB25-5.5m", "MB25-6m", "MB38-10m", "MB38-11.5m", "MB38-17m", "MB38-5.5m")
+)
+
+# Create a function to map SiteName to StateSampled
+map_site_to_state <- function(site_name) {
+  for (state in c("IN", "IL", "WI")) {  # Change the order as needed
+    if (site_name %in% state_mapping[[state]]) {
+      return(state)
+    }
+  }
+  return("MI")  # Default to "MI" if no match is found
+}
+
+# Apply the mapping function to create the StateSampled column
+merged_ope$StateSampled <- sapply(merged_ope$SiteName, map_site_to_state)
+
+# Define the values for the new columns
+PhaseMeasuredValue <- "SurfaceWater"
+EPAMethodValue <- "M1668"
+AroclorCongenerValue <- "Congener"
+
+# Insert the new columns at position 11
+merged_ope <- merged_ope %>%
+  mutate(PhaseMeasured = PhaseMeasuredValue, EPAMethod = EPAMethodValue,
+         AroclorCongener = AroclorCongenerValue) %>%
+  select(1:10, PhaseMeasured, EPAMethod, AroclorCongener, everything())
+
+# Define the column names
+column_names <- c("A1016", "A1221", "A1232", "A1242", "A1248", "A1254", "A1260")
+
+# Initialize these columns with "NA"
+merged_ope[, column_names] <- NA
+
+# Insert the columns at position 118
+merged_ope <- merged_ope %>%
+  select(1:117, all_of(column_names), everything())
+
+
+
 
 
 
@@ -122,26 +164,7 @@ for (i in unique(merged_ope$SampleID)) {
 merged_ope$SampleCount <- NULL
 merged_ope$SampleDate_yyyymmdd <- NULL
 
-# Define the values for the new columns
-PhaseMeasuredValue <- "SurfaceWater"
-EPAMethodValue <- "M1668"
-AroclorCongenerValue <- "Congener"
 
-# Insert the new columns at position 11
-merged_ope <- merged_ope %>%
-  mutate(PhaseMeasured = PhaseMeasuredValue, EPAMethod = EPAMethodValue,
-         AroclorCongener = AroclorCongenerValue) %>%
-  select(1:10, PhaseMeasured, EPAMethod, AroclorCongener, everything())
-
-# Define the column names
-column_names <- c("A1016", "A1221", "A1232", "A1242", "A1248", "A1254", "A1260")
-
-# Initialize these columns with "NA"
-merged_ope[, column_names] <- NA
-
-# Insert the columns at position 118
-merged_ope <- merged_ope %>%
-  select(1:117, all_of(column_names), everything())
 
 # Export results
 write.csv(merged_pass, file = "Data/PassaicRiver/PassaicRiverData.csv")
