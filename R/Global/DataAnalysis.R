@@ -18,7 +18,6 @@ install.packages("reshape")
 install.packages("sf")
 install.packages("sfheaders")
 
-
 # Load libraries
 {
   library(ggplot2)
@@ -246,7 +245,7 @@ plot.box.tPCB <- ggplot(tpcb, aes(x = "", y = tPCB)) +
 print(plot.box.tPCB)
 
 # Save map in folder
-ggsave("Output/Plots/Global/tPCBBoxPlotV02.png", plot = plot.box.tPCB,
+ggsave("Output/Plots/Global/tPCBBoxPlotV03.png", plot = plot.box.tPCB,
        width = 5, height = 10, dpi = 300)
 
 # Calculate % samples above both EPA thresholds
@@ -306,7 +305,7 @@ PCBi_boxplot <- ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
 print(PCBi_boxplot)
 
 # Save map in folder
-ggsave("Output/Plots/Global/PCBiBoxPlotV02.png", plot = PCBi_boxplot,
+ggsave("Output/Plots/Global/PCBiBoxPlotV03.png", plot = PCBi_boxplot,
        width = 10, height = 5, dpi = 300)
 
 # Regression analysis and plots---------------------------------------------
@@ -332,7 +331,7 @@ plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
 print(plot.time.tPCB)
 
 # Save plot in folder
-ggsave("Output/Plots/Global/tPCBTimeV02.png", plot = plot.time.tPCB,
+ggsave("Output/Plots/Global/tPCBTimeV03.png", plot = plot.time.tPCB,
        width = 10, height = 3, dpi = 300)
 
 # (2) Seasonality
@@ -371,7 +370,7 @@ summary(lr.tpcb.t)
 # Plot residuals. Create a Q-Q plot and save it.
 {
   # Create a new PNG graphics device
-  png("Output/Plots/Global/qq_plotlrtPCBV01.png", width = 800, height = 600)
+  png("Output/Plots/Global/qq_plotlrtPCBV02.png", width = 800, height = 600)
   res <- resid(lr.tpcb.t) # get list of residuals
   # Create Q-Q plot for residuals
   qqnorm(res,
@@ -449,7 +448,7 @@ summary(lmem.tpcb)
 #Create a Q-Q plot and save it.
 {
   # Create a new PNG graphics device
-  png("Output/Plots/Global/qq_plotlmetPCBV01.png", width = 800, height = 600)
+  png("Output/Plots/Global/qq_plotlmetPCBV02.png", width = 800, height = 600)
   res <- resid(lmem.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   qqnorm(res,
@@ -502,13 +501,13 @@ tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
 print(tPCBObsPred)  # Print the plot
 
 # Save plot in folder
-ggsave("Output/Plots/Global/tPCBObsPredV03.png", plot = tPCBObsPred,
+ggsave("Output/Plots/Global/tPCBObsPredV04.png", plot = tPCBObsPred,
        width = 8, height = 6, dpi = 300)
 
 # Plot residuals vs. predictions
   {
     # Open a PNG graphics device
-    png("Output/Plots/Global/res_plotlmetPCBV01.png", width = 800, height = 600)
+    png("Output/Plots/Global/res_plotlmetPCBV02.png", width = 800, height = 600)
     # Create your plot
     plot(tpcb$lmepredicted, resid(lmem.tpcb),
          points(tpcb$lmepredicted, resid(lmem.tpcb), pch = 16, col = "white"),
