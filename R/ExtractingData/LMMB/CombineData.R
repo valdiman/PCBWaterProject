@@ -67,6 +67,9 @@ for (i in unique(merged_lmmb$SampleID)) {
 merged_lmmb$SampleCount <- NULL
 merged_lmmb$SampleDate_yyyymmdd <- NULL
 
+# Remove samples with tPCB = 0
+merged_lmmb <- merged_lmmb[!merged_lmmb$tPCB == 0, ]
+
 # Export results
 write.csv(merged_lmmb, file = "Data/LMMB/lmmb.csv")
 
