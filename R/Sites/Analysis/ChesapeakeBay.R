@@ -17,6 +17,8 @@ install.packages("reshape")
 install.packages("tidyr")
 install.packages('patchwork')
 install.packages("scales")
+install.packages("sf")
+install.packages("sfheaders")
 
 # Load libraries
 {
@@ -34,6 +36,8 @@ install.packages("scales")
   library(reshape)
   library(tidyr) # function gather
   library(patchwork) # combine plots
+  library(sf) # Create file to be used in Google Earth
+  library(sfheaders) # Create file to be used in Google Earth
 }
 
 # Read data ---------------------------------------------------------------
@@ -65,10 +69,18 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
 }
 
 # Get coordinates per site to plot in Google Earth
-che.location <- che.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
+location <- che.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
-che.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                          data = che.location, mean)
+location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                      data = location, mean)
+# Create an sf data frame
+sf_location <- st_as_sf(location, coords = c("Longitude", "Latitude"))
+# Set the CRS to WGS 84 (EPSG:4326)
+sf_location <- st_set_crs(sf_location, 4326)
+# Define the full file path for the KML file
+kmlFilePath <- "Output/Data/Sites/GoogleEarth/ChesapeakeBayLocations.kml"
+# Write the KML file to the specified directory
+st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
 # General plots -------------------------------------------------------------------
 # (1) Histograms
