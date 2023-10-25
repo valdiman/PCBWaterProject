@@ -584,11 +584,12 @@ ggsave("Output/Plots/Global/tPCBObsPredV04.png", plot = tPCBObsPred,
 #Until here!
 
 # Spatial Plots and Analysis ----------------------------------------------
-# Superfund Sites
+# tPCB
 # List of sites you want to include in the plot
 sites_to_include <- c("Housatonic River", "New Bedford Harbor", "Passaic River",
                       "Hudson River", "Kalamazoo River", "Fox River",
-                      "Portland Harbor")
+                      "Portland Harbor", "Lake Michigan Mass Balance",
+                      "Spokane River", "Chesapeake Bay")
 
 # Filter the data to include only the specified sites
 filtered_data <- wdc %>%
@@ -601,90 +602,151 @@ tpcb.site <- ggplot(filtered_data, aes(x = factor(LocationName),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1979 - 2019 (pg/L)"))))) +
+  theme(aspect.ratio = 20/15) +
+  ylab(expression(bold("Water Concentration " *Sigma*"PCB (pg/L)"))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+        axis.title.y = element_text(face = "bold", size = 12)) +
+  theme(axis.text.x = element_text(face = "bold", size = 12,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
   theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
 
 print(tpcb.site)
 
-# Save map in folder
-ggsave("Output/Plots/Global/tPCBStateV01.png", plot = tpcb.state,
-       width = 10, height = 5, dpi = 300)
+# Save plot in folder
+ggsave("Output/Plots/Global/tPCBSiteV02.png", plot = tpcb.site,
+       width = 5, height = 10, dpi = 300)
 
-# States
-sites <- c("CA", "CT", "DC*", "DE", "ID", "IL", "IN", "MA", "MD", "MI",
-           "MN", "MO", "MT", "NJ", "NM", "NY", "OH", "ON*", "OR", "PA",
-           "TX", "VA", "WA", "WI")
+# Individual congeners
+# Filter out rows with NA and 0 values in the 'PCBi' column
+filtered_datai <- wdc %>%
+  filter(LocationName %in% sites_to_include, !is.na(PCB11),
+         !(PCB11 == 0))
 
-# Total PCBs
-tpcb.state <- ggplot(wdc, aes(x = factor(StateSampled, levels = sites),
-                y = tPCB)) + 
+# Create the ggplot
+pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
+                                        y = PCB11)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1979 - 2019 (pg/L)"))))) +
+  theme(aspect.ratio = 20/15) +
+  ylab(expression(bold("PCB 11 (pg/L)"))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+        axis.title.y = element_text(face = "bold", size = 14)) +
+  theme(axis.text.x = element_text(face = "bold", size = 12,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
   theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0) +
-  geom_hline(yintercept = 640, color = "#9999CC",
-             size = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
-  geom_hline(yintercept = 64, color = "#CC6666",
-             size = 0.8) # associated with an incremental cancer risk of 10−6.
-
-print(tpcb.state)
-
-# Save map in folder
-ggsave("Output/Plots/Global/tPCBStateV01.png", plot = tpcb.state,
-       width = 10, height = 5, dpi = 300)
-
-# Selected StateSampled and individual PCB congener
-wdc.pcbi <- subset(wdc, select = c(StateSampled, PCB5.8))
-# Remove samples with 0s
-wdc.pcbi <- wdc.pcbi[!(wdc.pcbi[2] == 0), ]
-# Remove samples this NA
-wdc.pcbi <- wdc.pcbi[!is.na(wdc.pcbi[2]),]
-# Plot
-ggplot(wdc.pcbi, aes(x = factor(StateSampled, levels = sites),
-                   y = PCB5.8)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste("PCB 4+10 1979 - 2019 (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
 
+print(pcbi.site)
+
+# Save plot in folder
+ggsave("Output/Plots/Global/PCB11Site.png", plot = pcbi.site,
+       width = 5, height = 10, dpi = 300)
+
+filtered_datai <- wdc %>%
+  filter(LocationName %in% sites_to_include, !is.na(PCB20.21.28.31.33.50.53),
+         !(PCB20.21.28.31.33.50.53 == 0))
+
+# Create the ggplot
+pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
+                                        y = PCB20.21.28.31.33.50.53)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 20/15) +
+  ylab(expression(bold("PCB 20+21+28+31+33+50+53 (pg/L)"))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 14,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "white") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+
+print(pcbi.site)
+
+# Save plot in folder
+ggsave("Output/Plots/Global/PCB20Site.png", plot = pcbi.site,
+       width = 5, height = 10, dpi = 300)
+
+# PCB44+47+65
+filtered_datai <- wdc %>%
+  filter(LocationName %in% sites_to_include, !is.na(PCB44.47.65),
+         !(PCB44.47.65 == 0))
+
+# Create the ggplot
+pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
+                                        y = PCB44.47.65)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 20/15) +
+  ylab(expression(bold("PCB 44+47+65 (pg/L)"))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 14,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "white") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+
+print(pcbi.site)
+
+# Save plot in folder
+ggsave("Output/Plots/Global/PCB44Site.png", plot = pcbi.site,
+       width = 5, height = 10, dpi = 300)
+
+# PCB 67
+filtered_datai <- wdc %>%
+  filter(LocationName %in% sites_to_include, !is.na(PCB67),
+         !(PCB67 == 0))
+
+# Create the ggplot
+pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
+                                        y = PCB67)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 20/15) +
+  ylab(expression(bold("PCB 67 (pg/L)"))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 14,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "white") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+
+print(pcbi.site)
+
+# Save plot in folder
+ggsave("Output/Plots/Global/PCB67Site.png", plot = pcbi.site,
+       width = 5, height = 10, dpi = 300)
 
