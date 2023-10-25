@@ -93,6 +93,54 @@ extracted_string <- filtered_wdc %>%
 # Display Site Name
 print(extracted_string[1])
 
+# Aroclor Congener Summary ------------------------------------------------
+# Create a new data frame with 'Year' and 'AroclorCongener' columns
+wdc.aroclorcongener <- wdc %>%
+  mutate(Year = as.integer(format(as.Date(SampleDate, format = "%m/%d/%y"), "%Y"))) %>%
+  filter(AroclorCongener %in% c("Congener", "Aroclor")) %>%
+  select(Year, AroclorCongener)
+
+# Calculate counts for 'Congener' and 'Aroclor' for each year
+yearly_counts <- wdc.aroclorcongener %>%
+  group_by(Year, AroclorCongener) %>%
+  summarize(Count = n())
+
+# Calculate percentages for 'Congener' and 'Aroclor' for each year
+percentages <- yearly_counts %>%
+  group_by(Year) %>%
+  mutate(Percent = Count / sum(Count))
+
+# Precompute the percentages for 'Congener' and 'Aroclor' for each year
+precomputed_percentages <- percentages %>%
+  group_by(Year, AroclorCongener) %>%
+  summarize(Percent = sum(Percent))
+
+# Convert Year to character
+precomputed_percentages$Year <- as.character(precomputed_percentages$Year)
+
+# Create a stacked bar plot with percentages as percentages (0 to 100)
+plot.aroclor.congener <- ggplot(precomputed_percentages, aes(x = Year)) +
+  geom_bar(aes(y = Percent * 100, fill = AroclorCongener), stat = "identity") +
+  theme_classic() +
+  labs(title = "Percentage of Congener and Aroclor Over the Years",
+       x = "Year",
+       y = "Percentage") +
+  scale_fill_manual(values = c("Congener" = "black", "Aroclor" = "grey90")) +
+  scale_y_continuous(limits = c(0, 100)) +  # Set the y-axis limits
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11)) +
+  coord_cartesian(ylim = c(0, 100))
+
+# Print the plot
+print(plot.aroclor.congener)
+
+# Save plot in folder
+ggsave("Output/Plots/Global/AroclorCongener.png", plot = plot.aroclor.congener,
+       width = 10, height = 3, dpi = 300)
+
 # Aroclor summary ---------------------------------------------------------
 # Number of samples analyzed using Aroclor method
 count_Aroclor <- sum(wdc$AroclorCongener == "Aroclor")
@@ -527,9 +575,47 @@ ggsave("Output/Plots/Global/tPCBObsPredV04.png", plot = tPCBObsPred,
 #Until here!
 
 # Spatial Plots and Analysis ----------------------------------------------
+# Superfund Sites
+# List of sites you want to include in the plot
+sites_to_include <- c("Housatonic River", "New Bedford Harbor", "Passaic River",
+                      "Hudson River", "Kalamazoo River", "Fox River",
+                      "Portland Harbor")
+
+# Filter the data to include only the specified sites
+filtered_data <- wdc %>%
+  filter(LocationName %in% sites_to_include)
+
+# Total PCBs
+tpcb.site <- ggplot(filtered_data, aes(x = factor(LocationName),
+                              y = tPCB)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 5/20) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB 1979 - 2019 (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 9)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+
+print(tpcb.site)
+
+# Save map in folder
+ggsave("Output/Plots/Global/tPCBStateV01.png", plot = tpcb.state,
+       width = 10, height = 5, dpi = 300)
+
 # States
 sites <- c("CA", "CT", "DC*", "DE", "ID", "IL", "IN", "MA", "MD", "MI",
-           "MN", "MO", "MT", "NM", "NJ", "NY", "OH", "ON*", "OR", "PA",
+           "MN", "MO", "MT", "NJ", "NM", "NY", "OH", "ON*", "OR", "PA",
            "TX", "VA", "WA", "WI")
 
 # Total PCBs
