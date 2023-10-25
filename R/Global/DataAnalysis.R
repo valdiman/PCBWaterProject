@@ -115,17 +115,26 @@ precomputed_percentages <- percentages %>%
   group_by(Year, AroclorCongener) %>%
   summarize(Percent = sum(Percent))
 
+# Calculate the number of samples per year for 'Congener' and 'Aroclor'
+sample_counts <- yearly_counts %>%
+  group_by(Year) %>%
+  summarize(TotalSamples = sum(Count))
+
 # Convert Year to character
 precomputed_percentages$Year <- as.character(precomputed_percentages$Year)
 
 # Create a stacked bar plot with percentages as percentages (0 to 100)
-plot.aroclor.congener <- ggplot(precomputed_percentages, aes(x = Year)) +
+plot.aroclor.congener <- ggplot(precomputed_percentages,
+                                aes(x = factor(Year,
+                                               levels = unique(precomputed_percentages$Year)))) +
   geom_bar(aes(y = Percent * 100, fill = AroclorCongener), stat = "identity") +
+  geom_text(data = sample_counts, aes(label = TotalSamples, y = 100), size = 2.5,
+            fontface = "bold") +
   theme_classic() +
   labs(title = "Percentage of Congener and Aroclor Over the Years",
        x = "Year",
        y = "Percentage") +
-  scale_fill_manual(values = c("Congener" = "black", "Aroclor" = "grey90")) +
+  scale_fill_manual(values = c("Congener" = "grey50", "Aroclor" = "grey90")) +
   scale_y_continuous(limits = c(0, 100)) +  # Set the y-axis limits
   theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1,
@@ -138,7 +147,7 @@ plot.aroclor.congener <- ggplot(precomputed_percentages, aes(x = Year)) +
 print(plot.aroclor.congener)
 
 # Save plot in folder
-ggsave("Output/Plots/Global/AroclorCongener.png", plot = plot.aroclor.congener,
+ggsave("Output/Plots/Global/AroclorCongenerV2.png", plot = plot.aroclor.congener,
        width = 10, height = 3, dpi = 300)
 
 # Aroclor summary ---------------------------------------------------------
