@@ -105,7 +105,149 @@ maptPCB <- ggplot() +
 print(maptPCB)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/maptPCBV03.png", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBV04.png", plot = maptPCB,
+       width = 14, height = 4, dpi = 300)
+
+# (3) Individual PCB congeners
+# Filter out rows with 0 values for PCB11
+pcbi <- wdc[wdc$PCB11 != 0, ]
+
+# Average PCB11 per sample site
+pcbi.ave <- aggregate(PCB11 ~ SiteID + Latitude + Longitude,
+                      data = pcbi, mean)
+
+# Determine the breaks based on data values
+breaks.s <- pretty_breaks(n = 6)(range(pcbi.ave$PCB11))
+
+# Plot
+mapPCBi <- ggplot() +
+  geom_polygon(data = us, aes(x = long, y = lat, group = group),
+               color = "black", fill = "lightblue") +
+  coord_fixed(1.3) +
+  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+  geom_path(data = states, aes(x = long, y = lat, group = group),
+            colour = "white") +
+  geom_polygon(color = "black", fill = NA) +
+  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
+                                  size = PCB11), alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
+  scale_size_area(breaks = breaks.s,
+                  name = expression(bold(atop("PCB 11 (pg/L)",
+                                              paste("(SiteID mean)")))),
+                  max_size = 10) +
+  guides(size = guide_legend(label.hjust = 0.2)) +
+  theme(legend.position = c(1.1, 0.67),
+        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+        
+print(mapPCBi)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/mapPCB11.png", plot = mapPCBi,
+       width = 14, height = 4, dpi = 300)
+
+# Filter out rows with 0 values for PCB 20+21+28+31+33+50+53
+pcbi <- wdc[wdc$PCB20.21.28.31.33.50.53 != 0, ]
+
+# Average PCB11 per sample site
+pcbi.ave <- aggregate(PCB20.21.28.31.33.50.53 ~ SiteID + Latitude + Longitude,
+                      data = pcbi, mean)
+
+# Plot
+mapPCBi <- ggplot() +
+  geom_polygon(data = us, aes(x = long, y = lat, group = group),
+               color = "black", fill = "lightblue") +
+  coord_fixed(1.3) +
+  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+  geom_path(data = states, aes(x = long, y = lat, group = group),
+            colour = "white") +
+  geom_polygon(color = "black", fill = NA) +
+  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
+                                  size = PCB20.21.28.31.33.50.53),
+             alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
+  scale_size_area(breaks = c(1000, 10*1000, 50*1000, 100*1000,
+                             200*1000, 400*1000), labels = comma,
+                  name = expression(bold(atop("PCBs 20+21+28+31+33+50+53 (pg/L)",
+                                              paste("(SiteID mean)")))),
+                  max_size = 10) +
+  guides(size = guide_legend(label.hjust = 0.2)) +
+  theme(legend.position = c(1.22, 0.72),
+        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+
+print(mapPCBi)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/mapPCB20.png", plot = mapPCBi,
+       width = 14, height = 4, dpi = 300)
+
+# Filter out rows with 0 values for PCB44+47+65
+pcbi <- wdc[wdc$PCB44.47.65 != 0, ]
+
+# Average PCB11 per sample site
+pcbi.ave <- aggregate(PCB44.47.65 ~ SiteID + Latitude + Longitude,
+                      data = pcbi, mean)
+
+# Plot
+mapPCBi <- ggplot() +
+  geom_polygon(data = us, aes(x = long, y = lat, group = group),
+               color = "black", fill = "lightblue") +
+  coord_fixed(1.3) +
+  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+  geom_path(data = states, aes(x = long, y = lat, group = group),
+            colour = "white") +
+  geom_polygon(color = "black", fill = NA) +
+  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
+                                  size = PCB44.47.65), alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
+  scale_size_area(breaks = c(1000, 10*1000, 25*1000, 50*1000,
+                             100*1000, 150*1000), labels = comma,
+                  name = expression(bold(atop("PCBs 44+47+65 (pg/L)",
+                                              paste("(SiteID mean)")))),
+                  max_size = 10) +
+  guides(size = guide_legend(label.hjust = 0.2)) +
+  theme(legend.position = c(1.15, 0.69),
+        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+
+print(mapPCBi)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/mapPCB44.png", plot = mapPCBi,
+       width = 14, height = 4, dpi = 300)
+
+# Filter out rows with 0 values for PCB67
+pcbi <- wdc[wdc$PCB67 != 0, ]
+
+# Average PCB67 per sample site
+pcbi.ave <- aggregate(PCB67 ~ SiteID + Latitude + Longitude,
+                      data = pcbi, mean)
+
+# Determine the breaks based on data values
+breaks.s <- pretty_breaks(n = 6)(range(pcbi.ave$PCB67))
+
+# Plot
+mapPCBi <- ggplot() +
+  geom_polygon(data = us, aes(x = long, y = lat, group = group),
+               color = "black", fill = "lightblue") +
+  coord_fixed(1.3) +
+  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+  geom_path(data = states, aes(x = long, y = lat, group = group),
+            colour = "white") +
+  geom_polygon(color = "black", fill = NA) +
+  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
+                                  size = PCB67), alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
+  scale_size_area(breaks = c(10, 50, 100, 200, 300, 400),
+                  name = expression(bold(atop("PCB 67 (pg/L)",
+                                              paste("(SiteID mean)")))),
+                  max_size = 10) +
+  guides(size = guide_legend(label.hjust = 0.2)) +
+  theme(legend.position = c(1.1, 0.67),
+        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+
+print(mapPCBi)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/mapPCB67.png", plot = mapPCBi,
        width = 14, height = 4, dpi = 300)
 
 # Specific locations ------------------------------------------------------
