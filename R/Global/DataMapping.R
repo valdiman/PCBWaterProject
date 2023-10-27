@@ -683,8 +683,6 @@ maptPCBPas <- ggmap(Pas.map) +
 ggsave("Output/Maps/Sites/maptPCBSpoAveV01.png",
        plot = maptPCBSpo, width = 12, height = 4, dpi = 300)
 
-
-
 # Spokane River -----------------------------------------------------------
 {
   # Select only from Hudson River
@@ -814,7 +812,7 @@ ggsave("Output/Maps/Sites/maptPCBCheAveV01.png",
   
   # Create general map
   Blu.box <- make_bbox(lon = wdc.Blu$Longitude, lat = wdc.Blu$Latitude, f = 0.12)
-  Blu.map <- get_stamenmap(bbox = Blu.box, zoom = 14)
+  Blu.map <- get_stamenmap(bbox = Blu.box, zoom = 17)
   
   # Plot map with sites
   # Prepare data
