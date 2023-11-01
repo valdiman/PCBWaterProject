@@ -198,8 +198,6 @@ ggplot(pass.tpcb, aes(x = factor(SiteID), y = tPCB)) +
                                                       flow.5$Date)]
   pass.tpcb$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pass.tpcb$date,
                                                        temp$Date)]
-  # Remove samples with flow.3 = NA
-  pass.tpcb <- na.omit(pass.tpcb)
 }
 
 # tPCB Regressions --------------------------------------------------------
@@ -209,7 +207,7 @@ tpcb <- pass.tpcb$tPCB
 time <- pass.tpcb$time
 site <- pass.tpcb$site.code
 season <- pass.tpcb$season
-flow <- pass.tpcb$flow.4
+flow <- pass.tpcb$flow.5
 tem <- pass.tpcb$temp
 # tPCB vs. time + season + flow + temp + site
 lme.pass.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
@@ -238,7 +236,7 @@ shapiro.test(resid(lme.pass.tpcb))
 
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 24)
+  lme.tpcb <- matrix(nrow = 1, ncol = 27)
   lme.tpcb[1] <- fixef(lme.pass.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.pass.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.pass.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -251,18 +249,21 @@ shapiro.test(resid(lme.pass.tpcb))
   lme.tpcb[10] <- fixef(lme.pass.tpcb)[4] # temperature
   lme.tpcb[11] <- summary(lme.pass.tpcb)$coef[4,"Std. Error"] # temperature error
   lme.tpcb[12] <- summary(lme.pass.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
-  lme.tpcb[13] <- fixef(lme.pass.tpcb)[5] # season 2
-  lme.tpcb[14] <- summary(lme.pass.tpcb)$coef[5,"Std. Error"] # season 2 error
-  lme.tpcb[15] <- summary(lme.pass.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[16] <- fixef(lme.pass.tpcb)[6] # season 3
-  lme.tpcb[17] <- summary(lme.pass.tpcb)$coef[6,"Std. Error"] # season 3 error
-  lme.tpcb[18] <- summary(lme.pass.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[21] <- as.data.frame(VarCorr(lme.pass.tpcb))[1,'sdcor']
-  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2m']
-  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2c']
-  lme.tpcb[24] <- shapiro.test(resid(lme.pass.tpcb))$p.value
+  lme.tpcb[13] <- fixef(lme.pass.tpcb)[5] # season 1
+  lme.tpcb[14] <- summary(lme.pass.tpcb)$coef[5,"Std. Error"] # season 1 error
+  lme.tpcb[15] <- summary(lme.pass.tpcb)$coef[5,"Pr(>|t|)"] # season 1 p-value
+  lme.tpcb[16] <- fixef(lme.pass.tpcb)[6] # season 2
+  lme.tpcb[17] <- summary(lme.pass.tpcb)$coef[6,"Std. Error"] # season 2 error
+  lme.tpcb[18] <- summary(lme.pass.tpcb)$coef[6,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[19] <- fixef(lme.pass.tpcb)[7] # season 3
+  lme.tpcb[20] <- summary(lme.pass.tpcb)$coef[7,"Std. Error"] # season 3 error
+  lme.tpcb[21] <- summary(lme.pass.tpcb)$coef[7,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[22] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[23] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[24] <- as.data.frame(VarCorr(lme.pass.tpcb))[1,'sdcor']
+  lme.tpcb[25] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2m']
+  lme.tpcb[26] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2c']
+  lme.tpcb[27] <- shapiro.test(resid(lme.pass.tpcb))$p.value
 }
 
 # Just 3 significant figures
@@ -271,8 +272,9 @@ lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Intercept.pv", "time", "time.error", "time.pv",
                         "flow", "flow.error", "flow.pv", "temperature",
-                        "temperature.error", "temperature.pv", "season2",
-                        "season2.error", "season2, pv", "season3",
+                        "temperature.error", "temperature.pv", "season1",
+                        "season1.error", "season1.pv", "season2",
+                        "season2.error", "season2.pv", "season3",
                         "season3.error", "season3.pv", "t05", "t05.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
@@ -307,9 +309,9 @@ p <- ggplot(pass.tpcb, aes(x = tPCB, y = predicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 75, y = 10^5,
-           label = expression(atop("Passaic River (R"^2*"= 0.49)",
-                                   paste("t"[1/2]*" = 15 ± 4.6 (yr)"))),
+  annotate('text', x = 170, y = 10^5,
+           label = expression(atop("Passaic River (R"^2*"= 0.66)",
+                                   paste("t"[1/2]*" = 4.0 ± 0.3 (yr)"))),
            size = 4, fontface = 2)
 # See plot
 print(p)
@@ -368,7 +370,7 @@ factor2.tpcb <- nrow(pass.tpcb[pass.tpcb$factor2 > 0.5 & pass.tpcb$factor2 < 2,
   # Change name time.day to time
   colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  site.numb <- che$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- pass$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(pass$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -376,8 +378,46 @@ factor2.tpcb <- nrow(pass.tpcb[pass.tpcb$factor2 > 0.5 & pass.tpcb$factor2 < 2,
   # Add date and time to pass.pcb
   pass.pcb.1 <- cbind(pass.pcb.1, SiteID, SampleDate, data.frame(time.day),
                      site.numb, season.s)
+  # Include flow data from USGS station Passaic River
+  sitepassN1 <- "01381900" # No temp
+  sitepassN2 <- "01379500" # No temp
+  sitepassN3 <- "01389005" # No flow
+  sitepassN4 <- "01389010" # No temp
+  sitepassN5 <- "01389500" # No temp
+  sitepassN6 <- "01389890" # No temp
+  
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  paramtemp <- "00010" # water temperature, C
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(sitepassN1, paramflow,
+                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
+  flow.2 <- readNWISdv(sitepassN2, paramflow,
+                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
+  flow.3 <- readNWISdv(sitepassN4, paramflow,
+                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
+  flow.4 <- readNWISdv(sitepassN5, paramflow,
+                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
+  flow.5 <- readNWISdv(sitepassN6, paramflow,
+                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
+  temp <- readNWISdv(sitepassN3, paramtemp,
+                     min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
+  
+  # Add USGS data to pass.tpcb.1, matching dates, conversion to m3/s
+  pass.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(pass.pcb.1$SampleDate,
+                                                      flow.1$Date)]
+  pass.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(pass.pcb.1$SampleDate,
+                                                      flow.2$Date)]
+  pass.pcb.1$flow.3 <- 0.03*flow.3$X_00060_00003[match(pass.pcb.1$SampleDate,
+                                                      flow.3$Date)]
+  pass.pcb.1$flow.4 <- 0.03*flow.4$X_00060_00003[match(pass.pcb.1$SampleDate,
+                                                      flow.4$Date)]
+  pass.pcb.1$flow.5 <- 0.03*flow.5$X_00060_00003[match(pass.pcb.1$SampleDate,
+                                                      flow.5$Date)]
+  pass.pcb.1$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pass.pcb.1$SampleDate,
+                                                                          temp$Date)]
   # Remove metadata
-  pass.pcb.2 <- subset(pass.pcb.1, select = -c(SiteID:season.s))
+  pass.pcb.2 <- subset(pass.pcb.1, select = -c(SiteID:temp))
 }
 
 # LME for individual PCBs -------------------------------------------------
@@ -385,13 +425,15 @@ factor2.tpcb <- nrow(pass.tpcb[pass.tpcb$factor2 > 0.5 & pass.tpcb$factor2 < 2,
 time <- pass.pcb.1$time
 season <- pass.pcb.1$season
 site <- pass.pcb.1$site.numb
+flow <- pass.pcb.1$flow.3 # flow.6 yiels 6 PCB congeners
+tem <- pass.pcb.1$temp
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(pass.pcb.2[1,]), ncol = 21)
+lme.pcb <- matrix(nrow = length(pass.pcb.2[1,]), ncol = 27)
 
 # Perform LME
 for (i in 1:length(pass.pcb.2[1,])) {
-  fit <- lmer(pass.pcb.2[,i] ~ 1 + time + season + (1|site),
+  fit <- lmer(pass.pcb.2[,i] ~ 1 + time + flow + tem + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -402,21 +444,27 @@ for (i in 1:length(pass.pcb.2[1,])) {
   lme.pcb[i,4] <- fixef(fit)[2] # time
   lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
   lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.pcb[i,7] <- fixef(fit)[3] # # season 1
-  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
-  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # # season 1 p-value
-  lme.pcb[i,10] <- fixef(fit)[4] # season 2
-  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
-  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  lme.pcb[i,13] <- fixef(fit)[5] # season 3
-  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
-  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
-  lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
-  lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
-  lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
-  lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
-  lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
-  lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+  lme.pcb[i,7] <- fixef(fit)[3] # flow
+  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # flow error
+  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.pcb[i,10] <- fixef(fit)[4] # temp
+  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # temp error
+  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # temp p-value
+  lme.pcb[i,13] <- fixef(fit)[4] # # season 1
+  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 1 error
+  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # # season 1 p-value
+  lme.pcb[i,16] <- fixef(fit)[6] # season 2
+  lme.pcb[i,17] <- summary(fit)$coef[6,"Std. Error"] # season 2 error
+  lme.pcb[i,18] <- summary(fit)$coef[6,"Pr(>|t|)"] # season 2 p-value
+  #lme.pcb[i,19] <- fixef(fit)[7] # season 3
+  #lme.pcb[i,20] <- summary(fit)$coef[7,"Std. Error"] # season 3 error
+  #lme.pcb[i,21] <- summary(fit)$coef[7,"Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i,22] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,23] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,24] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,25] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,26] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,27] <- shapiro.test(resid(fit))$p.value
 }
 
 # Just 3 significant figures
@@ -427,8 +475,9 @@ lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
-                       "season1", "season1.error", "season1.pv", "season2",
-                       "season2.error", "season2, pv", "season3",
+                       "flow", "flow.error", "flow.pv", "temp", "temp.error",
+                       "temp.pv", "season1", "season1.error", "season1.pv",
+                       "season2", "season2.error", "season2, pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 # Remove congeners with no normal distribution
@@ -490,9 +539,9 @@ for (i in 2:length(df1)) {
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "white") +
-    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
@@ -521,9 +570,9 @@ for (i in 2:length(df1)) {
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "white") +
-    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
@@ -574,10 +623,10 @@ for (i in 2:length(df1)) {
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(0.1, 10^5), 
+  scale_y_log10(limits = c(0.01, 10^4), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.1, 10^5), 
+  scale_x_log10(limits = c(0.01, 10^4), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
@@ -589,9 +638,9 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
-  annotate("text", x = 5, y = 10^4.5,
+  annotate("text", x = 0.1, y = 10^3.6,
            label = expression(atop("Passaic River",
-                                   paste("X PCB congeners (n = X pairs)"))),
+                                   paste("6 PCB congeners (n = 77 pairs)"))),
            size = 4, fontface = 2)
 # See plot
 print(p)
