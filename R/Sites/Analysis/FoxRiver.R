@@ -453,7 +453,7 @@ factor2.tpcb <- nrow(fox.tpcb.1[fox.tpcb.1$factor2 > 0.5 & fox.tpcb.1$factor2 < 
                      min(fox.pcb.1$SampleDate), max(fox.pcb.1$SampleDate))
   temp <- readNWISdv(sitefoxN2, paramtemp,
                      min(fox.pcb.1$SampleDate), max(fox.pcb.1$SampleDate))
-  # Add USGS data to fox.pcb, matching dates, conversion to m3/s
+  # Add USGS data to fox.pcb.1, matching dates, conversion to m3/s
   fox.pcb.1$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.pcb.1$SampleDate,
                                                                         flow$Date)]
   fox.pcb.1$temp <- 273.15 + temp$X_00010_00003[match(fox.pcb.1$SampleDate,
