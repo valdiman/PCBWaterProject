@@ -425,7 +425,7 @@ factor2.tpcb <- nrow(pass.tpcb[pass.tpcb$factor2 > 0.5 & pass.tpcb$factor2 < 2,
 time <- pass.pcb.1$time
 season <- pass.pcb.1$season
 site <- pass.pcb.1$site.numb
-flow <- pass.pcb.1$flow.3 # flow.6 yiels 6 PCB congeners
+flow <- pass.pcb.1$flow.3 # flow.3 yiels 6 PCB congeners
 tem <- pass.pcb.1$temp
 
 # Create matrix to store results
@@ -619,6 +619,11 @@ for (i in 2:length(df1)) {
   # Convert the observed and predicted columns to numeric
   combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
 }
+
+# Export results for plotting
+# Add column LocationName
+combined_cleaned_df$LocationName <- "Passaic River"
+write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/PassaicRiver/ObsPredPassaicPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
