@@ -351,7 +351,7 @@ factor2.tpcb <- nrow(nbh.tpcb[nbh.tpcb$factor2 > 0.5 & nbh.tpcb$factor2 < 2,
 
 # LME for individual PCBs -------------------------------------------------
 # There are not enough number of samples from the same season
-# to perform lme, thus season is removed from this analisys.
+# to perform lme, thus season is removed from this analysis.
 # Get covariates
 time <- nbh.pcb.1$time
 site <- nbh.pcb.1$site.numb
@@ -361,7 +361,7 @@ lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 12)
 
 # Perform LME
 for (i in 1:length(nbh.pcb.2[1,])) {
-  fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
+  fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -537,6 +537,11 @@ for (i in 2:length(df1)) {
   # Convert the observed and predicted columns to numeric
   combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
 }
+
+# Export results for plotting
+# Add column LocationName
+combined_cleaned_df$LocationName <- "New Bedford Harbor"
+write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/NewBedfordHarbor/ObsPredNewBHPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
