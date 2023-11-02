@@ -375,8 +375,8 @@ factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 
                                                      flow.1$Date)]
   por.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(por.pcb.1$SampleDate,
                                                      flow.2$Date)]
-  por.pcb.1$temp <- 273.15 + temp.1$X_00010_00003[match(por.pcb.1$SampleDate,
-                                                         temp.1$Date)]
+  por.pcb.1$temp <- 273.15 + temp$X_00010_00003[match(por.pcb.1$SampleDate,
+                                                         temp$Date)]
   # Remove samples with temp = NA
   por.pcb.2 <- por.pcb.1[!is.na(por.pcb.1$temp), ]
   # Remove metadata
@@ -387,44 +387,49 @@ factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 
 # Get covariates
 time <- por.pcb.2$time
 flow <- por.pcb.2$flow.1
-temper <- por.pcb.2$temp
+temp <- por.pcb.2$temp
 season <- por.pcb.2$season
 site <- por.pcb.2$site.numb
 
+## problems here!!!
+
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(por.pcb.3[1,]), ncol = 24)
+n_col <- ncol(por.pcb.3)
 
-# Perform LME
-for (i in 1:length(por.pcb.3[1,])) {
-  fit <- lmer(por.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
-              REML = FALSE,
-              control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                    check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"))
-  lme.pcb[i,1] <- fixef(fit)[1] # intercept
-  lme.pcb[i,2] <- summary(fit)$coef[1,"Std. Error"] # intercept error
-  lme.pcb[i,3] <- summary(fit)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.pcb[i,4] <- fixef(fit)[2] # time
-  lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
-  lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.pcb[i,7] <- fixef(fit)[3] # flow
-  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # flow error
-  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # flow p-value
-  lme.pcb[i,10] <- fixef(fit)[4] # temperature
-  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # temperature error
-  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # temperature p-value
-  lme.pcb[i,13] <- fixef(fit)[5] # season 2
-  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 2 error
-  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 2 p-value
-  lme.pcb[i,16] <- fixef(fit)[6] # season 3
-  lme.pcb[i,17] <- summary(fit)$coef[6,"Std. Error"] # season 3 error
-  lme.pcb[i,18] <- summary(fit)$coef[6,"Pr(>|t|)"] # season 3 p-value
-  lme.pcb[i,19] <- -log(2)/lme.pcb[i,4]/365 # t0.5
-  lme.pcb[i,20] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
-  lme.pcb[i,21] <- as.data.frame(VarCorr(fit))[1,'sdcor']
-  lme.pcb[i,22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
-  lme.pcb[i,23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
-  lme.pcb[i,24] <- shapiro.test(resid(fit))$p.value
+# Perform LME for each column
+for (i in 1:n_col) {
+  if (any(!is.na(por.pcb.3[, i]))) {
+    fit <- lmer(por.pcb.3[, i] ~ 1 + time + flow + temp + season + (1|site),
+                REML = FALSE,
+                control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                      check.nobs.vs.rankZ = "ignore",
+                                      check.nobs.vs.nRE="ignore"))
+    lme.pcb[i, 1] <- fixef(fit)[1] # intercept
+    lme.pcb[i, 2] <- summary(fit)$coef[1, "Std. Error"] # intercept error
+    lme.pcb[i, 3] <- summary(fit)$coef[1, "Pr(>|t|)"] # intercept p-value
+    lme.pcb[i, 4] <- fixef(fit)[2] # time
+    lme.pcb[i, 5] <- summary(fit)$coef[2, "Std. Error"] # time error
+    lme.pcb[i, 6] <- summary(fit)$coef[2, "Pr(>|t|)"] # time p-value
+    lme.pcb[i, 7] <- fixef(fit)[3] # flow
+    lme.pcb[i, 8] <- summary(fit)$coef[3, "Std. Error"] # flow error
+    lme.pcb[i, 9] <- summary(fit)$coef[3, "Pr(>|t|)"] # flow p-value
+    lme.pcb[i, 10] <- fixef(fit)[4] # temperature
+    lme.pcb[i, 11] <- summary(fit)$coef[4, "Std. Error"] # temperature error
+    lme.pcb[i, 12] <- summary(fit)$coef[4, "Pr(>|t|)"] # temperature p-value
+    lme.pcb[i, 13] <- fixef(fit)[5] # season 2
+    lme.pcb[i, 14] <- summary(fit)$coef[5, "Std. Error"] # season 2 error
+    lme.pcb[i, 15] <- summary(fit)$coef[5, "Pr(>|t|)"] # season 2 p-value
+    lme.pcb[i, 16] <- fixef(fit)[6] # season 3
+    lme.pcb[i, 17] <- summary(fit)$coef[6, "Std. Error"] # season 3 error
+    lme.pcb[i, 18] <- summary(fit)$coef[6, "Pr(>|t|)"] # season 3 p-value
+    lme.pcb[i, 19] <- -log(2) / lme.pcb[i, 4] / 365 # t0.5
+    lme.pcb[i, 20] <- abs(-log(2) / lme.pcb[i, 4] / 365) * lme.pcb[i, 5] / abs(lme.pcb[i, 4]) # t0.5 error
+    lme.pcb[i, 21] <- as.data.frame(VarCorr(fit))[1, 'sdcor']
+    lme.pcb[i, 22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+    lme.pcb[i, 23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+    lme.pcb[i, 24] <- shapiro.test(resid(fit))$p.value
+  }
 }
 
 # Just 3 significant figures
