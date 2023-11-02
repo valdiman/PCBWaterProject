@@ -422,3 +422,100 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.045, ]
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv")
+
+# Generate predictions
+# Select congeners that are not showing normality to be remove from pass.pcb.2
+df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
+# Get column indices to remove
+cols_to_remove <- which(names(grl.pcb.2) %in% df$names_to_remove)
+# Remove columns from che.pcb.2 with congeners that don't show normality
+grl.pcb.3 <- grl.pcb.2[, -cols_to_remove]
+
+# Create vector to store results
+lme.fit.pcb <- rep(NA, 333)
+
+fit <- lmer(grl.pcb.3 ~ 1 + time + season + (1|site),
+            REML = FALSE,
+            control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                  check.nobs.vs.rankZ = "ignore",
+                                  check.nobs.vs.nRE="ignore"),
+            na.action = na.exclude)
+lme.fit.pcb <- fitted(fit)
+
+# Estimate a factor of 2 between observations and predictions
+factor2 <- 10^(grl.pcb.3)/10^(lme.fit.pcb)
+factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
+                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Individual PCB congener plots -------------------------------------------
+# (1)
+# Plot 1:1 for all congeners
+# Transform lme.fit.pcb to data.frame
+lme.fit.pcb <- as.data.frame(lme.fit.pcb)
+# Add congener names to lme.fit.pcb columns
+colnames(lme.fit.pcb) <- colnames(grl.pcb.3)
+# Add code number to first column
+df1 <- cbind(code = row.names(grl.pcb.3), grl.pcb.3)
+df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
+
+# Assuming df1 is a numeric vector, and df2 is a data frame
+# Convert df1 to a data frame
+df1 <- data.frame(code = 1:333, grl.pcb.3 = df1)
+
+# Combine df1 and df2 into a single data frame
+combined_df <- cbind(df1, df2)
+
+# Remove rows with NAs from combined_df
+combined_df <- na.omit(combined_df)
+
+# Make column names unique
+colnames(combined_df) <- make.unique(colnames(combined_df))
+
+# Update combined_df
+# Identify the column indices you want to delete
+columns_to_delete <- c("code", "code.1")
+
+# Delete the specified columns
+combined_df <- combined_df[, !(names(combined_df) %in% columns_to_delete)]
+
+# Define new column names
+new_names <- c("observed", "predicted")
+
+# Set the new column names
+colnames(combined_df) <- new_names
+
+# Add column LocationName
+combined_df$LocationName <- "Great Lakes"
+
+# Create the plot
+col_name <- "PCB89"  # Set the name to "PCB89"
+p <- ggplot(data = combined_df, aes(x = 10^(observed), y = 10^(predicted))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(0.01, 10^2), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(0.01, 10^2), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration PCBi (pg/L)")))+
+  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl") +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2) +
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+  annotate('text', x = 0.1, y = 10^2, label = gsub("\\.", "+", col_name),
+           size = 3, fontface = 2)
+
+print(p)
+
+# Save the plot with the name "PCB89"
+ggsave("Output/Plots/Sites/ObsPred/Greatlakes/PCB89.png", plot = p,
+       width = 6, height = 6, dpi = 500)
+
+# Export results for plotting
+write.csv(combined_df,
+          file = "Output/Data/Sites/csv/GreatLakes/ObsPredGreatLakesPCB.csv")
+
+
+
+
