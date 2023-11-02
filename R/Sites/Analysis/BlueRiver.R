@@ -486,6 +486,11 @@ for (i in 2:length(df1)) {
   combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
 }
 
+# Export results for plotting
+# Add column LocationName
+combined_cleaned_df$LocationName <- "Blue River"
+write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/BlueRiver/ObsPredBlueRiverPCB.csv")
+
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
