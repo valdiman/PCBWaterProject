@@ -455,7 +455,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmePCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from por.pcb.2
@@ -470,7 +471,7 @@ lme.fit.pcb <- matrix(nrow = length(por.pcb.4[,1]),
                       ncol = length(por.pcb.4[1,]))
 
 for (i in 1:length(por.pcb.4[1,])) {
-  fit <- lmer(por.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
+  fit <- lmer(por.pcb.4[,i] ~ 1 + time + flow + temp + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -585,6 +586,12 @@ for (i in 2:length(df1)) {
   # Convert the observed and predicted columns to numeric
   combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
 }
+
+# Export results for plotting
+# Add column LocationName
+combined_cleaned_df$LocationName <- "Portland Harbor"
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/PortlandHarbor/ObsPredPortlandHarborPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
