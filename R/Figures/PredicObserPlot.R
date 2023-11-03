@@ -13,6 +13,9 @@ install.packages("RColorBrewer")
 
 # Read generated data
 {
+  # Anacostia River
+  anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverPredic_Obser.csv")
+  anr <- anr[, -1]
   # Chesapeake Bay data
   che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakePredic_Obser.csv")
   che <- che[, -1]
@@ -32,15 +35,17 @@ install.packages("RColorBrewer")
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
   spo <- spo[, -1]
   # Combine the data frames
-  combined_data <- rbind(che, fox, kal, nbh, por, spo)
+  combined_data <- rbind(anr, che, fox, kal, nbh, por, spo)
 }
 
 # Create a custom color palette with distinct colors for the 6 locations
-custom_colors <- brewer.pal(6, "Set1")
+custom_colors <- brewer.pal(7, "Set1")
 
 # Plot prediction vs. observations, 1:1 line
-CombinePredObsPlot <- ggplot(combined_data, aes(x = tPCB, y = predicted, fill = Location)) +
-  geom_point(shape = 21, size = 2) +
+CombinePredObsPlot <- ggplot(combined_data,
+                             aes(x = tPCB,y = predicted,
+                                 fill = Location)) +
+  geom_point(shape = 21, size = 1.5, alpha = 0.5) +
   scale_y_log10(limits = c(1, 10^8), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(1, 10^8), breaks = trans_breaks("log10", function(x) 10^x),
@@ -58,6 +63,7 @@ CombinePredObsPlot <- ggplot(combined_data, aes(x = tPCB, y = predicted, fill = 
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))  +
   annotation_logticks(sides = "bl")
+
 
 # Print plot
 print(CombinePredObsPlot)
