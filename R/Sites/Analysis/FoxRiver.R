@@ -292,7 +292,7 @@ summary(lme.fox.tpcb)
   dev.off()
 }
 
-# Shapiro-Wilk normatily test
+# Shapiro-Wilk normality  test
 shapiro.test(resid(lme.fox.tpcb))
 
 # Create matrix to store results from lme analysis
@@ -529,7 +529,7 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiverLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from fox.pcb.2
