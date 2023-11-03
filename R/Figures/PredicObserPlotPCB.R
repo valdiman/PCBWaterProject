@@ -35,26 +35,26 @@ install.packages("RColorBrewer")
   pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/ObsPredPassaicPCB.csv")
   pas <- pas[,-c(1:2)]
   # Portland Harbord data
-  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandPredic_Obser.csv")
-  por <- por[, -1]
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/ObsPredPortlandHarborPCB.csv")
+  por <- por[, -c(1:2)]
   # Spokane River data
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
-  spo <- spo[, -1]
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/ObsPredSpokaneRiverPCB.csv")
+  spo <- spo[, -c(1:2)]
   # Combine the data frames
-  combined_data <- rbind(blue, che, fox, grl, hud, nbh, pas)
+  combined_data <- rbind(blr, che, fox, grl, hud, nbh, pas, por, spo)
 }
 
 # Create a custom color palette with distinct colors for the 6 locations
-custom_colors <- brewer.pal(2, "Set1")
+custom_colors <- brewer.pal(9, "Set1")
 
 # Plot prediction vs. observations, 1:1 line
 CombinePredObsPlot <- ggplot(combined_data,
                              aes(x = 10^(observed),y = 10^(predicted),
                                  fill = LocationName)) +
-  geom_point(shape = 21, size = 2, alpha = 0.5) +
-  scale_y_log10(limits = c(0.01, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
+  geom_point(shape = 21, size = 1.5, alpha = 0.5) +
+  scale_y_log10(limits = c(0.001, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.01, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(0.001, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_fill_manual(values = custom_colors) +  # Use custom color palette
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
@@ -74,6 +74,7 @@ CombinePredObsPlot <- ggplot(combined_data,
 print(CombinePredObsPlot)
 
 # Save plot
-ggsave("Output/Figures/Sites/CombineObsPredtPCB.png",
+ggsave("Output/Figures/Sites/CombineObsPredPCBi.png",
        plot = CombinePredObsPlot, width = 8, height = 8, dpi = 500)
+
 
