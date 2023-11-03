@@ -217,9 +217,9 @@ summary(lme.por.tpcb)
 # Shapiro test
 shapiro.test(resid(lme.por.tpcb)) # p-value = 0.9216
 
-# Create matrix to store results
+# Create matrix to store results from lme analysis
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 24)
+  lme.tpcb <- matrix(nrow = 1, ncol = 27)
   lme.tpcb[1] <- fixef(lme.por.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.por.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.por.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -232,18 +232,23 @@ shapiro.test(resid(lme.por.tpcb)) # p-value = 0.9216
   lme.tpcb[10] <- fixef(lme.por.tpcb)[4] # temperature
   lme.tpcb[11] <- summary(lme.por.tpcb)$coef[4,"Std. Error"] # temperature error
   lme.tpcb[12] <- summary(lme.por.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
-  lme.tpcb[13] <- fixef(lme.por.tpcb)[5] # season 2
-  lme.tpcb[14] <- summary(lme.por.tpcb)$coef[5,"Std. Error"] # season 2 error
-  lme.tpcb[15] <- summary(lme.por.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[16] <- fixef(lme.por.tpcb)[6] # season 3
-  lme.tpcb[17] <- summary(lme.por.tpcb)$coef[6,"Std. Error"] # season 3 error
-  lme.tpcb[18] <- summary(lme.por.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[21] <- as.data.frame(VarCorr(lme.por.tpcb))[1,'sdcor']
-  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2m']
-  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2c']
-  lme.tpcb[24] <- shapiro.test(resid(lme.por.tpcb))$p.value
+  lme.tpcb[13] <- fixef(lme.por.tpcb)[5] # season 1
+  lme.tpcb[14] <- summary(lme.por.tpcb)$coef[5,"Std. Error"] # season 1 error
+  lme.tpcb[15] <- summary(lme.por.tpcb)$coef[5,"Pr(>|t|)"] # season 1 p-value
+  
+  
+  lme.tpcb[16] <- fixef(lme.por.tpcb)[6] # season 2
+  lme.tpcb[17] <- summary(lme.por.tpcb)$coef[6,"Std. Error"] # season 2 error
+  lme.tpcb[18] <- summary(lme.por.tpcb)$coef[6,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[19] <- fixef(lme.por.tpcb)[7] # season 3
+  lme.tpcb[20] <- summary(lme.por.tpcb)$coef[7,"Std. Error"] # season 3 error
+  lme.tpcb[21] <- summary(lme.por.tpcb)$coef[7,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[22] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[23] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[24] <- as.data.frame(VarCorr(lme.por.tpcb))[1,'sdcor']
+  lme.tpcb[25] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2m']
+  lme.tpcb[26] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2c']
+  lme.tpcb[27] <- shapiro.test(resid(lme.por.tpcb))$p.value
 }
 
 # Just 3 significant figures
@@ -252,8 +257,9 @@ lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Intercept.pv", "time", "time.error", "time.pv",
                         "flow", "flow.error", "flow.pv", "temperature",
-                        "temperature.error", "temperature.pv", "season2",
-                        "season2.error", "season2, pv", "season3",
+                        "temperature.error", "temperature.pv", "season1",
+                        "season1.error", "season1.pv", "season2",
+                        "season2.error", "season2.pv", "season3",
                         "season3.error", "season3.pv", "t05", "t05.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
@@ -325,7 +331,6 @@ factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 
                                 ])/length(por.tpcb.2[,1])*100
 
 # Individual PCB Analysis -------------------------------------------------
-# Use por.1 (no 0s samples)
 # Prepare data.frame
 {
   por.pcb <- subset(por, select = -c(SampleID:AroclorCongener))
@@ -395,16 +400,14 @@ site <- por.pcb.2$site.numb
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(por.pcb.3[1,]), ncol = 24)
-n_col <- ncol(por.pcb.3)
 
 # Perform LME for each column
-for (i in 1:n_col) {
-  if (any(!is.na(por.pcb.3[, i]))) {
-    fit <- lmer(por.pcb.3[, i] ~ 1 + time + flow + temp + season + (1|site),
-                REML = FALSE,
-                control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                      check.nobs.vs.rankZ = "ignore",
-                                      check.nobs.vs.nRE="ignore"))
+for (i in 1:length(por.pcb.3[1,])) {
+  fit <- lmer(por.pcb.3[,i] ~ 1 + time + flow + temp + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"))
     lme.pcb[i, 1] <- fixef(fit)[1] # intercept
     lme.pcb[i, 2] <- summary(fit)$coef[1, "Std. Error"] # intercept error
     lme.pcb[i, 3] <- summary(fit)$coef[1, "Pr(>|t|)"] # intercept p-value
@@ -430,7 +433,6 @@ for (i in 1:n_col) {
     lme.pcb[i, 23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
     lme.pcb[i, 24] <- shapiro.test(resid(fit))$p.value
   }
-}
 
 # Just 3 significant figures
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
