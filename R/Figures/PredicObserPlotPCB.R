@@ -2,13 +2,11 @@
 # Install packages
 install.packages("ggplot2")
 install.packages("scales")
-install.packages("RColorBrewer")
 
 # Load libraries
 {
   library(ggplot2)
   library(scales) # function trans_breaks
-  library(RColorBrewer)
 }
 
 # Read generated data
@@ -25,6 +23,9 @@ install.packages("RColorBrewer")
   # Great Lakes
   grl <- read.csv("Output/Data/Sites/csv/GreatLakes/ObsPredGreatLakesPCB.csv")
   grl <- grl[, -1]
+  # Tributaries Great Lakes
+  glt <- read.csv("Output/Data/Sites/csv/GreatLakes/ObsPredTributariesPCB.csv")
+  glt <- glt[, -c(1:2)]
   # Hudson River
   hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/ObsPredHudsonRiverPCB.csv")
   hud <- hud[, -c(1:2)]
@@ -41,11 +42,13 @@ install.packages("RColorBrewer")
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/ObsPredSpokaneRiverPCB.csv")
   spo <- spo[, -c(1:2)]
   # Combine the data frames
-  combined_data <- rbind(blr, che, fox, grl, hud, nbh, pas, por, spo)
+  combined_data <- rbind(blr, che, fox, grl, glt, hud, nbh, pas, por, spo)
 }
 
-# Create a custom color palette with distinct colors for the 6 locations
-custom_colors <- brewer.pal(9, "Set1")
+# Create a custom color palette with 10 different colors
+custom_colors <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
+                   "#FF7F00", "#FFFF33", "#A65628", "#F781BF",
+                   "#999999", "#66C2A5")
 
 # Plot prediction vs. observations, 1:1 line
 CombinePredObsPlot <- ggplot(combined_data,
