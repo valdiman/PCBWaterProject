@@ -41,18 +41,24 @@ install.packages("RColorBrewer")
 # Create a custom color palette with distinct colors for the 6 locations
 custom_colors <- brewer.pal(7, "Set1")
 
+# Add a new column with the number of rows for each LocationName
+combined_data <- transform(combined_data,
+                           Location = paste(Location,
+                                            " (n =", ave(Location,
+                                                         Location,
+                                                         FUN = length), ")"))
+
 # Plot prediction vs. observations, 1:1 line
 CombinePredObsPlot <- ggplot(combined_data,
-                             aes(x = tPCB,y = predicted,
-                                 fill = Location)) +
+                             aes(x = tPCB, y = predicted, fill = Location)) +
   geom_point(shape = 21, size = 1.5, alpha = 0.5) +
   scale_y_log10(limits = c(1, 10^8), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(1, 10^8), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_fill_manual(values = custom_colors) +  # Use custom color palette
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  xlab(expression(bold("Observed concentration " * Sigma * "PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " * Sigma * "PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
