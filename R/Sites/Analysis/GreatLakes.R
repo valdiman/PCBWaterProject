@@ -111,7 +111,7 @@ GLTime <- ggplot(grl.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(GLTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotGreatLakesTime.png",
+ggsave("Output/Plots/Sites/Temporal/GreatLakesTime.png",
        plot = GLTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -260,7 +260,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -273,7 +274,8 @@ grl.tpcb.1$predicted <- 10^(fit.lme.values.grl.tpcb$predicted)
 predic.obs <- data.frame(tPCB = grl.tpcb.1$tPCB, predicted = grl.tpcb.1$predicted)
 predic.obs <- data.frame(Location = grl$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/GreatLakes/GreatLakesPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/GreatLakes/GreatLakesObserPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(grl.tpcb.1, aes(x = tPCB, y = predicted)) +
@@ -421,7 +423,8 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.045, ]
 # Only one congener and just above 0.05
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from pass.pcb.2
@@ -514,7 +517,7 @@ ggsave("Output/Plots/Sites/ObsPred/Greatlakes/PCB89.png", plot = p,
 
 # Export results for plotting
 write.csv(combined_df,
-          file = "Output/Data/Sites/csv/GreatLakes/ObsPredGreatLakesPCB.csv")
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesObsPredPCB.csv")
 
 
 

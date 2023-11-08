@@ -113,7 +113,7 @@ KRTime <- ggplot(kal.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(KRTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotKalRiverTime.png",
+ggsave("Output/Plots/Sites/Temporal/KalamazooRiverTime.png",
        plot = KRTime, width = 7, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -319,7 +319,8 @@ kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
 predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicted)
 predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/KalamazooRiver/KalamazooPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/KalamazooRiver/KalamazooObserPredtPCB.csv")
 
 
 # Plot prediction vs. observations, 1:1 line

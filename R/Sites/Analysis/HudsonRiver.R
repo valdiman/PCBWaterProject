@@ -112,7 +112,7 @@ HRTime <- ggplot(hud.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(HRTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotHudsonRiverTime.png",
+ggsave("Output/Plots/Sites/Temporal/HudsonRiverTime.png",
        plot = HRTime, width = 8, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -195,7 +195,7 @@ HRTime <- ggplot(hud.tpcb.1, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(HRTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotHudsonRiverTimeV02.png",
+ggsave("Output/Plots/Sites/Temporal/HudsonRiverTimeV02.png",
        plot = HRTime, width = 8, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -308,7 +308,7 @@ HRTime <- ggplot(hud.tpcb.2, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(HRTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotHudsonRiverTimeV03.png",
+ggsave("Output/Plots/Sites/Temporal/HudsonRiverTimeV03.png",
        plot = HRTime, width = 8, height = 5, dpi = 500)
 
 # tPCB Regressions --------------------------------------------------------
@@ -627,7 +627,8 @@ for (i in 2:length(df1)) {
 # Export results for plotting
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Hudson River"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/HudsonRiver/ObsPredHudsonRiverPCB.csv")
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

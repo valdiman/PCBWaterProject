@@ -121,7 +121,7 @@ NBHTime <- ggplot(nbh.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(NBHTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotNewBedfordTime.png",
+ggsave("Output/Plots/Sites/Temporal/NewBedfordTime.png",
        plot = NBHTime, width = 7, height = 6, dpi = 500)
 
 # (3) Seasonality
@@ -241,7 +241,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -254,7 +255,8 @@ nbh.tpcb$predicted <- 10^(fit.lme.values.nbh.tpcb$predicted)
 predic.obs <- data.frame(tPCB = nbh.tpcb$tPCB, predicted = nbh.tpcb$predicted)
 predic.obs <- data.frame(Location = nbh$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/NewBedfordHarbor/NBHPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
@@ -407,7 +409,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmenPCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmenPCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from nbh.pcb.2
@@ -541,7 +544,8 @@ for (i in 2:length(df1)) {
 # Export results for plotting
 # Add column LocationName
 combined_cleaned_df$LocationName <- "New Bedford Harbor"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/NewBedfordHarbor/ObsPredNewBHPCB.csv")
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NewBHObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

@@ -110,7 +110,7 @@ HRTime <- ggplot(hou.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(HRTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotHousRiverTimeV02.png",
+ggsave("Output/Plots/Sites/Temporal/HousRiverTime.png",
        plot = HRTime, width = 18, height = 8, dpi = 500)
 
 # (3) Seasonality
@@ -209,5 +209,5 @@ summary(lme.hou.tpcb)
   qqline(res.hou.tpcb)
 }
 # Shapiro test
-shapiro.test(res.hou.tpcb)
+shapiro.test(resid(lme.hou.tpcb))
 # Lme does not provide a good model for the data.
