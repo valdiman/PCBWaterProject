@@ -108,7 +108,7 @@ MITime <- ggplot(mic.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(MITime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plot21MitchTime.png",
+ggsave("Output/Plots/Sites/Temporal/21MichTime.png",
        plot = MITime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -419,7 +419,8 @@ for (i in 2:length(df1)) {
 # Export results for plotting
 # Add column LocationName
 combined_cleaned_df$LocationName <- "21 Mich"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/21Mich/ObsPred21MichPCB.csv")
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/21Mich/21MichObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
