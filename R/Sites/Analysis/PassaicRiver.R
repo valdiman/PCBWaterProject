@@ -88,7 +88,7 @@ hist(pass.tpcb$tPCB)
 hist(log10(pass.tpcb$tPCB))
 
 # (2) Time trend plots
-PASSTime <- ggplot(pass.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+PASTime <- ggplot(pass.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
@@ -105,11 +105,11 @@ PASSTime <- ggplot(pass.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     plot.margin = margin(0.1, 0, 0, 0, unit = "cm"))
 
 # Print plot
-print(PASSTime)
+print(PASTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotPassaicRiverTime.png",
-       plot = PASSTime, width = 6, height = 5, dpi = 500)
+ggsave("Output/Plots/Sites/Temporal/PassaicRiverTime.png",
+       plot = PASTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
 ggplot(pass.tpcb, aes(x = season, y = tPCB)) +
@@ -279,7 +279,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PassaicRiver/PassaicLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -292,7 +293,8 @@ pass.tpcb$predicted <- 10^(fit.lme.values.pass.tpcb$predicted)
 predic.obs <- data.frame(tPCB = pass.tpcb$tPCB, predicted = pass.tpcb$predicted)
 predic.obs <- data.frame(Location = pass$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/PassaicRiver/PassaicPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/PassaicRiver/PassaicObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(pass.tpcb, aes(x = tPCB, y = predicted)) +
@@ -623,7 +625,8 @@ for (i in 2:length(df1)) {
 # Export results for plotting
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Passaic River"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/PassaicRiver/ObsPredPassaicPCB.csv")
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

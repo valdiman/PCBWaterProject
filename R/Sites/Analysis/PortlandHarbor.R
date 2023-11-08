@@ -109,7 +109,7 @@ POTime <- ggplot(por.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(POTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotPortlandTime.png",
+ggsave("Output/Plots/Sites/Temporal/PortlandTime.png",
        plot = POTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -264,7 +264,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -277,7 +278,8 @@ por.tpcb.2$predicted <- 10^(fit.lme.values.por.tpcb$predicted)
 predic.obs <- data.frame(tPCB = por.tpcb.2$tPCB, predicted = por.tpcb.2$predicted)
 predic.obs <- data.frame(Location = por$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/PortlandHarbor/PortlandPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/PortlandHarbor/PortlandObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
@@ -395,8 +397,6 @@ flow <- por.pcb.2$flow.1
 temp <- por.pcb.2$temp
 season <- por.pcb.2$season
 site <- por.pcb.2$site.numb
-
-## problems here!!!
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(por.pcb.3[1,]), ncol = 24)
@@ -591,7 +591,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Portland Harbor"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/PortlandHarbor/ObsPredPortlandHarborPCB.csv")
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

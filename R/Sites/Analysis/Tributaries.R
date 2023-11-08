@@ -109,7 +109,7 @@ GLTime <- ggplot(glt.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(GLTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotTributariesTime.png",
+ggsave("Output/Plots/Sites/Temporal/TributariesTime.png",
        plot = GLTime, width = 8, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -289,7 +289,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.045, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.045, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/GreatLakes/TributariesLmePCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/GreatLakes/TributariesLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from pass.pcb.2
@@ -424,7 +425,8 @@ for (i in 2:length(df1)) {
 # Export results for plotting
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Triburaties (Lake Michigan)"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/GreatLakes/ObsPredTributariesPCB.csv")
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/GreatLakes/TributariesObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

@@ -108,7 +108,7 @@ SPOTime <- ggplot(spo.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(SPOTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotSpokaneTime.png",
+ggsave("Output/Plots/Sites/Temporal/SpokaneTime.png",
        plot = SPOTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -227,7 +227,7 @@ SPOTimeV02 <- ggplot(spo.tpcb.1, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(SPOTimeV02)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotSpokaneTimeV02.png",
+ggsave("Output/Plots/Sites/Temporal/SpokaneTimeV02.png",
        plot = SPOTimeV02, width = 6, height = 5, dpi = 500)
 
 # (3) Sites
@@ -324,7 +324,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -337,7 +338,8 @@ spo.tpcb.1$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
 predic.obs <- data.frame(tPCB = spo.tpcb.1$tPCB, predicted = spo.tpcb.1$predicted.1)
 predic.obs <- data.frame(Location = spo$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/SpokaneRiver/SpokaneObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted.1)) +
@@ -523,7 +525,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmePCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from spo.pcb.2
@@ -660,7 +663,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Spokane River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/SpokaneRiver/ObsPredSpokaneRiverPCB.csv")
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

@@ -109,7 +109,7 @@ RHTime <- ggplot(rhr.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(RHTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotRichardsonHillTime.png",
+ggsave("Output/Plots/Sites/Temporal/RichardsonHillTime.png",
        plot = RHTime, width = 6, height = 5, dpi = 500)
 
 # (4) Sites
@@ -197,7 +197,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/Richardson/RichardsonLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/Richardson/RichardsonLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -209,6 +210,9 @@ rhr.tpcb$predicted <- 10^(fit.lme.values.rhr.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = rhr.tpcb$tPCB, predicted = rhr.tpcb$predicted)
 predic.obs <- data.frame(Location = rhr$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/Richardson/RichardsonObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(rhr.tpcb, aes(x = tPCB, y = predicted)) +
