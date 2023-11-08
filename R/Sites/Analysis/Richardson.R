@@ -89,7 +89,7 @@ hist(rhr.tpcb$tPCB)
 hist(log10(rhr.tpcb$tPCB))
 
 # (2) Time trend plots
-RHTime <- ggplot(rhr.tpcb, aes(y = tPCB, x = format(date, '%Y/%m'))) +
+RHTime <- ggplot(rhr.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
