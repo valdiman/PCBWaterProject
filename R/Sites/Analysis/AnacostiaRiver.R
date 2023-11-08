@@ -109,7 +109,7 @@ ANRTime <- ggplot(anr.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
 print(ANRTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotAnacostiaRiverTime.png",
+ggsave("Output/Plots/Sites/Temporal/AnacostiaRiverTime.png",
        plot = ANRTime, width = 18, height = 8, dpi = 500)
 
 # (3) Seasonality
@@ -230,7 +230,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -243,7 +244,8 @@ anr.tpcb$predicted <- 10^(fit.lme.values.anr.tpcb$predicted)
 predic.obs <- data.frame(tPCB = anr.tpcb$tPCB, predicted = anr.tpcb$predicted)
 predic.obs <- data.frame(Location = anr$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPred.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(anr.tpcb, aes(x = tPCB, y = predicted)) +

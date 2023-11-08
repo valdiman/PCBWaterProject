@@ -108,7 +108,7 @@ CHTime <- ggplot(che.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(CHTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotChesapeakeTime.png",
+ggsave("Output/Plots/Sites/Temporal/ChesapeakeTime.png",
        plot = CHTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -274,7 +274,8 @@ che.tpcb.1$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
 predic.obs <- data.frame(tPCB = che.tpcb.1$tPCB, predicted = che.tpcb.1$predicted)
 predic.obs <- data.frame(Location = che$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakePredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObserPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
@@ -304,7 +305,7 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredtPCB.png",
 # Plot residuals vs. predictions
 {
   # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeChesapeakeBayResidualtPCB.png", width = 800,
+  png("Output/Plots/Sites/Residual/res_plotlmeChesapeakeBaytPCB.png", width = 800,
       height = 600)
   # Create your plot
   plot(che.tpcb.1$predicted, resid(lme.che.tpcb),
@@ -423,7 +424,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from che.pcb.2
@@ -558,7 +560,8 @@ for (i in 2:length(df1)) {
 # Export results for plotting
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Chesapeake Bay"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/ChesapeakeBay/ObsPredChesapeakeBayPCB.csv")
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

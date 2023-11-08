@@ -108,7 +108,7 @@ FRTime <- ggplot(fox.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
 print(FRTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotFoxRiverTime.png",
+ggsave("Output/Plots/Sites/Temporal/FoxRiverTime.png",
        plot = FRTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -188,7 +188,7 @@ FRTime.1 <- ggplot(fox.tpcb.1, aes(y = tPCB, x = format(date, '%Y'))) +
 print(FRTime.1)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotFoxRiverTimeV02.png",
+ggsave("Output/Plots/Sites/Temporal/FoxRiverTimeV02.png",
        plot = FRTime.1, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
@@ -349,7 +349,8 @@ fox.tpcb.1$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
 predic.obs <- data.frame(tPCB = fox.tpcb.1$tPCB, predicted = fox.tpcb.1$predicted)
 predic.obs <- data.frame(Location = fox$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/FoxRiver/FoxRiverPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/FoxRiver/FoxRiverObserPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
@@ -664,7 +665,8 @@ for (i in 2:length(df1)) {
 # Export results for plotting
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Fox River"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/FoxRiver/ObsPredFoxRiverPCB.csv")
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
