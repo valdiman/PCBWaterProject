@@ -25,6 +25,9 @@ install.packages("RColorBrewer")
   # New Bedford Harbor data
   kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooPredic_Obser.csv")
   kal <- kal[, -1]
+  # Lake Washington
+  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonPredic_Obser.csv")
+  lwa <- lwa[, -1]
   # New Bedford Harbor data
   nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHPredic_Obser.csv")
   nbh <- nbh[, -1]
@@ -35,11 +38,11 @@ install.packages("RColorBrewer")
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
   spo <- spo[, -1]
   # Combine the data frames
-  combined_data <- rbind(anr, che, fox, kal, nbh, por, spo)
+  combined_data <- rbind(anr, che, fox, kal, lwa, nbh, por, spo)
 }
 
 # Create a custom color palette with distinct colors for the 6 locations
-custom_colors <- brewer.pal(7, "Set1")
+custom_colors <- brewer.pal(8, "Set1")
 
 # Add a new column with the number of rows for each LocationName
 combined_data <- transform(combined_data,
