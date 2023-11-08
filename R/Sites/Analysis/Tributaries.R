@@ -89,7 +89,7 @@ hist(glt.tpcb$tPCB)
 hist(log10(glt.tpcb$tPCB))
 
 # (2) Time trend plots
-GLTime <- ggplot(glt.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+GLTime <- ggplot(glt.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
@@ -110,7 +110,7 @@ print(GLTime)
 
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotTributariesTime.png",
-       plot = GLTime, width = 6, height = 5, dpi = 500)
+       plot = GLTime, width = 8, height = 5, dpi = 500)
 
 # (3) Seasonality
 ggplot(glt.tpcb, aes(x = season, y = tPCB)) +
