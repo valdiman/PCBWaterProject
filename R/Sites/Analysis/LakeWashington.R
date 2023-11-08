@@ -1,5 +1,5 @@
 ## Water PCB concentrations data analysis per site
-## Data from Lake washington
+## Data from Lake Washington
 
 # Install packages
 install.packages("tidyverse")
@@ -88,7 +88,7 @@ hist(lwa.tpcb$tPCB)
 hist(log10(lwa.tpcb$tPCB))
 
 # (2) Time trend plots
-LWTime <- ggplot(lwa.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+LWTime <- ggplot(lwa.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
@@ -155,7 +155,7 @@ ggplot(lwa.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 5, y = 20, label = "Lake Washington",
+  annotate("text", x = 10, y = 300, label = "Lake Washington",
            size = 3)
 
 # tPCB Regressions --------------------------------------------------------
@@ -240,7 +240,7 @@ lwa.tpcb$predicted <- 10^(fit.lme.values.lwa.tpcb$predicted)
 predic.obs <- data.frame(tPCB = lwa.tpcb$tPCB, predicted = lwa.tpcb$predicted)
 predic.obs <- data.frame(Location = lwa$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakePredic_Obser.csv")
+write.csv(predic.obs, "Output/Data/Sites/csv/LakeWashington/LakeWashingtonPredic_Obser.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(lwa.tpcb, aes(x = tPCB, y = predicted)) +
@@ -269,8 +269,8 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonObsPredtPCB.png"
 # Plot residuals vs. predictions
 {
   # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeLakewashingtontPCB.png", width = 800,
-      height = 600)
+  png("Output/Plots/Sites/Residual/res_plotlmeLakewashingtontPCB.png",
+      width = 800, height = 600)
   # Create your plot
   plot(lwa.tpcb$predicted, resid(lme.lwa.tpcb),
        points(lwa.tpcb$predicted, resid(lme.lwa.tpcb), pch = 16, 
@@ -282,7 +282,7 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonObsPredtPCB.png"
   # Add lines to the plot
   abline(0, 0)
   abline(h = c(-2, 2), col = "grey")
-  abline(v = seq(0, 30000, 5000), col = "grey")
+  abline(v = seq(0, 150000, 50000), col = "grey")
   # Close the PNG graphics device
   dev.off()
 }
@@ -290,7 +290,7 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonObsPredtPCB.png"
 # Estimate a factor of 2 between observations and predictions
 lwa.tpcb$factor2 <- lwa.tpcb$tPCB/lwa.tpcb$predicted
 factor2.tpcb <- nrow(lwa.tpcb[lwa.tpcb$factor2 > 0.5 & lwa.tpcb$factor2 < 2,
-])/length(lwa.tpcb[,1])*100
+                              ])/length(lwa.tpcb[,1])*100
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -336,7 +336,7 @@ season <- lwa.pcb.1$season
 site <- lwa.pcb.1$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(lwa.pcb.2[1,]), ncol = 18)
+lme.pcb <- matrix(nrow = length(lwa.pcb.2[1,]), ncol = 21)
 
 # Perform LME
 for (i in 1:length(lwa.pcb.2[1,])) {
@@ -351,18 +351,21 @@ for (i in 1:length(lwa.pcb.2[1,])) {
   lme.pcb[i,4] <- fixef(fit)[2] # time
   lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
   lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.pcb[i,7] <- fixef(fit)[3] # season 2
-  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 2 error
-  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # # season 2 p-value
-  lme.pcb[i,10] <- fixef(fit)[4] # season 3
-  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 3 error
-  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 3 p-value
-  lme.pcb[i,13] <- -log(2)/lme.pcb[i,4]/365 # t0.5
-  lme.pcb[i,14] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
-  lme.pcb[i,15] <- as.data.frame(VarCorr(fit))[1,'sdcor']
-  lme.pcb[i,16] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
-  lme.pcb[i,17] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
-  lme.pcb[i,18] <- shapiro.test(resid(fit))$p.value
+  lme.pcb[i,7] <- fixef(fit)[3] # season 1
+  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
+  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # # season 1 p-value
+  lme.pcb[i,10] <- fixef(fit)[4] # season 2
+  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
+  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  lme.pcb[i,13] <- fixef(fit)[5] # season 3
+  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
+  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
 }
 
 # Just 3 significant figures
@@ -373,6 +376,7 @@ lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
+                       "season1", "season1.error", "season1.pv",
                        "season2", "season2.error", "season2.pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
@@ -385,22 +389,17 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.045, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.045, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/21lwah/21lwahLmePCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmePCB.csv")
 
 # Generate predictions
-# Select congeners that are not showing normality to be remove from pass.pcb.2
-df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
-# Get column indices to remove
-cols_to_remove <- which(names(lwa.pcb.2) %in% df$names_to_remove)
-# Remove columns from lwa.pcb.2 with congeners that don't show normality
-lwa.pcb.3 <- lwa.pcb.2[, -cols_to_remove]
-
+# No need to remove any congener
 # Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(lwa.pcb.3[,1]),
-                      ncol = length(lwa.pcb.3[1,]))
+lme.fit.pcb <- matrix(nrow = length(lwa.pcb.2[,1]),
+                      ncol = length(lwa.pcb.2[1,]))
 
-for (i in 1:length(lwa.pcb.3[1,])) {
-  fit <- lmer(lwa.pcb.3[,i] ~ 1 + time + season + (1|site),
+for (i in 1:length(lwa.pcb.2[1,])) {
+  fit <- lmer(lwa.pcb.2[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -410,7 +409,7 @@ for (i in 1:length(lwa.pcb.3[1,])) {
 }
 
 # Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(lwa.pcb.3)/10^(lme.fit.pcb)
+factor2 <- 10^(lwa.pcb.2)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
@@ -420,9 +419,9 @@ factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(lwa.pcb.3)
+colnames(lme.fit.pcb) <- colnames(lwa.pcb.2)
 # Add code number to first column
-df1 <- cbind(code = row.names(lwa.pcb.3), lwa.pcb.3)
+df1 <- cbind(code = row.names(lwa.pcb.2), lwa.pcb.2)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
 for (i in 2:length(df1)) {
@@ -436,9 +435,9 @@ for (i in 2:length(df1)) {
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "white") +
-    scale_y_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.1, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.1, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
@@ -451,7 +450,7 @@ for (i in 2:length(df1)) {
     annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/21lwah/", col_name, ".png"), plot = p,
+  ggsave(paste0("Output/Plots/Sites/ObsPred/LakeWashington/", col_name, ".png"), plot = p,
          width = 6, height = 6, dpi = 500)
 }
 
@@ -467,9 +466,9 @@ for (i in 2:length(df1)) {
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "white") +
-    scale_y_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.1, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.1, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
@@ -488,7 +487,7 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/21lwah/combined_plot.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/lakeWashington/combined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
 # (3)
@@ -519,16 +518,17 @@ for (i in 2:length(df1)) {
 
 # Export results for plotting
 # Add column LocationName
-combined_cleaned_df$LocationName <- "21 lwah"
-write.csv(combined_cleaned_df, file = "Output/Data/Sites/csv/21lwah/ObsPred21lwahPCB.csv")
+combined_cleaned_df$LocationName <- "Lake Washington"
+write.csv(combined_cleaned_df,
+          file = "Output/Data/Sites/csv/LakeWashington/ObsPredLakeWashingtonPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(0.01, 10^4), 
+  scale_y_log10(limits = c(0.1, 10^6), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.01, 10^4), 
+  scale_x_log10(limits = c(0.1, 10^6), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
@@ -540,13 +540,13 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
-  annotate("text", x = 1, y = 10^3.7,
-           label = expression(atop("21 lwah",
-                                   paste("7 PCB congeners (n = 214 pairs)"))),
+  annotate("text", x = 10, y = 10^5,
+           label = expression(atop("Lake Washington",
+                                   paste("22 PCB congeners (n = 660 pairs)"))),
            size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/21lwah/21lwahObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/LakeWashington/lakeWashingtonObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
