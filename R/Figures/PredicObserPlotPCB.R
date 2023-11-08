@@ -54,32 +54,21 @@ install.packages("RColorBrewer")
                          por, spo)
 }
 
-# Create a custom color palette with 11 different colors
-custom_colors <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
-                   "#FF7F00", "#FFFF33", "#A65628", "#F781BF",
-                   "#999999", "#66C2A5", "#FFA07A")
-
 # Create a custom color palette with 12 different colors
 n_colors <- 12
 custom_palette <- colorRampPalette(brewer.pal(9, "Set1"))(n_colors)
 
-# Print the custom palette
-print(custom_palette)
-
-
-
 # Add a new column with the number of rows for each LocationName
-combined_data <- transform(combined_data,
-                           Location = paste(LocationName,
-                                            " (n =", ave(LocationName,
-                                                         LocationName,
-                                                         FUN = length), ")"))
+combined_data$Location <- paste0(combined_data$LocationName,
+                                 " (n=", ave(combined_data$LocationName,
+                                             combined_data$LocationName,
+                                             FUN = length), ")")                                                                         
 
 # Plot prediction vs. observations, 1:1 line
 CombinePredObsPlot <- ggplot(combined_data,
                              aes(x = 10^(observed), y = 10^(predicted),
                                  fill = Location)) +  # Use the new column for legend labels
-  geom_point(shape = 21, size = 1.5, alpha = 0.5) +
+  geom_point(shape = 21, size = 1.2, alpha = 0.5) +
   scale_y_log10(limits = c(0.001, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(0.001, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
@@ -95,7 +84,7 @@ CombinePredObsPlot <- ggplot(combined_data,
         axis.text = element_text(size = 12),
         axis.title = element_text(size = 14),
         legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))  +
+        legend.text = element_text(size = 12)) +
   annotation_logticks(sides = "bl")
 
 # Print plot
@@ -104,6 +93,4 @@ print(CombinePredObsPlot)
 # Save plot
 ggsave("Output/Figures/Sites/CombineObsPredPCBi.png",
        plot = CombinePredObsPlot, width = 8, height = 8, dpi = 500)
-
-
 
