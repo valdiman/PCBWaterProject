@@ -2,11 +2,13 @@
 # Install packages
 install.packages("ggplot2")
 install.packages("scales")
+install.packages("RColorBrewer")
 
 # Load libraries
 {
   library(ggplot2)
-  library(scales) # function trans_breaks
+  library(scales)
+  library(RColorBrewer)
 }
 
 # Read generated data
@@ -26,6 +28,9 @@ install.packages("scales")
   # Great Lakes
   grl <- read.csv("Output/Data/Sites/csv/GreatLakes/ObsPredGreatLakesPCB.csv")
   grl <- grl[, -1]
+  # Lake Washington
+  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/ObsPredLakeWashingtonPCB.csv")
+  lwa <- lwa[, -c(1:2)]
   # Tributaries Great Lakes
   glt <- read.csv("Output/Data/Sites/csv/GreatLakes/ObsPredTributariesPCB.csv")
   glt <- glt[, -c(1:2)]
@@ -45,13 +50,23 @@ install.packages("scales")
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/ObsPredSpokaneRiverPCB.csv")
   spo <- spo[, -c(1:2)]
   # Combine the data frames
-  combined_data <- rbind(mic, blr, che, fox, grl, glt, hud, nbh, pas, por, spo)
+  combined_data <- rbind(mic, blr, che, fox, grl, glt, hud, lwa, nbh, pas,
+                         por, spo)
 }
 
 # Create a custom color palette with 11 different colors
 custom_colors <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
                    "#FF7F00", "#FFFF33", "#A65628", "#F781BF",
                    "#999999", "#66C2A5", "#FFA07A")
+
+# Create a custom color palette with 12 different colors
+n_colors <- 12
+custom_palette <- colorRampPalette(brewer.pal(9, "Set1"))(n_colors)
+
+# Print the custom palette
+print(custom_palette)
+
+
 
 # Add a new column with the number of rows for each LocationName
 combined_data <- transform(combined_data,
@@ -69,7 +84,7 @@ CombinePredObsPlot <- ggplot(combined_data,
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(0.001, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_fill_manual(values = custom_colors) +
+  scale_fill_manual(values = custom_palette) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
