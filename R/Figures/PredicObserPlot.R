@@ -46,7 +46,7 @@ custom_colors <- brewer.pal(8, "Set1")
 
 # Add a new column with the number of rows for each LocationName
 combined_data <- transform(combined_data,
-                           Location = paste(Location,
+                           Location = paste0(Location,
                                             " (n =", ave(Location,
                                                          Location,
                                                          FUN = length), ")"))
