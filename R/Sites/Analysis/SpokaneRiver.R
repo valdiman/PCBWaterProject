@@ -339,7 +339,7 @@ predic.obs <- data.frame(tPCB = spo.tpcb.1$tPCB, predicted = spo.tpcb.1$predicte
 predic.obs <- data.frame(Location = spo$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/SpokaneRiver/SpokaneObsPredtPCB.csv")
+          "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted.1)) +
@@ -393,6 +393,13 @@ ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.png",
 spo.tpcb.1$factor2 <- spo.tpcb.1$tPCB/spo.tpcb.1$predicted.1
 factor2.tpcb <- nrow(spo.tpcb.1[spo.tpcb.1$factor2 > 0.5 & spo.tpcb.1$factor2 < 2,
                                 ])/length(spo.tpcb.1[,1])*100
+
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverFactor2tPCB.csv")
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -554,6 +561,13 @@ for (i in 1:length(spo.pcb.4[1,])) {
 factor2 <- 10^(spo.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)

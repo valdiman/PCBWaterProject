@@ -227,7 +227,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -240,7 +241,8 @@ lwa.tpcb$predicted <- 10^(fit.lme.values.lwa.tpcb$predicted)
 predic.obs <- data.frame(tPCB = lwa.tpcb$tPCB, predicted = lwa.tpcb$predicted)
 predic.obs <- data.frame(Location = lwa$LocationName[1], predic.obs)
 # Save new data
-write.csv(predic.obs, "Output/Data/Sites/csv/LakeWashington/LakeWashingtonPredic_Obser.csv")
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(lwa.tpcb, aes(x = tPCB, y = predicted)) +
@@ -291,6 +293,13 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonObsPredtPCB.png"
 lwa.tpcb$factor2 <- lwa.tpcb$tPCB/lwa.tpcb$predicted
 factor2.tpcb <- nrow(lwa.tpcb[lwa.tpcb$factor2 > 0.5 & lwa.tpcb$factor2 < 2,
                               ])/length(lwa.tpcb[,1])*100
+
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonFactor2tPCB.csv")
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -412,6 +421,13 @@ for (i in 1:length(lwa.pcb.2[1,])) {
 factor2 <- 10^(lwa.pcb.2)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)

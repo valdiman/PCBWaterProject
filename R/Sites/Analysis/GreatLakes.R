@@ -47,7 +47,7 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Select LMMB and Great Lakes data ---------------------------------------------------
 grl <- wdc[str_detect(wdc$LocationName, 'Lake Michigan Mass Balance|Great Lakes'), ]
 
-# Just open lake data, remove data from tributaries
+# Just get lake data, remove data from tributaries
 grl <- grl[!grepl("^Tributary", grl$SiteName), ]
 
 # Data preparation --------------------------------------------------------
@@ -191,142 +191,7 @@ summary(lme.grl.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.grl.tpcb))
-
-# Remove samples less than 10 and more than 30,000 pg/L (n = 9)
-grl.tpcb.1 <- subset(grl.tpcb, tPCB > 10 & tPCB < 30000)
-
-# Perform Linear Mixed-Effects Model (lme)
-# Get variables
-tpcb <- grl.tpcb.1$tPCB
-time <- grl.tpcb.1$time
-site <- grl.tpcb.1$site.code
-season <- grl.tpcb.1$season
-# tPCB vs. time + season + flow + temp + site
-lme.grl.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
-                     REML = FALSE,
-                     control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                           check.nobs.vs.rankZ = "ignore",
-                                           check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lme.grl.tpcb)
-# Look at residuals
-{
-  res.grl.tpcb <- resid(lme.grl.tpcb) # get list of residuals
-  # Create Q-Q plot for residuals
-  # Create pdf file
-  pdf("Output/Plots/Sites/Q-Q/GreatLakesQ-QtPCBV02.pdf")
-  qqnorm(res.grl.tpcb,
-         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
-                                 "PCB)")))
-  # Add a straight diagonal line to the plot
-  qqline(res.grl.tpcb)
-  dev.off()
-}
-# Shapiro test
-shapiro.test(resid(lme.grl.tpcb))
-
-# Create matrix to store results
-{
-  lme.tpcb <- matrix(nrow = 1, ncol = 18)
-  lme.tpcb[1] <- fixef(lme.grl.tpcb)[1] # intercept
-  lme.tpcb[2] <- summary(lme.grl.tpcb)$coef[1,"Std. Error"] # intercept error
-  lme.tpcb[3] <- summary(lme.grl.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.tpcb[4] <- fixef(lme.grl.tpcb)[2] # time
-  lme.tpcb[5] <- summary(lme.grl.tpcb)$coef[2,"Std. Error"] # time error
-  lme.tpcb[6] <- summary(lme.grl.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.grl.tpcb)[3] # season 2
-  lme.tpcb[8] <- summary(lme.grl.tpcb)$coef[3,"Std. Error"] # season 2 error
-  lme.tpcb[9] <- summary(lme.grl.tpcb)$coef[3,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[10] <- fixef(lme.grl.tpcb)[4] # season 3
-  lme.tpcb[11] <- summary(lme.grl.tpcb)$coef[4,"Std. Error"] # season 3 error
-  lme.tpcb[12] <- summary(lme.grl.tpcb)$coef[4,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[13] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[14] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[15] <- as.data.frame(VarCorr(lme.grl.tpcb))[1,'sdcor']
-  lme.tpcb[16] <- as.data.frame(r.squaredGLMM(lme.grl.tpcb))[1, 'R2m']
-  lme.tpcb[17] <- as.data.frame(r.squaredGLMM(lme.grl.tpcb))[1, 'R2c']
-  lme.tpcb[18] <- shapiro.test(resid(lme.grl.tpcb))$p.value
-}
-
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                        "Intercept.pv", "time", "time.error", "time.pv",
-                        "season2", "season2.error", "season2.pv", "season3",
-                        "season3.error", "season3.pv", "t05", "t05.error",
-                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
-
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmetPCB.csv")
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.grl.tpcb <- as.data.frame(fitted(lme.grl.tpcb))
-# Add column name
-colnames(fit.lme.values.grl.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-grl.tpcb.1$predicted <- 10^(fit.lme.values.grl.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = grl.tpcb.1$tPCB, predicted = grl.tpcb.1$predicted)
-predic.obs <- data.frame(Location = grl$LocationName[1], predic.obs)
-# Save new data
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/GreatLakes/GreatLakesObserPredtPCB.csv")
-
-# Plot prediction vs. observations, 1:1 line
-p <- ggplot(grl.tpcb.1, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 10, y = 10^3.5,
-           label = expression(atop(" Great Lakes (R"^2*"= 0.76)",
-                                   paste("t"[1/2]*" = 45 ± 13 (yr)"))),
-           size = 4, fontface = 2)
-# See plot
-print(p)
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesObsPredtPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
-
-# Plot residuals vs. predictions
-{
-  # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/GreatLakesResidualtPCB.png", width = 800,
-      height = 600)
-  # Create your plot
-  plot(grl.tpcb.1$predicted, resid(lme.grl.tpcb),
-       points(grl.tpcb.1$predicted, resid(lme.grl.tpcb), pch = 16, 
-              col = "white"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  # Add lines to the plot
-  abline(0, 0)
-  abline(h = seq(-2, 2, 1), col = "grey")
-  abline(v = seq(0, 1000, 200), col = "grey")
-  # Close the PNG graphics device
-  dev.off()
-}
-
-# Estimate a factor of 2 between observations and predictions
-grl.tpcb.1$factor2 <- grl.tpcb.1$tPCB/grl.tpcb.1$predicted
-factor2.tpcb <- nrow(grl.tpcb.1[grl.tpcb.1$factor2 > 0.5 & grl.tpcb.1$factor2 < 2,
-                                ])/length(grl.tpcb.1[,1])*100
+shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -450,6 +315,13 @@ factor2 <- 10^(grl.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesFactor2PCB.csv")
+
 # Individual PCB congener plots -------------------------------------------
 # (1)
 # Plot 1:1 for all congeners
@@ -518,7 +390,3 @@ ggsave("Output/Plots/Sites/ObsPred/Greatlakes/PCB89.png", plot = p,
 # Export results for plotting
 write.csv(combined_df,
           file = "Output/Data/Sites/csv/GreatLakes/GreatLakesObsPredPCB.csv")
-
-
-
-

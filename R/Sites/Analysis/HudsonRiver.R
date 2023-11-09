@@ -521,6 +521,13 @@ factor2 <- 10^(hud.pcb.5)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverFactor2PCB.csv")
+
 # Individual PCB congener plots -------------------------------------------
 # (1)
 # Plot 1:1 for all congeners

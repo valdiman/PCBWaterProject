@@ -262,6 +262,13 @@ blr.tpcb$factor2 <- blr.tpcb$tPCB/blr.tpcb$predicted
 factor2.tpcb <- nrow(blr.tpcb[blr.tpcb$factor2 > 0.5 & blr.tpcb$factor2 < 2,
                                 ])/length(blr.tpcb[,1])*100
 
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/BlueRiver/BlueRiverFactor2tPCB.csv")
+
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
 {
@@ -382,6 +389,13 @@ for (i in 1:length(blr.pcb.3[1,])) {
 factor2 <- 10^(blr.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/BlueRiver/BlueRiverFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)

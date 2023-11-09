@@ -190,7 +190,7 @@ summary(lme.anr.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.anr.tpcb))
+shapiro.test(resid(lme.anr.tpcb)) # p-value = 0.04
 
 # Create matrix to store results
 {
@@ -245,7 +245,7 @@ predic.obs <- data.frame(tPCB = anr.tpcb$tPCB, predicted = anr.tpcb$predicted)
 predic.obs <- data.frame(Location = anr$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPred.csv")
+          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(anr.tpcb, aes(x = tPCB, y = predicted)) +
@@ -295,4 +295,11 @@ ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverObsPredtPCB.png"
 anr.tpcb$factor2 <- anr.tpcb$tPCB/anr.tpcb$predicted
 factor2.tpcb <- nrow(anr.tpcb[anr.tpcb$factor2 > 0.5 & anr.tpcb$factor2 < 2,
                               ])/length(anr.tpcb[,1])*100
+
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverFactor2tPCB.csv")
 

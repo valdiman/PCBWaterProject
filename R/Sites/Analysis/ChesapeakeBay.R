@@ -275,7 +275,7 @@ predic.obs <- data.frame(tPCB = che.tpcb.1$tPCB, predicted = che.tpcb.1$predicte
 predic.obs <- data.frame(Location = che$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObserPredtPCB.csv")
+          "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
@@ -299,7 +299,7 @@ p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
@@ -327,6 +327,13 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredtPCB.png",
 che.tpcb.1$factor2 <- che.tpcb.1$tPCB/che.tpcb.1$predicted
 factor2.tpcb <- nrow(che.tpcb.1[che.tpcb.1$factor2 > 0.5 & che.tpcb.1$factor2 < 2,
                                 ])/length(che.tpcb.1[,1])*100
+
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayFactor2tPCB.csv")
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -454,6 +461,13 @@ factor2 <- 10^(che.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayFactor2PCB.csv")
+
 # Individual PCB congener plots -------------------------------------------
 # (1)
 # Plot 1:1 for all congeners
@@ -561,7 +575,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Chesapeake Bay"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

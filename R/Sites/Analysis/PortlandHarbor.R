@@ -279,7 +279,7 @@ predic.obs <- data.frame(tPCB = por.tpcb.2$tPCB, predicted = por.tpcb.2$predicte
 predic.obs <- data.frame(Location = por$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/PortlandHarbor/PortlandObsPredtPCB.csv")
+          "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
@@ -331,6 +331,13 @@ ggsave(filename = "Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborObsPr
 por.tpcb.2$factor2 <- por.tpcb.2$tPCB/por.tpcb.2$predicted
 factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 2,
                                 ])/length(por.tpcb.2[,1])*100
+
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborFactor2tPCB.csv")
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -484,6 +491,13 @@ for (i in 1:length(por.pcb.4[1,])) {
 factor2 <- 10^(por.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)

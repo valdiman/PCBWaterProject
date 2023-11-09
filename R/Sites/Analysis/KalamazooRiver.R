@@ -306,7 +306,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -320,8 +321,7 @@ predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicte
 predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/KalamazooRiver/KalamazooObserPredtPCB.csv")
-
+          "Output/Data/Sites/csv/KalamazooRiver/KalamazooObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
@@ -373,5 +373,10 @@ kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
 factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
                                 ])/length(kal.tpcb.2[,1])*100
 
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
 
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverFactor2tPCB.csv")
 

@@ -312,7 +312,14 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.
 # Estimate a factor of 2 between observations and predictions
 nbh.tpcb$factor2 <- nbh.tpcb$tPCB/nbh.tpcb$predicted
 factor2.tpcb <- nrow(nbh.tpcb[nbh.tpcb$factor2 > 0.5 & nbh.tpcb$factor2 < 2,
-])/length(nbh.tpcb[,1])*100
+                              ])/length(nbh.tpcb[,1])*100
+
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHFactor2tPCB.csv")
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -439,6 +446,13 @@ factor2 <- 10^(nbh.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHFactor2PCB.csv")
+
 # Individual PCB congener plots -------------------------------------------
 # (1)
 # Plot 1:1 for all congeners
@@ -545,7 +559,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "New Bedford Harbor"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/NewBedfordHarbor/NewBHObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +

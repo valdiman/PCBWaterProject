@@ -261,3 +261,10 @@ ggsave("Output/Plots/Sites/ObsPred/Richardson/RichardsonObsPredtPCB.png",
 rhr.tpcb$factor2 <- rhr.tpcb$tPCB/rhr.tpcb$predicted
 factor2.tpcb <- nrow(rhr.tpcb[rhr.tpcb$factor2 > 0.5 & rhr.tpcb$factor2 < 2,
                                 ])/length(rhr.tpcb[,1])*100
+
+# Convert the vector to a data frame
+factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
+
+# Export results
+write.csv(factor2.tpcb,
+          file = "Output/Data/Sites/csv/Richardson/RichardsonFactor2tPCB.csv")

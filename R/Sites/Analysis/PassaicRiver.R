@@ -44,7 +44,7 @@ install.packages("sfheaders")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
-# Select Chesapeake Bay & Delaware Canal data ---------------------------------------------------
+# Select Passaic River data ---------------------------------------------------
 pass <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
 
 # Data preparation --------------------------------------------------------
@@ -232,120 +232,7 @@ summary(lme.pass.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.pass.tpcb))
-
-# Create matrix to store results
-{
-  lme.tpcb <- matrix(nrow = 1, ncol = 27)
-  lme.tpcb[1] <- fixef(lme.pass.tpcb)[1] # intercept
-  lme.tpcb[2] <- summary(lme.pass.tpcb)$coef[1,"Std. Error"] # intercept error
-  lme.tpcb[3] <- summary(lme.pass.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.tpcb[4] <- fixef(lme.pass.tpcb)[2] # time
-  lme.tpcb[5] <- summary(lme.pass.tpcb)$coef[2,"Std. Error"] # time error
-  lme.tpcb[6] <- summary(lme.pass.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.pass.tpcb)[3] # flow
-  lme.tpcb[8] <- summary(lme.pass.tpcb)$coef[3,"Std. Error"] # flow error
-  lme.tpcb[9] <- summary(lme.pass.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
-  lme.tpcb[10] <- fixef(lme.pass.tpcb)[4] # temperature
-  lme.tpcb[11] <- summary(lme.pass.tpcb)$coef[4,"Std. Error"] # temperature error
-  lme.tpcb[12] <- summary(lme.pass.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
-  lme.tpcb[13] <- fixef(lme.pass.tpcb)[5] # season 1
-  lme.tpcb[14] <- summary(lme.pass.tpcb)$coef[5,"Std. Error"] # season 1 error
-  lme.tpcb[15] <- summary(lme.pass.tpcb)$coef[5,"Pr(>|t|)"] # season 1 p-value
-  lme.tpcb[16] <- fixef(lme.pass.tpcb)[6] # season 2
-  lme.tpcb[17] <- summary(lme.pass.tpcb)$coef[6,"Std. Error"] # season 2 error
-  lme.tpcb[18] <- summary(lme.pass.tpcb)$coef[6,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[19] <- fixef(lme.pass.tpcb)[7] # season 3
-  lme.tpcb[20] <- summary(lme.pass.tpcb)$coef[7,"Std. Error"] # season 3 error
-  lme.tpcb[21] <- summary(lme.pass.tpcb)$coef[7,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[22] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[23] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[24] <- as.data.frame(VarCorr(lme.pass.tpcb))[1,'sdcor']
-  lme.tpcb[25] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2m']
-  lme.tpcb[26] <- as.data.frame(r.squaredGLMM(lme.pass.tpcb))[1, 'R2c']
-  lme.tpcb[27] <- shapiro.test(resid(lme.pass.tpcb))$p.value
-}
-
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                        "Intercept.pv", "time", "time.error", "time.pv",
-                        "flow", "flow.error", "flow.pv", "temperature",
-                        "temperature.error", "temperature.pv", "season1",
-                        "season1.error", "season1.pv", "season2",
-                        "season2.error", "season2.pv", "season3",
-                        "season3.error", "season3.pv", "t05", "t05.error",
-                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
-
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/PassaicRiver/PassaicLmetPCB.csv")
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.pass.tpcb <- as.data.frame(fitted(lme.pass.tpcb))
-# Add column name
-colnames(fit.lme.values.pass.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-pass.tpcb$predicted <- 10^(fit.lme.values.pass.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = pass.tpcb$tPCB, predicted = pass.tpcb$predicted)
-predic.obs <- data.frame(Location = pass$LocationName[1], predic.obs)
-# Save new data
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/PassaicRiver/PassaicObsPredtPCB.csv")
-
-# Plot prediction vs. observations, 1:1 line
-p <- ggplot(pass.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 170, y = 10^5,
-           label = expression(atop("Passaic River (R"^2*"= 0.66)",
-                                   paste("t"[1/2]*" = 4.0 ± 0.3 (yr)"))),
-           size = 4, fontface = 2)
-# See plot
-print(p)
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicObsPredtPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
-
-# Plot residuals vs. predictions
-{
-  # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmePassaicResidualtPCB.png", width = 800,
-      height = 600)
-  # Create your plot
-  plot(pass.tpcb$predicted, resid(lme.pass.tpcb),
-       points(pass.tpcb$predicted, resid(lme.pass.tpcb), pch = 16, 
-              col = "white"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  # Add lines to the plot
-  abline(0, 0)
-  abline(h = c(-2, 2), col = "grey")
-  abline(v = seq(0, 30000, 5000), col = "grey")
-  # Close the PNG graphics device
-  dev.off()
-}
-
-# Estimate a factor of 2 between observations and predictions
-pass.tpcb$factor2 <- pass.tpcb$tPCB/pass.tpcb$predicted
-factor2.tpcb <- nrow(pass.tpcb[pass.tpcb$factor2 > 0.5 & pass.tpcb$factor2 < 2,
-                                ])/length(pass.tpcb[,1])*100
+shapiro.test(resid(lme.pass.tpcb)) # Lme doesn't work.
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -518,6 +405,13 @@ for (i in 1:length(pass.pcb.3[1,])) {
 factor2 <- 10^(pass.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Convert the vector to a data frame
+factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
+
+# Export results
+write.csv(factor2.pcb,
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)
