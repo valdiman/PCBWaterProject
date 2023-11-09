@@ -44,32 +44,32 @@ install.packages("sfheaders")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
-# Select blrsapeake Bay & Delaware Canal data ---------------------------------------------------
-blr <- wdc[str_detect(wdc$LocationName, 'Blue River'),]
+# Select Bannister Federal Complex data ---------------------------------------------------
+bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
 
 # Data preparation --------------------------------------------------------
 {
   # Change date format
-  blr$SampleDate <- as.Date(blr$SampleDate, format = "%m/%d/%y")
+  bfc$SampleDate <- as.Date(bfc$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(blr$SampleDate) - min(as.Date(blr$SampleDate)))
+  time.day <- data.frame(as.Date(bfc$SampleDate) - min(as.Date(bfc$SampleDate)))
   # Create individual code for each site sampled
-  site.numb <- blr$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- bfc$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(blr$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(bfc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  blr.tpcb <- cbind(factor(blr$SiteID), blr$SampleDate,
-                    blr$Latitude, blr$Longitude, as.matrix(blr$tPCB),
+  bfc.tpcb <- cbind(factor(bfc$SiteID), bfc$SampleDate,
+                    bfc$Latitude, bfc$Longitude, as.matrix(bfc$tPCB),
                     data.frame(time.day), site.numb, season.s)
   # Add column names
-  colnames(blr.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+  colnames(bfc.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
                           "tPCB", "time", "site.code", "season")
 }
 
 # Get coordinates per site to plot in Google Earth
-location <- blr.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
+location <- bfc.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
 location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                       data = location, mean)
@@ -78,17 +78,17 @@ sf_location <- st_as_sf(location, coords = c("Longitude", "Latitude"))
 # Set the CRS to WGS 84 (EPSG:4326)
 sf_location <- st_set_crs(sf_location, 4326)
 # Define the full file path for the KML file
-kmlFilePath <- "Output/Data/Sites/GoogleEarth/BlueRiverLocations.kml"
+kmlFilePath <- "Output/Data/Sites/GoogleEarth/BannisterFedComplexLocations.kml"
 # Write the KML file to the specified directory
 st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
 # General plots -------------------------------------------------------------------
 # (1) Histograms
-hist(blr.tpcb$tPCB)
-hist(log10(blr.tpcb$tPCB))
+hist(bfc.tpcb$tPCB)
+hist(log10(bfc.tpcb$tPCB))
 
 # (2) Time trend plots
-BRTime <- ggplot(blr.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+BCTime <- ggplot(bfc.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
@@ -105,14 +105,14 @@ BRTime <- ggplot(blr.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     plot.margin = margin(0.1, 0, 0, 0, unit = "cm"))
 
 # Print plot
-print(BRTime)
+print(BCTime)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/BlueRiverTime.png",
-       plot = BRTime, width = 6, height = 5, dpi = 500)
+ggsave("Output/Plots/Sites/Temporal/BannisterFedComplexTime.png",
+       plot = BCTime, width = 6, height = 5, dpi = 500)
 
 # (4) Sites
-ggplot(blr.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
+ggplot(bfc.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -137,56 +137,56 @@ ggplot(blr.tpcb, aes(x = factor(SiteID), y = tPCB)) +
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
-tpcb <- blr.tpcb$tPCB
-time <- blr.tpcb$time
-site <- blr.tpcb$site.code
-season <- blr.tpcb$season
+tpcb <- bfc.tpcb$tPCB
+time <- bfc.tpcb$time
+site <- bfc.tpcb$site.code
+season <- bfc.tpcb$season
 # tPCB vs. time + season + flow + temp + site
-lme.blr.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
+lme.bfc.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
                      REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
                                            check.nobs.vs.rankZ = "ignore",
                                            check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lme.blr.tpcb)
+summary(lme.bfc.tpcb)
 # Look at residuals
 {
-  res.blr.tpcb <- resid(lme.blr.tpcb) # get list of residuals
+  res.bfc.tpcb <- resid(lme.bfc.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   # Create pdf file
-  pdf("Output/Plots/Sites/Q-Q/BlueRiverQ-QtPCB.pdf")
-  qqnorm(res.blr.tpcb,
+  pdf("Output/Plots/Sites/Q-Q/BannisterFedComplexQ-QtPCB.pdf")
+  qqnorm(res.bfc.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
-  qqline(res.blr.tpcb)
+  qqline(res.bfc.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.blr.tpcb))
+shapiro.test(resid(lme.bfc.tpcb))
 
 # Create matrix to store results
 {
   lme.tpcb <- matrix(nrow = 1, ncol = 18)
-  lme.tpcb[1] <- fixef(lme.blr.tpcb)[1] # intercept
-  lme.tpcb[2] <- summary(lme.blr.tpcb)$coef[1,"Std. Error"] # intercept error
-  lme.tpcb[3] <- summary(lme.blr.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.tpcb[4] <- fixef(lme.blr.tpcb)[2] # time
-  lme.tpcb[5] <- summary(lme.blr.tpcb)$coef[2,"Std. Error"] # time error
-  lme.tpcb[6] <- summary(lme.blr.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.blr.tpcb)[3] # season 2
-  lme.tpcb[8] <- summary(lme.blr.tpcb)$coef[3,"Std. Error"] # season 2 error
-  lme.tpcb[9] <- summary(lme.blr.tpcb)$coef[3,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[10] <- fixef(lme.blr.tpcb)[4] # season 3
-  lme.tpcb[11] <- summary(lme.blr.tpcb)$coef[4,"Std. Error"] # season 3 error
-  lme.tpcb[12] <- summary(lme.blr.tpcb)$coef[4,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[1] <- fixef(lme.bfc.tpcb)[1] # intercept
+  lme.tpcb[2] <- summary(lme.bfc.tpcb)$coef[1,"Std. Error"] # intercept error
+  lme.tpcb[3] <- summary(lme.bfc.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.tpcb[4] <- fixef(lme.bfc.tpcb)[2] # time
+  lme.tpcb[5] <- summary(lme.bfc.tpcb)$coef[2,"Std. Error"] # time error
+  lme.tpcb[6] <- summary(lme.bfc.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.tpcb[7] <- fixef(lme.bfc.tpcb)[3] # season 2
+  lme.tpcb[8] <- summary(lme.bfc.tpcb)$coef[3,"Std. Error"] # season 2 error
+  lme.tpcb[9] <- summary(lme.bfc.tpcb)$coef[3,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[10] <- fixef(lme.bfc.tpcb)[4] # season 3
+  lme.tpcb[11] <- summary(lme.bfc.tpcb)$coef[4,"Std. Error"] # season 3 error
+  lme.tpcb[12] <- summary(lme.bfc.tpcb)$coef[4,"Pr(>|t|)"] # season 3 p-value
   lme.tpcb[13] <- -log(2)/lme.tpcb[4]/365 # t0.5
   lme.tpcb[14] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[15] <- as.data.frame(VarCorr(lme.blr.tpcb))[1,'sdcor']
-  lme.tpcb[16] <- as.data.frame(r.squaredGLMM(lme.blr.tpcb))[1, 'R2m']
-  lme.tpcb[17] <- as.data.frame(r.squaredGLMM(lme.blr.tpcb))[1, 'R2c']
-  lme.tpcb[18] <- shapiro.test(resid(lme.blr.tpcb))$p.value
+  lme.tpcb[15] <- as.data.frame(VarCorr(lme.bfc.tpcb))[1,'sdcor']
+  lme.tpcb[16] <- as.data.frame(r.squaredGLMM(lme.bfc.tpcb))[1, 'R2m']
+  lme.tpcb[17] <- as.data.frame(r.squaredGLMM(lme.bfc.tpcb))[1, 'R2c']
+  lme.tpcb[18] <- shapiro.test(resid(lme.bfc.tpcb))$p.value
 }
 
 # Just 3 significant figures
@@ -200,21 +200,22 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/BlueRiver/BlueRiverLmetPCB.csv")
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.lme.values.blr.tpcb <- as.data.frame(fitted(lme.blr.tpcb))
+fit.lme.values.bfc.tpcb <- as.data.frame(fitted(lme.bfc.tpcb))
 # Add column name
-colnames(fit.lme.values.blr.tpcb) <- c("predicted")
+colnames(fit.lme.values.bfc.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-blr.tpcb$predicted <- 10^(fit.lme.values.blr.tpcb$predicted)
+bfc.tpcb$predicted <- 10^(fit.lme.values.bfc.tpcb$predicted)
 # Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = blr.tpcb$tPCB, predicted = blr.tpcb$predicted)
-predic.obs <- data.frame(Location = blr$LocationName[1], predic.obs)
+predic.obs <- data.frame(tPCB = bfc.tpcb$tPCB, predicted = bfc.tpcb$predicted)
+predic.obs <- data.frame(Location = bfc$LocationName[1], predic.obs)
 
 # Plot prediction vs. observations, 1:1 line
-p <- ggplot(blr.tpcb, aes(x = tPCB, y = predicted)) +
+p <- ggplot(bfc.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(1, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -233,17 +234,17 @@ p <- ggplot(blr.tpcb, aes(x = tPCB, y = predicted)) +
 print(p)
 
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/BlueRiver/BlueRiverObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
 {
   # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeBlueRivertPCB.png", width = 800,
+  png("Output/Plots/Sites/Residual/res_plotlmeBannisterFedComplextPCB.png", width = 800,
       height = 600)
   # Create your plot
-  plot(blr.tpcb$predicted, resid(lme.blr.tpcb),
-       points(blr.tpcb$predicted, resid(lme.blr.tpcb), pch = 16, 
+  plot(bfc.tpcb$predicted, resid(lme.bfc.tpcb),
+       points(bfc.tpcb$predicted, resid(lme.bfc.tpcb), pch = 16, 
               col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
@@ -258,66 +259,66 @@ ggsave("Output/Plots/Sites/ObsPred/BlueRiver/BlueRiverObsPredtPCB.png",
 }
 
 # Estimate a factor of 2 between observations and predictions
-blr.tpcb$factor2 <- blr.tpcb$tPCB/blr.tpcb$predicted
-factor2.tpcb <- nrow(blr.tpcb[blr.tpcb$factor2 > 0.5 & blr.tpcb$factor2 < 2,
-                                ])/length(blr.tpcb[,1])*100
+bfc.tpcb$factor2 <- bfc.tpcb$tPCB/bfc.tpcb$predicted
+factor2.tpcb <- nrow(bfc.tpcb[bfc.tpcb$factor2 > 0.5 & bfc.tpcb$factor2 < 2,
+                                ])/length(bfc.tpcb[,1])*100
 
 # Convert the vector to a data frame
 factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
 
 # Export results
 write.csv(factor2.tpcb,
-          file = "Output/Data/Sites/csv/BlueRiver/BlueRiverFactor2tPCB.csv")
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexFactor2tPCB.csv")
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
-  blr.pcb <- subset(blr, select = -c(SampleID:AroclorCongener))
+  bfc.pcb <- subset(bfc, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  blr.pcb <- subset(blr.pcb, select = -c(A1016:tPCB))
+  bfc.pcb <- subset(bfc.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
-  blr.pcb <- log10(blr.pcb)
+  bfc.pcb <- log10(bfc.pcb)
   # Replace -inf to NA
-  blr.pcb <- do.call(data.frame,
-                     lapply(blr.pcb,
+  bfc.pcb <- do.call(data.frame,
+                     lapply(bfc.pcb,
                             function(x) replace(x, is.infinite(x), NA)))
   # Remove individual PCB that have 30% or less NA values
-  blr.pcb.1 <- blr.pcb[,
-                       -which(colSums(is.na(blr.pcb))/nrow(blr.pcb) > 0.7)]
+  bfc.pcb.1 <- bfc.pcb[,
+                       -which(colSums(is.na(bfc.pcb))/nrow(bfc.pcb) > 0.7)]
   # Add site ID
-  SiteID <- factor(blr$SiteID)
+  SiteID <- factor(bfc$SiteID)
   # Change date format
-  SampleDate <- as.Date(blr$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(bfc$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  site.numb <- blr$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- bfc$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(blr$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(bfc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-  # Add date and time to blr.pcb.1
-  blr.pcb.1 <- cbind(blr.pcb.1, SiteID, SampleDate, data.frame(time.day),
+  # Add date and time to bfc.pcb.1
+  bfc.pcb.1 <- cbind(bfc.pcb.1, SiteID, SampleDate, data.frame(time.day),
                      site.numb, season.s)
   # Remove metadata
-  blr.pcb.2 <- subset(blr.pcb.1, select = -c(SiteID:season.s))
+  bfc.pcb.2 <- subset(bfc.pcb.1, select = -c(SiteID:season.s))
 }
 
 # LME for individual PCBs -------------------------------------------------
 # Get covariates
-time <- blr.pcb.1$time
-season <- blr.pcb.1$season
-site <- blr.pcb.1$site.numb
+time <- bfc.pcb.1$time
+season <- bfc.pcb.1$season
+site <- bfc.pcb.1$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(blr.pcb.2[1,]), ncol = 18)
+lme.pcb <- matrix(nrow = length(bfc.pcb.2[1,]), ncol = 18)
 
 # Perform LME
-for (i in 1:length(blr.pcb.2[1,])) {
-  fit <- lmer(blr.pcb.2[,i] ~ 1 + time + season + (1|site),
+for (i in 1:length(bfc.pcb.2[1,])) {
+  fit <- lmer(bfc.pcb.2[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -345,7 +346,7 @@ for (i in 1:length(blr.pcb.2[1,])) {
 # Just 3 significant figures
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 # Add congener names
-congeners <- colnames(blr.pcb.2)
+congeners <- colnames(bfc.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
@@ -361,22 +362,23 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/BlueRiver/BlueRiverLmePCB.csv")
+write.csv(lme.pcb,
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmePCB.csv")
 
 # Generate predictions
-# Select congeners that are not showing normality to be remove from blr.pcb.2
+# Select congeners that are not showing normality to be remove from bfc.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
-cols_to_remove <- which(names(blr.pcb.2) %in% df$names_to_remove)
-# Remove columns from blr.pcb.2 with congeners that don't show normality
-blr.pcb.3 <- blr.pcb.2[, -cols_to_remove]
+cols_to_remove <- which(names(bfc.pcb.2) %in% df$names_to_remove)
+# Remove columns from bfc.pcb.2 with congeners that don't show normality
+bfc.pcb.3 <- bfc.pcb.2[, -cols_to_remove]
 
 # Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(blr.pcb.3[,1]),
-                      ncol = length(blr.pcb.3[1,]))
+lme.fit.pcb <- matrix(nrow = length(bfc.pcb.3[,1]),
+                      ncol = length(bfc.pcb.3[1,]))
 
-for (i in 1:length(blr.pcb.3[1,])) {
-  fit <- lmer(blr.pcb.3[,i] ~ 1 + time + season + (1|site),
+for (i in 1:length(bfc.pcb.3[1,])) {
+  fit <- lmer(bfc.pcb.3[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -386,7 +388,7 @@ for (i in 1:length(blr.pcb.3[1,])) {
 }
 
 # Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(blr.pcb.3)/10^(lme.fit.pcb)
+factor2 <- 10^(bfc.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
@@ -395,7 +397,7 @@ factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
 
 # Export results
 write.csv(factor2.pcb,
-          file = "Output/Data/Sites/csv/BlueRiver/BlueRiverFactor2PCB.csv")
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)
@@ -403,9 +405,9 @@ write.csv(factor2.pcb,
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(blr.pcb.3)
+colnames(lme.fit.pcb) <- colnames(bfc.pcb.3)
 # Add code number to first column
-df1 <- cbind(code = row.names(blr.pcb.3), blr.pcb.3)
+df1 <- cbind(code = row.names(bfc.pcb.3), bfc.pcb.3)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
 for (i in 2:length(df1)) {
@@ -434,7 +436,7 @@ for (i in 2:length(df1)) {
     annotate('text', x = 10^2, y = 10^6, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/BlueRiver/", col_name, ".png"),
+  ggsave(paste0("Output/Plots/Sites/ObsPred/BannisterFedComplex/", col_name, ".png"),
          plot = p, width = 6, height = 6, dpi = 500)
 }
 
@@ -471,7 +473,7 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/BlueRiver/combined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/combined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
 # (3)
@@ -502,9 +504,9 @@ for (i in 2:length(df1)) {
 
 # Export results for plotting
 # Add column LocationName
-combined_cleaned_df$LocationName <- "Blue River"
+combined_cleaned_df$LocationName <- "Bannister Fed Complex"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/BlueRiver/BlueRiverObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
@@ -531,7 +533,7 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/BlueRiver/BlueRiverObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
          
