@@ -213,6 +213,9 @@ bfc.tpcb$predicted <- 10^(fit.lme.values.bfc.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = bfc.tpcb$tPCB, predicted = bfc.tpcb$predicted)
 predic.obs <- data.frame(Location = bfc$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(bfc.tpcb, aes(x = tPCB, y = predicted)) +
