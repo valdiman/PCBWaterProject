@@ -14,35 +14,38 @@ install.packages("RColorBrewer")
 # Read generated data
 {
   # Anacostia River
-  anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverPredic_Obser.csv")
+  anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPredtPCB.csv")
   anr <- anr[, -1]
+  # Bannister Federal Complex
+  bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredtPCB.csv")
+  bfc <- bfc[, -1]
   # Chesapeake Bay data
-  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakePredic_Obser.csv")
+  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv")
   che <- che[, -1]
   # Fox River data
-  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverPredic_Obser.csv")
+  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredtPCB.csv")
   fox <- fox[, -1]
   # New Bedford Harbor data
-  kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooPredic_Obser.csv")
+  kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooObsPredtPCB.csv")
   kal <- kal[, -1]
   # Lake Washington
-  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonPredic_Obser.csv")
+  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredtPCB.csv")
   lwa <- lwa[, -1]
   # New Bedford Harbor data
-  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHPredic_Obser.csv")
+  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredtPCB.csv")
   nbh <- nbh[, -1]
   # Portland Harbord data
-  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandPredic_Obser.csv")
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborObsPredtPCB.csv")
   por <- por[, -1]
   # Spokane River data
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverObsPredtPCB.csv")
   spo <- spo[, -1]
   # Combine the data frames
-  combined_data <- rbind(anr, che, fox, kal, lwa, nbh, por, spo)
+  combined_data <- rbind(anr, bfc, che, fox, kal, lwa, nbh, por, spo)
 }
 
 # Create a custom color palette with distinct colors for the 6 locations
-custom_colors <- brewer.pal(8, "Set1")
+custom_colors <- brewer.pal(9, "Set1")
 
 # Add a new column with the number of rows for each LocationName
 combined_data <- transform(combined_data,
@@ -69,15 +72,16 @@ CombinePredObsPlot <- ggplot(combined_data,
   theme(aspect.ratio = 15/15,
         axis.text = element_text(size = 12),
         axis.title = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))  +
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.position = c(1.25, 0.8),  # Adjust the position (values are between 0 and 1)
+        legend.background = element_rect(fill = "transparent")) +  # Make the legend background transparent
   annotation_logticks(sides = "bl")
-
 
 # Print plot
 print(CombinePredObsPlot)
 
 # Save plot
 ggsave("Output/Figures/Sites/CombineObsPredtPCB.png",
-       plot = CombinePredObsPlot, width = 8, height = 8, dpi = 500)
+       plot = CombinePredObsPlot, width = 15, height = 8, dpi = 500)
 
