@@ -75,16 +75,18 @@ CombinePredObsPlot <- ggplot(combined_data,
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_fill_manual(values = custom_palette) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+  ylab(expression(bold("Predicted LME concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) +
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   theme_bw() +
   theme(aspect.ratio = 15/15,
-        axis.text = element_text(size = 12),
-        axis.title = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12)) +
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 20),
+        legend.title = element_text(size = 18),
+        legend.text = element_text(size = 18),
+        legend.position = c(1.35, 0.75),  # Adjust the position (values are between 0 and 1)
+        legend.background = element_rect(fill = "transparent")) +  # Make the legend background transparent
   annotation_logticks(sides = "bl")
 
 # Print plot
@@ -92,5 +94,5 @@ print(CombinePredObsPlot)
 
 # Save plot
 ggsave("Output/Figures/Sites/CombineObsPredPCBi.png",
-       plot = CombinePredObsPlot, width = 8, height = 8, dpi = 500)
+       plot = CombinePredObsPlot, width = 18, height = 8, dpi = 500)
 
