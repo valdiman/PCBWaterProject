@@ -14,43 +14,43 @@ install.packages("RColorBrewer")
 # Read generated data
 {
   # 21 Mich
-  mic <- read.csv("Output/Data/Sites/csv/21Mich/ObsPred21MichPCB.csv")
+  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichObsPredPCB.csv")
   mic <- mic[, -c(1:2)]
-  # Blue River
-  blr <- read.csv("Output/Data/Sites/csv/BlueRiver/ObsPredBlueRiverPCB.csv")
-  blr <- blr[, -c(1:2)]
+  # Bannister Federal Complex
+  bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredPCB.csv")
+  bfc <- bfc[, -c(1:2)]
   # Chesapeake Bay data
-  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ObsPredChesapeakeBayPCB.csv")
+  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredPCB.csv")
   che <- che[, -c(1:2)]
   # Fox River data
-  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/ObsPredFoxRiverPCB.csv")
+  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredPCB.csv")
   fox <- fox[, -c(1:2)]
   # Great Lakes
-  grl <- read.csv("Output/Data/Sites/csv/GreatLakes/ObsPredGreatLakesPCB.csv")
+  grl <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesObsPredPCB.csv")
   grl <- grl[, -1]
-  # Lake Washington
-  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/ObsPredLakeWashingtonPCB.csv")
-  lwa <- lwa[, -c(1:2)]
-  # Tributaries Great Lakes
-  glt <- read.csv("Output/Data/Sites/csv/GreatLakes/ObsPredTributariesPCB.csv")
-  glt <- glt[, -c(1:2)]
   # Hudson River
-  hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/ObsPredHudsonRiverPCB.csv")
+  hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/HudsonRiverObsPredPCB.csv")
   hud <- hud[, -c(1:2)]
+  # Lake Washington
+  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredPCB.csv")
+  lwa <- lwa[, -c(1:2)]
+  # Tributaries to Lake Michigan
+  glt <- read.csv("Output/Data/Sites/csv/GreatLakes/TributariesObsPredPCB.csv")
+  glt <- glt[, -c(1:2)]
   # New Bedford Harbor data
-  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/ObsPredNewBHPCB.csv")
+  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredPCB.csv")
   nbh <- nbh[, -c(1:2)]
   # Passaic River
-  pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/ObsPredPassaicPCB.csv")
+  pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicObsPredPCB.csv")
   pas <- pas[,-c(1:2)]
   # Portland Harbord data
-  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/ObsPredPortlandHarborPCB.csv")
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborObsPredPCB.csv")
   por <- por[, -c(1:2)]
   # Spokane River data
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/ObsPredSpokaneRiverPCB.csv")
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverObsPredPCB.csv")
   spo <- spo[, -c(1:2)]
   # Combine the data frames
-  combined_data <- rbind(mic, blr, che, fox, grl, glt, hud, lwa, nbh, pas,
+  combined_data <- rbind(mic, bfc, che, fox, grl, glt, hud, lwa, nbh, pas,
                          por, spo)
 }
 
