@@ -191,7 +191,7 @@ summary(lme.che.tpcb)
 shapiro.test(resid(lme.che.tpcb))
 
 # Remove minimum and bottom 2 values, ~ 10 pg/L
-che.tpcb.1 <- subset(che.tpcb,tPCB > 10)
+che.tpcb.1 <- subset(che.tpcb, tPCB > 10)
 
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
