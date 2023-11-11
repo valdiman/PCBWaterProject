@@ -417,7 +417,7 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb,
-          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmenPCB.csv")
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from nbh.pcb.2
