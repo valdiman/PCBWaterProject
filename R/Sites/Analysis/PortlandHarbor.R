@@ -235,8 +235,6 @@ shapiro.test(resid(lme.por.tpcb)) # p-value = 0.9216
   lme.tpcb[13] <- fixef(lme.por.tpcb)[5] # season 1
   lme.tpcb[14] <- summary(lme.por.tpcb)$coef[5,"Std. Error"] # season 1 error
   lme.tpcb[15] <- summary(lme.por.tpcb)$coef[5,"Pr(>|t|)"] # season 1 p-value
-  
-  
   lme.tpcb[16] <- fixef(lme.por.tpcb)[6] # season 2
   lme.tpcb[17] <- summary(lme.por.tpcb)$coef[6,"Std. Error"] # season 2 error
   lme.tpcb[18] <- summary(lme.por.tpcb)$coef[6,"Pr(>|t|)"] # season 2 p-value
