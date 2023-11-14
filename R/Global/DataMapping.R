@@ -15,6 +15,8 @@ install.packages("ggsn")
 install.packages("ggrepel")
 install.packages("ggpp")
 install.packages("scales")
+install.packages("viridis")
+install.packages("tidyr")
 
 # Load libraries
 {
@@ -32,6 +34,8 @@ install.packages("scales")
   library(ggpmisc)
   library(scales) # add commas in legend in maps
   library(cowplot)
+  library(viridis) # customize color legend
+  library(tidyr)
 }
 
 # Read data ---------------------------------------------------------------
@@ -46,67 +50,83 @@ tpcb.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
 us <- map_data("usa")
 states <- map_data("state")
 
-# Find number of samples per state to be included as table in maps
-{
-  wdc.2 <- wdc %>%
-    group_by(StateSampled) %>%
-    summarise(n = n())
-  wdc.3 <- data.frame(t(wdc.2))
-  name <- c('State', '# samples')
-  wdc.3 <- data.frame(col1 = name, wdc.3)
-  names(wdc.3) <- NULL
-}
+# Find number of samples per StateSampled
+wdc.2 <- wdc %>%
+  group_by(StateSampled) %>%
+  summarise(n = n())
+
+# Convert wdc.2 to long format
+wdc.3 <- gather(wdc.2, key = "Variable", value = "Value", -StateSampled)
+
+# Find number of samples per LocationName
+wdc.4 <- wdc %>%
+  group_by(LocationName) %>%
+  summarise(n = n())
+
+# Convert wdc.4 to long format
+wdc.5 <- gather(wdc.4, key = "Variable", value = "Value", -LocationName)
 
 # (1) Map of US with locations
 maploc <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
-               color = "black", fill = "lightblue") +
+               color = "black", fill = "transparent") +
   coord_fixed(1.3) +
-  theme_nothing() +
-  xlab("Longitude") +
-  ylab("Latitude") +
+  theme_void() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
-            colour = "white")+
+            colour = "black") +
   geom_polygon(color = "black", fill = NA) +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude),
              color = "black",
              size = 1.2, shape = 20) +
-  annotate(geom = 'table', x = -128, y = 53,
-           label = list(wdc.3), size = 1.75) # add table with info
+  geom_text(data = wdc.3, aes(x = -66.5, y = 50.2 - seq_along(StateSampled), label = paste(StateSampled, Value), hjust = 0, vjust = 1), size = 3) +
+  geom_text(data = wdc.5, aes(x = -138, y = 50.2 - seq_along(LocationName), label = paste(LocationName, Value), hjust = 0, vjust = 1), size = 3) +
+  geom_text(aes(x = -69.5, y = 50.5, label = "States/Samples", hjust = 0, vjust = 1), size = 3, fontface = "bold") +
+  geom_text(aes(x = -138, y = 50.5, label = "Location/Samples", hjust = 0, vjust = 1), size = 3, fontface = "bold")
 
-# Print the plot
 print(maploc)
 
 # Save map in folder
-ggsave("Output/Maps/Global/maplocV03.png", plot = maploc,
-       width = 9, height = 4, dpi = 300)
+ggsave("Output/Maps/Global/maplocV05.pdf", plot = maploc,
+       width = 12, height = 6, dpi = 300)
 
 # (2) Map + tPCB
 maptPCB <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
-               color = "black", fill = "lightblue") +
-  coord_fixed(1.3) +
-  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+               color = "black", fill = NA) +
   geom_path(data = states, aes(x = long, y = lat, group = group),
-            colour = "white") +
-  geom_polygon(color = "black", fill = NA) +
+            colour = "black") +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude,
-                                  size = tPCB), alpha = 1, color  = "black",
-             shape = 21, fill = "white", stroke = 0.75) +
-  scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 2000*1000,
-                             3000*1000), labels = comma,
-                  name = expression(bold(atop(Sigma*"PCBs (SiteID mean)",
-                  paste("1979-2020 (pg/L)")))),
-                  max_size = 10) +
-  guides(size = guide_legend(label.hjust = 0.2)) +
-  theme(legend.position = c(1.15, 0.7),
-        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+                                  fill = tPCB), alpha = 1, color  = "black",
+             shape = 21, size = 1.5, stroke = 0.75) +
+  scale_fill_viridis_c(
+    name = expression(bold(atop(Sigma*"PCBs (SiteID mean)",
+                                paste("1979-2020 (pg/L)")))),
+    limits = c(1, 10000000),
+    trans = "log10",
+    labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(1.15, 0.5),  # Adjust the legend position (left)
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18)  # Adjust the size of legend title
+  )
 
 print(maptPCB)  # Print the plot
 
-# Save map in folder
-ggsave("Output/Maps/Global/maptPCBV04.png", plot = maptPCB,
-       width = 14, height = 4, dpi = 300)
+# Save the plot as PDF
+ggsave("Output/Maps/Global/maptPCBV05.pdf", plot = maptPCB,
+       width = 14, height = 4)
 
 # (3) Individual PCB congeners
 # Filter out rows with 0 values for PCB11
