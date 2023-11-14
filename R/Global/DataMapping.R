@@ -77,11 +77,17 @@ maploc <- ggplot() +
   geom_polygon(color = "black", fill = NA) +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude),
              color = "black",
-             size = 1.2, shape = 20) +
-  geom_text(data = wdc.3, aes(x = -66.5, y = 50.2 - seq_along(StateSampled), label = paste(StateSampled, Value), hjust = 0, vjust = 1), size = 3) +
-  geom_text(data = wdc.5, aes(x = -138, y = 50.2 - seq_along(LocationName), label = paste(LocationName, Value), hjust = 0, vjust = 1), size = 3) +
-  geom_text(aes(x = -69.5, y = 50.5, label = "States/Samples", hjust = 0, vjust = 1), size = 3, fontface = "bold") +
-  geom_text(aes(x = -138, y = 50.5, label = "Location/Samples", hjust = 0, vjust = 1), size = 3, fontface = "bold")
+             size = 2.2, shape = 20) +
+  geom_text(data = wdc.3, aes(x = -66.5, y = 50.2 - seq_along(StateSampled),
+                              label = paste(StateSampled, Value), hjust = 0,
+                              vjust = 1), size = 3) +
+  geom_text(data = wdc.5, aes(x = -138, y = 50.2 - seq_along(LocationName),
+                              label = paste(LocationName, Value), hjust = 0,
+                              vjust = 1), size = 3) +
+  geom_text(aes(x = -69.5, y = 50.5, label = "States/Samples", hjust = 0,
+                vjust = 1), size = 3, fontface = "bold") +
+  geom_text(aes(x = -138, y = 50.5, label = "Location/Samples", hjust = 0,
+                vjust = 1), size = 3, fontface = "bold")
 
 print(maploc)
 
@@ -97,11 +103,10 @@ maptPCB <- ggplot() +
             colour = "black") +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude,
                                   fill = tPCB), alpha = 1, color  = "black",
-             shape = 21, size = 1.5, stroke = 0.75) +
+             shape = 21, size = 2, stroke = 0.75) +
   scale_fill_viridis_c(
-    name = expression(bold(atop(Sigma*"PCBs (SiteID mean)",
-                                paste("1979-2020 (pg/L)")))),
-    limits = c(1, 10000000),
+    name = expression(bold(Sigma*"PCBs (pg/L)")),
+    limits = c(1, 40000000),
     trans = "log10",
     labels = scales::comma,
     begin = 1,  # Adjust the starting color (lower value)
@@ -117,7 +122,7 @@ maptPCB <- ggplot() +
     panel.border = element_blank(),
     legend.key.width = unit(0.75, "lines"),
     legend.key.height = unit(3, "lines"),
-    legend.position = c(1.15, 0.5),  # Adjust the legend position (left)
+    legend.position = c(1.1, 0.55),  # Adjust the legend position
     legend.text = element_text(size = 18),  # Adjust the size of legend labels
     legend.title = element_text(size = 18)  # Adjust the size of legend title
   )
@@ -125,150 +130,282 @@ maptPCB <- ggplot() +
 print(maptPCB)  # Print the plot
 
 # Save the plot as PDF
-ggsave("Output/Maps/Global/maptPCBV05.pdf", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBV06.pdf", plot = maptPCB,
        width = 14, height = 4)
 
 # (3) Individual PCB congeners
-# Filter out rows with 0 values for PCB11
-pcbi <- wdc[wdc$PCB11 != 0, ]
-
-# Average PCB11 per sample site
-pcbi.ave <- aggregate(PCB11 ~ SiteID + Latitude + Longitude,
-                      data = pcbi, mean)
-
-# Determine the breaks based on data values
-breaks.s <- pretty_breaks(n = 6)(range(pcbi.ave$PCB11))
+# PCB5+8
+pcb5.8 <- wdc[wdc$PCB5.8 != 0, ]
+# Average PCB5+8 per sample site
+pcb5.8.ave <- aggregate(PCB5.8 ~ SiteID + Latitude + Longitude,
+                      data = pcb5.8, mean)
 
 # Plot
-mapPCBi <- ggplot() +
+mapPCB5.8 <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
-               color = "black", fill = "lightblue") +
-  coord_fixed(1.3) +
-  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+               color = "black", fill = NA) +
   geom_path(data = states, aes(x = long, y = lat, group = group),
-            colour = "white") +
-  geom_polygon(color = "black", fill = NA) +
-  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
-                                  size = PCB11), alpha = 1, color  = "black",
-             shape = 21, fill = "white", stroke = 0.75) +
-  scale_size_area(breaks = breaks.s,
-                  name = expression(bold(atop("PCB 11 (pg/L)",
-                                              paste("(SiteID mean)")))),
-                  max_size = 10) +
-  guides(size = guide_legend(label.hjust = 0.2)) +
-  theme(legend.position = c(1.1, 0.67),
-        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
-        
-print(mapPCBi)  # Print the plot
+            colour = "black") +
+  geom_point(data = pcb5.8.ave, aes(x = Longitude, y = Latitude,
+                                  fill = PCB5.8), alpha = 1, color  = "black",
+             shape = 21, size = 2, stroke = 0.75) +
+  scale_fill_viridis_c(
+    name = expression(bold("PCBs 5+8 (pg/L)")),
+    limits = c(1, 1000000),
+    trans = "log10",
+    labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(1.1, 0.55),  # Adjust the legend position
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18)  # Adjust the size of legend title
+  )
+
+print(mapPCB5.8)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB11.png", plot = mapPCBi,
-       width = 14, height = 4, dpi = 300)
+ggsave("Output/Maps/Global/mapPCB5_8.pdf", plot = mapPCB5.8,
+       width = 14, height = 4)
+
+# PCB11
+pcb11 <- wdc[wdc$PCB11 != 0, ]
+
+# Average PCB11 per sample site
+pcb.11.ave <- aggregate(PCB11 ~ SiteID + Latitude + Longitude,
+                      data = pcb11, mean)
+
+# Plot
+mapPCB11 <- ggplot() +
+  geom_polygon(data = us, aes(x = long, y = lat, group = group),
+               color = "black", fill = NA) +
+  geom_path(data = states, aes(x = long, y = lat, group = group),
+            colour = "black") +
+  geom_point(data = pcb.11.ave, aes(x = Longitude, y = Latitude,
+                                  fill = PCB11), alpha = 1, color  = "black",
+             shape = 21, size = 2, stroke = 0.75) +
+  scale_fill_viridis_c(
+    name = expression(bold("PCB 11 (pg/L)")),
+    limits = c(1, 2000),
+    trans = "log10",
+    #labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(1.1, 0.55),  # Adjust the legend position
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18)  # Adjust the size of legend title
+  )
+        
+print(mapPCB11)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/mapPCB11.pdf", plot = mapPCB11,
+       width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB 20+21+28+31+33+50+53
-pcbi <- wdc[wdc$PCB20.21.28.31.33.50.53 != 0, ]
+pcb20 <- wdc[wdc$PCB20.21.28.31.33.50.53 != 0, ]
 
 # Average PCB11 per sample site
-pcbi.ave <- aggregate(PCB20.21.28.31.33.50.53 ~ SiteID + Latitude + Longitude,
+pcb.20.ave <- aggregate(PCB20.21.28.31.33.50.53 ~ SiteID + Latitude + Longitude,
                       data = pcbi, mean)
 
 # Plot
-mapPCBi <- ggplot() +
+mapPCB20 <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
-               color = "black", fill = "lightblue") +
-  coord_fixed(1.3) +
-  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+               color = "black", fill = NA) +
   geom_path(data = states, aes(x = long, y = lat, group = group),
-            colour = "white") +
-  geom_polygon(color = "black", fill = NA) +
-  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
-                                  size = PCB20.21.28.31.33.50.53),
+            colour = "black") +
+  geom_point(data = pcb.20.ave, aes(x = Longitude, y = Latitude,
+                                    fill = PCB20.21.28.31.33.50.53),
              alpha = 1, color  = "black",
-             shape = 21, fill = "white", stroke = 0.75) +
-  scale_size_area(breaks = c(1000, 10*1000, 50*1000, 100*1000,
-                             200*1000, 400*1000), labels = comma,
-                  name = expression(bold(atop("PCBs 20+21+28+31+33+50+53 (pg/L)",
-                                              paste("(SiteID mean)")))),
-                  max_size = 10) +
-  guides(size = guide_legend(label.hjust = 0.2)) +
-  theme(legend.position = c(1.22, 0.72),
-        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+             shape = 21, size = 2, stroke = 0.75) +
+  scale_fill_viridis_c(name = expression(bold(atop("PCBs 20+21+28+31",
+                                                   paste("+33+50+53 (pg/L)")))),
+    limits = c(1, 1000000),
+    trans = "log10",
+    labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(1.15, 0.5),  # Adjust the legend position
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18)  # Adjust the size of legend title
+  )
 
-print(mapPCBi)  # Print the plot
+print(mapPCB20)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB20.png", plot = mapPCBi,
-       width = 14, height = 4, dpi = 300)
+ggsave("Output/Maps/Global/mapPCB20.pdf", plot = mapPCB20,
+       width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB44+47+65
-pcbi <- wdc[wdc$PCB44.47.65 != 0, ]
+pcb44 <- wdc[wdc$PCB44.47.65 != 0, ]
 
 # Average PCB11 per sample site
-pcbi.ave <- aggregate(PCB44.47.65 ~ SiteID + Latitude + Longitude,
-                      data = pcbi, mean)
+pcb.44.ave <- aggregate(PCB44.47.65 ~ SiteID + Latitude + Longitude,
+                      data = pcb44, mean)
 
 # Plot
-mapPCBi <- ggplot() +
+mapPCB44 <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
-               color = "black", fill = "lightblue") +
-  coord_fixed(1.3) +
-  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+               color = "black", fill = NA) +
   geom_path(data = states, aes(x = long, y = lat, group = group),
-            colour = "white") +
-  geom_polygon(color = "black", fill = NA) +
-  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
-                                  size = PCB44.47.65), alpha = 1, color  = "black",
-             shape = 21, fill = "white", stroke = 0.75) +
-  scale_size_area(breaks = c(1000, 10*1000, 25*1000, 50*1000,
-                             100*1000, 150*1000), labels = comma,
-                  name = expression(bold(atop("PCBs 44+47+65 (pg/L)",
-                                              paste("(SiteID mean)")))),
-                  max_size = 10) +
-  guides(size = guide_legend(label.hjust = 0.2)) +
-  theme(legend.position = c(1.15, 0.69),
-        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+            colour = "black") +
+  geom_point(data = pcb.44.ave, aes(x = Longitude, y = Latitude,
+                                    fill = PCB44.47.65), alpha = 1,
+             color  = "black",
+             shape = 21, size = 2, stroke = 0.75) +
+  scale_fill_viridis_c(
+    name = expression(bold("PCBs 44+47+65 (pg/L)")),
+    limits = c(1, 200000),
+    trans = "log10",
+    labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(1.15, 0.55),  # Adjust the legend position
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18)  # Adjust the size of legend title
+  )
 
-print(mapPCBi)  # Print the plot
+print(mapPCB44)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB44.png", plot = mapPCBi,
-       width = 14, height = 4, dpi = 300)
+ggsave("Output/Maps/Global/mapPCB44.pdf", plot = mapPCB44,
+       width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB67
-pcbi <- wdc[wdc$PCB67 != 0, ]
+pcb67 <- wdc[wdc$PCB67 != 0, ]
 
 # Average PCB67 per sample site
-pcbi.ave <- aggregate(PCB67 ~ SiteID + Latitude + Longitude,
-                      data = pcbi, mean)
-
-# Determine the breaks based on data values
-breaks.s <- pretty_breaks(n = 6)(range(pcbi.ave$PCB67))
+pcb.67.ave <- aggregate(PCB67 ~ SiteID + Latitude + Longitude,
+                      data = pcb67, mean)
 
 # Plot
-mapPCBi <- ggplot() +
+mapPCB67 <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
-               color = "black", fill = "lightblue") +
-  coord_fixed(1.3) +
-  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
+               color = "black", fill = NA) +
   geom_path(data = states, aes(x = long, y = lat, group = group),
-            colour = "white") +
-  geom_polygon(color = "black", fill = NA) +
-  geom_point(data = pcbi.ave, aes(x = Longitude, y = Latitude,
-                                  size = PCB67), alpha = 1, color  = "black",
-             shape = 21, fill = "white", stroke = 0.75) +
-  scale_size_area(breaks = c(10, 50, 100, 200, 300, 400),
-                  name = expression(bold(atop("PCB 67 (pg/L)",
-                                              paste("(SiteID mean)")))),
-                  max_size = 10) +
-  guides(size = guide_legend(label.hjust = 0.2)) +
-  theme(legend.position = c(1.1, 0.67),
-        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+            colour = "black") +
+  geom_point(data = pcb.67.ave, aes(x = Longitude, y = Latitude,
+                                    fill = PCB67), alpha = 1,
+             color  = "black",
+             shape = 21, size = 2, stroke = 0.75) +
+  scale_fill_viridis_c(
+    name = expression(bold("PCB 67 (pg/L)")),
+    limits = c(1, 500),
+    trans = "log10",
+    labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(1.1, 0.55),  # Adjust the legend position
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18)  # Adjust the size of legend title
+  )
 
-print(mapPCBi)  # Print the plot
+print(mapPCB67)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB67.png", plot = mapPCBi,
-       width = 14, height = 4, dpi = 300)
+ggsave("Output/Maps/Global/mapPCB67.pdf", plot = mapPCB67,
+       width = 14, height = 4)
+
+# Filter out rows with 0 values for PCB67
+pcb182 <- wdc[wdc$PCB182.187 != 0, ]
+
+# Average PCB67 per sample site
+pcb.182.ave <- aggregate(PCB182.187 ~ SiteID + Latitude + Longitude,
+                        data = pcb182, mean)
+
+# Plot
+mapPCB182 <- ggplot() +
+  geom_polygon(data = us, aes(x = long, y = lat, group = group),
+               color = "black", fill = NA) +
+  geom_path(data = states, aes(x = long, y = lat, group = group),
+            colour = "black") +
+  geom_point(data = pcb.182.ave, aes(x = Longitude, y = Latitude,
+                                    fill = PCB182.187), alpha = 1,
+             color  = "black",
+             shape = 21, size = 2, stroke = 0.75) +
+  scale_fill_viridis_c(
+    name = expression(bold("PCBs 182+187")),
+    limits = c(0.2, 20000),
+    trans = "log10",
+    labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(1.1, 0.55),  # Adjust the legend position
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18)  # Adjust the size of legend title
+  )
+
+print(mapPCB182)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/mapPCB182.pdf", plot = mapPCB182,
+       width = 14, height = 4)
 
 # Specific locations ------------------------------------------------------
 # Portland Harbor ---------------------------------------------------------
