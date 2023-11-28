@@ -167,6 +167,7 @@ ggplot(plot_data.1, aes(x = Actual, y = Predicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15)
 
+# Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
 compare_df <- data.frame(observed = test_data$tPCB,
                          predicted = 10^predictions.1)
@@ -175,7 +176,7 @@ compare_df <- data.frame(observed = test_data$tPCB,
 compare_df$factor2 <- compare_df$observed/compare_df$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df) * 100
+factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df)*100
 
 
 
