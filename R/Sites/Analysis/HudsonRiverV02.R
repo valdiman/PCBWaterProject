@@ -208,6 +208,17 @@ ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+compare_df.1 <- data.frame(observed = test_data$tPCB,
+                         predicted = 10^predictions.1)
+
+# Estimate a factor of 2 between observations and predictions
+compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+
 # Fit the Model (2)
 rf_model.2 <- randomForest(log10(tPCB) ~ time + site.code + flow.2
                          + temp + Distance_to_source2,
@@ -252,6 +263,17 @@ ggplot(plot_data.2, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
+
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+compare_df.2 <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions.2)
+
+# Estimate a factor of 2 between observations and predictions
+compare_df.2$factor2 <- compare_df.2$observed/compare_df.2$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage.2 <- nrow(compare_df.2[compare_df.2$factor2 > 0.5 & compare_df.2$factor2 < 2, ])/nrow(compare_df.2)*100
 
 # Fit the Model (3)
 # Train-Test Split
@@ -309,6 +331,17 @@ ggplot(plot_data.3, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+compare_df.3 <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions.3)
+
+# Estimate a factor of 2 between observations and predictions
+compare_df.3$factor2 <- compare_df.3$observed/compare_df.3$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage.3 <- nrow(compare_df.3[compare_df.3$factor2 > 0.5 & compare_df.3$factor2 < 2, ])/nrow(compare_df.3)*100
+
 # Fit the Model (4)
 # Train-Test Split
 set.seed(123)
@@ -365,6 +398,18 @@ ggplot(plot_data.4, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+compare_df.4 <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions.4)
+
+# Estimate a factor of 2 between observations and predictions
+compare_df.4$factor2 <- compare_df.4$observed/compare_df.4$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage.4 <- nrow(compare_df.4[compare_df.4$factor2 > 0.5 & compare_df.4$factor2 < 2, ])/nrow(compare_df.4)*100
+
+
 # Fit the Model (5)
 rf_model.5 <- randomForest(log10(tPCB) ~ time + site.code + flow.3 +
                              temp + Distance_to_source1,
@@ -410,3 +455,13 @@ ggplot(plot_data.5, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+compare_df.5 <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions.5)
+
+# Estimate a factor of 2 between observations and predictions
+compare_df.5$factor2 <- compare_df.5$observed/compare_df.5$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage.5 <- nrow(compare_df.5[compare_df.5$factor2 > 0.5 & compare_df.5$factor2 < 2, ])/nrow(compare_df.5)*100
