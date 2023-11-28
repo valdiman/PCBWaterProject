@@ -1,5 +1,6 @@
 ## Water PCB concentrations data analysis per site
 ## Hudson River
+## Model 4 shows better performance
 
 # Install packages
 install.packages("randomForest")
@@ -209,7 +210,7 @@ ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 
 # Fit the Model (2)
 rf_model.2 <- randomForest(log10(tPCB) ~ time + site.code + flow.2
-                         + temp + Distance_to_source1,
+                         + temp + Distance_to_source2,
                          data = train_data)
 
 # Make Predictions
@@ -408,6 +409,4 @@ ggplot(plot_data.5, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
-
-
 
