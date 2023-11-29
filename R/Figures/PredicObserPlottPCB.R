@@ -25,14 +25,14 @@ install.packages("RColorBrewer")
   # Fox River data
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredtPCB.csv")
   fox <- fox[, -1]
-  # New Bedford Harbor data
+  # Kalamazoo River data
   kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooObsPredtPCB.csv")
   kal <- kal[, -1]
   # Lake Washington
   lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredtPCB.csv")
   lwa <- lwa[, -1]
   # New Bedford Harbor data
-  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredtPCB.csv")
+  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredtPCBV02.csv")
   nbh <- nbh[, -1]
   # Portland Harbord data
   por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborObsPredtPCB.csv")
@@ -85,6 +85,6 @@ CombinePredObsPlot <- ggplot(combined_data,
 print(CombinePredObsPlot)
 
 # Save plot
-ggsave("Output/Figures/Sites/CombineObsPredtPCB.png",
+ggsave("Output/Figures/Sites/CombineObsPredtPCBV02.png",
        plot = CombinePredObsPlot, width = 18, height = 8, dpi = 500)
 
