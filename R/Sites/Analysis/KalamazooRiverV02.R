@@ -1,6 +1,8 @@
 ## Water PCB concentrations data analysis per site
 ## Kalamazoo River
+## Source: Allied Paper, Inc. Recycling of carbonless copy paper
 ## Aroclors 1242, 1254 and 1260, no congener analysis
+## Only Linear Mixed-Effects Model (lme), using quadratic for flow
 
 # Install packages
 install.packages("tidyverse")
