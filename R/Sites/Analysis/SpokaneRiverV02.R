@@ -1,5 +1,6 @@
 ## Water PCB concentrations data analysis per site
 ## Spokane River
+## Only Linear Mixed-Effects Model (lme), using quadratic for flow
 
 # Install packages
 install.packages("tidyverse")
