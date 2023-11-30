@@ -240,6 +240,7 @@ ggplot(fox.tpcb.1, aes(x = factor(SiteID), y = tPCB)) +
 
 # Include USGS flow and temperature data --------------------------------------------------
 {
+  # https://maps.waterdata.usgs.gov/mapper/index.html
   # Include flow data from USGS station Fox River
   sitefoxN1 <- "04084445" # flow @ OX RIVER AT APPLETON, WI
   sitefoxN2 <- "040851385" # water temperature @ FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI
