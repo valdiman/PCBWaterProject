@@ -158,15 +158,6 @@ ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
-ggplot(plot_data.1, aes(x = Actual, y = Predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  xlab("Observed concentration PCB (pg/L)") +
-  ylab("Predicted concentration PCB (pg/L)") +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15)
-
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
 compare_df <- data.frame(observed = test_data$tPCB,
