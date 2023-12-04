@@ -68,32 +68,28 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
                           "tPCB", "time", "site.code", "season")
 }
 
-# Source locations
-source1 <- c(Latitude =  42.456479, Longitude = -73.217587)  # GE Pittsfield
-
-# Create sf points
-source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"]))
-
-# Initialize a list to store point geometries
-point_list <- list()
-
-# Loop to create point geometries
-for (i in 1:nrow(hou.tpcb)) {
-  point <- st_point(c(hou.tpcb[i, "Latitude"], hou.tpcb[i, "Longitude"])) # check this
-  point_list[[i]] <- point
+# Source locations + distance to samples
+{
+  source1 <- c(Latitude =  42.456479, Longitude = -73.217587)  # GE Pittsfield
+  # Create sf points
+  source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"])) #Euclidean (straight-line) distance
+  # Initialize a list to store point geometries
+  point_list <- list()
+  # Loop to create point geometries
+  for (i in 1:nrow(hou.tpcb)) {
+    point <- st_point(c(hou.tpcb[i, "Latitude"], hou.tpcb[i, "Longitude"])) # check this
+    point_list[[i]] <- point
+  }
+  # Create an sf object from the list of point geometries
+  hou.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
+  # Ensure that both objects have the same CRS
+  st_crs(hou.tpcb_sf) <- st_crs(source1_sf)
+  # Calculate distances
+  distances1 <- st_distance(hou.tpcb_sf, source1_sf) * 100
+  # Add distances to hud.tpcb data.frame
+  hou.tpcb$Distance_to_source1 <- distances1
 }
 
-# Create an sf object from the list of point geometries
-hou.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-
-# Ensure that both objects have the same CRS
-st_crs(hou.tpcb_sf) <- st_crs(source1_sf)
-
-# Calculate distances
-distances1 <- st_distance(hou.tpcb_sf, source1_sf) * 100
-
-# Add distances to hud.tpcb data.frame
-hou.tpcb$Distance_to_source1 <- distances1
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Housatonic River
@@ -131,9 +127,38 @@ predictions.1 <- predict(rf_model.1, newdata = test_data)
 
 # Evaluate Model Performance
 mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
-rmse.1 <- sqrt(mse.1)
-mae.1 <- mean(abs(predictions.1 - log10(test_data$tPCB)))
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+rmse.1 <- sqrt(mse.1) # Report
+r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)) # Report
+
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+compare_df.1 <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions.1)
+
+# Estimate a factor of 2 between observations and predictions
+compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+
+# Create the data frame directly
+performance_df <- data.frame(
+  Heading = c("RMSE", "R2", "Factor2"),
+  Value = c(rmse.1, r_squared.1, factor2_percentage.1)
+)
+
+# Print the original data frame
+print(performance_df)
+
+# Remove unnecessary columns
+performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
+
+# Print the modified data frame
+print(performance_df)
+
+# Export results
+write.csv(performance_df,
+          file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFPerformancetPCB.csv")
 
 # Feature Importance
 importance.1 <- importance(rf_model.1)
@@ -147,8 +172,12 @@ plot_data.1 <- data.frame(
   Predicted = predictions.1
 )
 
+# Export results
+write.csv(plot_data.1,
+          file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFtPCB.csv")
+
 # Create the scatter plot using ggplot2
-ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
+plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10^3, 10^7),
                 breaks = trans_breaks("log10", function(x) 10^x),
@@ -167,16 +196,12 @@ ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
-# Estimate a factor of 2 between observations and predictions
-# Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+# Print the plot
+print(plotRF)
 
-# Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
-
-# Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+# Save plot in folder
+ggsave("Output/Plots/Sites/ObsPred/HousatonicRiver/HousatonicRiverRFV01.png",
+       plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Fit the Model (2)
 # Train-Test Split
@@ -308,21 +333,8 @@ compare_df.3$factor2 <- compare_df.3$observed/compare_df.3$predicted
 # Calculate the percentage of observations within the factor of 2
 factor2_percentage.3 <- nrow(compare_df.3[compare_df.3$factor2 > 0.5 & compare_df.3$factor2 < 2, ])/nrow(compare_df.3)*100
 
-# Convert the randomForest object to a data.frame
-rf_data <- as.data.frame(train_data)
-
-# Create a partial dependence plot for 'time'
-pdp_time <- partial(rf_data, rf_model.3, pred.var = "time", grid.resolution = 100)
-
-# Plot the partial dependence plot
-plot(pdp_time)
-
-
-
 # To predict future data --------------------------------------------------
 # Assuming new_data is your new dataset without the tPCB variable
 predictions <- predict(rf_model.3, newdata = new_data)
-
-
 
 
