@@ -79,7 +79,7 @@ point_list <- list()
 
 # Loop to create point geometries
 for (i in 1:nrow(hou.tpcb)) {
-  point <- st_point(c(hou.tpcb[i, "Latitude"], hou.tpcb[i, "Longitude"]))
+  point <- st_point(c(hou.tpcb[i, "Latitude"], hou.tpcb[i, "Longitude"])) # check this
   point_list[[i]] <- point
 }
 
