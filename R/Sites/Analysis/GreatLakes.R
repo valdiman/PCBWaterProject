@@ -193,6 +193,59 @@ summary(lme.grl.tpcb)
 # Shapiro test
 shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work
 
+# Read water temperature --------------------------------------------------
+# Only Lake Michigan
+wt93 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1993.csv")
+wt94 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1994.csv")
+wt95 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1995.csv")
+
+# Stack water data
+wt <- rbind(wt93, wt94, wt95)
+
+# Convert date columns to Date format
+wt$Date <- as.Date(wt$Date)
+
+# Add water temperature to grl.tpcb
+grl.tpcb$temp <- wt$WTMP_K[match(grl.tpcb$date, wt$Date)]
+
+# Remove samples with temp = NA
+grl.tpcb.1 <- na.omit(grl.tpcb)
+
+# Only samples from lake Michigan
+grl.tpcb.1 <- subset(grl.tpcb.1, grepl("LMM", SiteID))
+
+# Using grl.tmp.1
+# Get variables
+tpcb <- grl.tpcb.1$tPCB
+time <- grl.tpcb.1$time
+site <- grl.tpcb.1$site.code
+season <- grl.tpcb.1$season
+tp <- grl.tpcb.1$temp
+# tPCB vs. time + season + flow + temp + site
+lme.grl.tpcb <- lmer(log10(tpcb) ~ 1 + time + tp + season + (1|site),
+                     REML = FALSE,
+                     control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                           check.nobs.vs.rankZ = "ignore",
+                                           check.nobs.vs.nRE="ignore"))
+
+# See results
+summary(lme.grl.tpcb)
+# Look at residuals
+{
+  res.grl.tpcb <- resid(lme.grl.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/GreatLakesQ-QtPCB.pdf")
+  qqnorm(res.grl.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.grl.tpcb)
+  dev.off()
+}
+# Shapiro test
+shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work
+
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
 {
