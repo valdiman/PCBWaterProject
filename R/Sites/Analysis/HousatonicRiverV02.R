@@ -142,13 +142,9 @@ compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
 factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
 
 # Create the data frame directly
-performance_df <- data.frame(
-  Heading = c("RMSE", "R2", "Factor2"),
-  Value = c(rmse.1, r_squared.1, factor2_percentage.1)
-)
-
-# Print the original data frame
-print(performance_df)
+performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
+                             Value = c(rmse.1, r_squared.1,
+                                       factor2_percentage.1))
 
 # Remove unnecessary columns
 performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
