@@ -58,10 +58,10 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
   # Create data frame
   fox.tpcb <- cbind(factor(fox$SiteID), fox$SampleDate,
                     fox$Latitude, fox$Longitude, as.matrix(fox$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(fox.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Remove site -------------------------------------------------------------
@@ -143,15 +143,16 @@ barplot(importance.1[, 1], names.arg = rownames(importance.1),
 
 # Create a data frame for plotting
 plot_data.1 <- data.frame(
+  Location = rep("Fox River", nrow(test_data)),
   Actual = log10(test_data$tPCB),
   Predicted = predictions.1
 )
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFtPCB.csv")
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredtPCB.csv")
 
-# Create the scatter plot using ggplot2
+# Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10, 10^5),
@@ -229,10 +230,7 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCBV01.png",
                                                       temp$Date)]
   # Remove samples with temperature = NA
   fox.pcb.2 <- fox.pcb.1[!is.na(fox.pcb.1$temp), ]
-  # Remove metadata
-  fox.pcb.3 <- subset(fox.pcb.2, select = -c(SiteID:temp))
 }
-
 
 # Set the seed for reproducibility
 set.seed(123)
@@ -257,7 +255,8 @@ all_results <- data.frame()
 # Iterate over each numeric column
 for (i in seq_along(pcb_numeric_columns)) {
   # Combine numeric and character data
-  combined_data <- cbind(fox.pcb.2[, pcb_numeric_columns[i], drop = FALSE], fox.pcb.2[, char_columns])
+  combined_data <- cbind(fox.pcb.2[, pcb_numeric_columns[i],
+                                   drop = FALSE], fox.pcb.2[, char_columns])
   
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
@@ -297,6 +296,7 @@ for (i in seq_along(pcb_numeric_columns)) {
   
   # Create a data frame for each column's results
   col_results <- data.frame(
+    Location = rep("Fox River", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
     Predicted = predictions
@@ -325,8 +325,8 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   scale_x_log10(limits = c(0.01, 10^4),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
   geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
