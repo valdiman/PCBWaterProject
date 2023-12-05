@@ -53,8 +53,6 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
   hou$SampleDate <- as.Date(hou$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(hou$SampleDate) - min(as.Date(hou$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- hou$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hou$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -62,10 +60,10 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
   # Create data frame
   hou.tpcb <- cbind(factor(hou$SiteID), hou$SampleDate,
                     hou$Latitude, hou$Longitude, as.matrix(hou$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(hou.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Source locations + distance to samples
@@ -119,7 +117,7 @@ train_data <- hou.tpcb[train_indices, ]
 test_data <- hou.tpcb[-train_indices, ]
 
 # Fit the Model (1)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + season + flow.1 + flow.2 +
+rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.1 + flow.2 +
                              Distance_to_source1, data = train_data)
 
 # Make Predictions
@@ -164,13 +162,14 @@ barplot(importance.1[, 1], names.arg = rownames(importance.1),
 
 # Create a data frame for plotting
 plot_data.1 <- data.frame(
+  Location = rep("Housatonic River", nrow(test_data)),
   Actual = log10(test_data$tPCB),
   Predicted = predictions.1
 )
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFtPCB.csv")
+          file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFObsPredtPCB.csv")
 
 # Create the scatter plot using ggplot2
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
