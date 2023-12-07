@@ -42,8 +42,11 @@ install.packages("sfheaders")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
-# Select LMMB and Great Lakes data ---------------------------------------------------
-grl <- wdc[str_detect(wdc$LocationName, 'Lake Michigan Mass Balance|Great Lakes'), ]
+# Select LMMB data ---------------------------------------------------
+grl <- wdc[str_detect(wdc$LocationName, 'Lake Michigan Mass Balance'), ]
+
+# Just get Lake Michigan data, remove data from tributaries
+grl <- grl[!grepl("^Tributary", grl$SiteName), ]
 
 # Data preparation --------------------------------------------------------
 {
@@ -66,22 +69,21 @@ grl <- wdc[str_detect(wdc$LocationName, 'Lake Michigan Mass Balance|Great Lakes'
                           "tPCB", "time", "site.code", "season")
 }
 
-# Read water temperature
-wt93 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1993.csv")
-wt94 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1994.csv")
-wt95 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1995.csv")
-
-# Stack water data
-wt <- rbind(wt93, wt94, wt95)
-
-# Convert date columns to Date format
-wt$Date <- as.Date(wt$Date)
-
-# Add water temperature to grl.tpcb
-grl.tpcb$temp <- wt$WTMP_K[match(grl.tpcb$date, wt$Date)]
-
-# Remove samples with temp = NA
-grl.tpcb <- na.omit(grl.tpcb)
+# Add water temperature
+{
+  # Read water temperature
+  wt93 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1993.csv")
+  wt94 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1994.csv")
+  wt95 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1995.csv")
+  # Stack water data
+  wt <- rbind(wt93, wt94, wt95)
+  # Convert date columns to Date format
+  wt$Date <- as.Date(wt$Date)
+  # Add water temperature to grl.tpcb
+  grl.tpcb$temp <- wt$WTMP_K[match(grl.tpcb$date, wt$Date)]
+  # Remove samples with temp = NA
+  grl.tpcb <- na.omit(grl.tpcb)
+}
 
 # Random Forest Model -----------------------------------------------------
 # Train-Test Split
@@ -171,6 +173,7 @@ print(plotRF)
 # Save plot in folder
 ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFtPCBV01.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
+# Random Forest doesn't work for tPCB!
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -271,17 +274,29 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Store the results in the matrix
   rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
   
-  # Create a data frame for each column's results
+  # Create a data frame for each column's results, including R_squared
   col_results <- data.frame(
-    Location = rep("Great Lakes", length(test_data[, 1])),
+    Location = rep("Greate Lakes", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
-    Predicted = predictions
+    Predicted = predictions,
+    R_squared = r_squared  # Add R_squared column
   )
   
   # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
+
+# Remove congeners w/R2 < 0
+rf_results <- rf_results %>%
+  filter(R_squared >= 0)
+
+# Remove rows in all_results where R_squared < 0
+all_results <- all_results %>%
+  filter(R_squared >= 0)
+
+# Remove the "R_squared" column from all_results
+all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
