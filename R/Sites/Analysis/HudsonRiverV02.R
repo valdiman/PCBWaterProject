@@ -1,6 +1,5 @@
 ## Water PCB concentrations data analysis per site
 ## Hudson River
-## Model 4 shows better performance
 
 # Install packages
 install.packages("randomForest")
@@ -55,8 +54,6 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   hud$SampleDate <- as.Date(hud$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(hud$SampleDate) - min(as.Date(hud$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -64,43 +61,39 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   # Create data frame
   hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate,
                     hud$Latitude, hud$Longitude, as.matrix(hud$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(hud.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
-# Source locations
-source1 <- c(Latitude = 43.295369, Longitude = -73.590631)  # GE Hudson Falls Plant
-source2 <- c(Latitude = 43.28639, Longitude = -73.588380)  # GE Fort Edward Plant
-
-# Create sf points
-source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"]))
-source2_sf <- st_point(c(source2["Latitude"], source2["Longitude"]))
-
-# Initialize a list to store point geometries
-point_list <- list()
-
-# Loop to create point geometries
-for (i in 1:nrow(hud.tpcb)) {
-  point <- st_point(c(hud.tpcb[i, "Latitude"], hud.tpcb[i, "Longitude"]))
-  point_list[[i]] <- point
+# Include distance to sources
+{
+  # Source locations
+  source1 <- c(Latitude = 43.295369, Longitude = -73.590631)  # GE Hudson Falls Plant
+  source2 <- c(Latitude = 43.28639, Longitude = -73.588380)  # GE Fort Edward Plant
+  # Create sf points
+  source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"]))
+  source2_sf <- st_point(c(source2["Latitude"], source2["Longitude"]))
+  # Initialize a list to store point geometries
+  point_list <- list()
+  # Loop to create point geometries
+  for (i in 1:nrow(hud.tpcb)) {
+    point <- st_point(c(hud.tpcb[i, "Latitude"], hud.tpcb[i, "Longitude"]))
+    point_list[[i]] <- point
+  }
+  # Create an sf object from the list of point geometries
+  hud.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
+  # Ensure that both objects have the same CRS
+  st_crs(hud.tpcb_sf) <- st_crs(source1_sf)
+  st_crs(hud.tpcb_sf) <- st_crs(source2_sf)
+  # Calculate distances
+  distances1 <- st_distance(hud.tpcb_sf, source1_sf) * 100
+  distances2 <- st_distance(hud.tpcb_sf, source2_sf) * 100
+  # Add distances to hud.tpcb data.frame
+  hud.tpcb$Distance_to_source1 <- distances1
+  hud.tpcb$Distance_to_source2 <- distances2
 }
-
-# Create an sf object from the list of point geometries
-hud.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-
-# Ensure that both objects have the same CRS
-st_crs(hud.tpcb_sf) <- st_crs(source1_sf)
-st_crs(hud.tpcb_sf) <- st_crs(source2_sf)
-
-# Calculate distances
-distances1 <- st_distance(hud.tpcb_sf, source1_sf) * 100
-distances2 <- st_distance(hud.tpcb_sf, source2_sf) * 100
-
-# Add distances to hud.tpcb data.frame
-hud.tpcb$Distance_to_source1 <- distances1
-hud.tpcb$Distance_to_source2 <- distances2
 
 # Remove site -------------------------------------------------------------
 ## Remove site Bakers Falls. Upstream source
@@ -158,7 +151,7 @@ train_data <- hud.tpcb.2[train_indices, ]
 test_data <- hud.tpcb.2[-train_indices, ]
 
 # Fit the Model (4)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + season +
+rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season +
                              flow.3 + temp + Distance_to_source1,
                            data = train_data)
 
@@ -267,14 +260,14 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCBV01.png",
   # Change name time.day to time
   colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
+  #site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to hud.pcb.1
   hud.pcb.1 <- cbind(hud.pcb.1, SiteID, Latitude, Longitude, SampleDate,
-                     data.frame(time.day), site.numb, season.s)
+                     data.frame(time.day), season.s)
   # Initialize a list to store point geometries
   point_list <- list()
   # Loop to create point geometries
@@ -318,7 +311,7 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCBV01.png",
   # Remove samples with flow.3 = NA
   hud.pcb.2 <- hud.pcb.1[!is.na(hud.pcb.1$flow.3), ]
   # Remove metadata not use in the random forest
-  hud.pcb.2 <- hud.pcb.2[, !(names(hud.pcb.2) %in% c("SampleDate", "SiteID",
+  hud.pcb.2 <- hud.pcb.2[, !(names(hud.pcb.2) %in% c("SampleDate",
                                                       "Latitude", "Longitude"))]
 }
 
