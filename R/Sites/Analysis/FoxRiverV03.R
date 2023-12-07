@@ -44,7 +44,6 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Fox River data ---------------------------------------------------
 fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
-# Lake Winnebago is a background site.
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -66,7 +65,7 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
 
 # Remove site -------------------------------------------------------------
 # Remove site Lake Winnebago (background site)
-fox.tpcb.1 <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
+fox.tpcb <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
 
 # Include USGS flow and temperature data --------------------------------------------------
 {
@@ -78,24 +77,24 @@ fox.tpcb.1 <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
   paramtemp <- "00010" # water temperature, C
   # Retrieve USGS data
   flow <- readNWISdv(sitefoxN1, paramflow,
-                     min(fox.tpcb.1$date), max(fox.tpcb.1$date))
+                     min(fox.tpcb$date), max(fox.tpcb$date))
   temp <- readNWISdv(sitefoxN2, paramtemp,
-                     min(fox.tpcb.1$date), max(fox.tpcb.1$date))
+                     min(fox.tpcb$date), max(fox.tpcb$date))
   # Add USGS data to fox.tpcb.2, matching dates, conversion to m3/s
-  fox.tpcb.1$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb.1$date,
+  fox.tpcb$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb$date,
                                                                          flow$Date)]
-  fox.tpcb.1$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb.1$date,
+  fox.tpcb$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb$date,
                                                        temp$Date)]
   # Remove samples with temp = NA
-  fox.tpcb.1 <- na.omit(fox.tpcb.1)
+  fox.tpcb <- na.omit(fox.tpcb)
 }
 
 # Random Forest Model -----------------------------------------------------
 # Train-Test Split
 set.seed(123)
-train_indices <- sample(1:nrow(fox.tpcb.1), 0.8 * nrow(fox.tpcb.1))
-train_data <- fox.tpcb.1[train_indices, ]
-test_data <- fox.tpcb.1[-train_indices, ]
+train_indices <- sample(1:nrow(fox.tpcb), 0.8 * nrow(fox.tpcb))
+train_data <- fox.tpcb[train_indices, ]
+test_data <- fox.tpcb[-train_indices, ]
 
 # Fit the Model (1)
 rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow
@@ -142,11 +141,9 @@ barplot(importance.1[, 1], names.arg = rownames(importance.1),
         main = "Feature Importance", las = 2, cex.names = 0.7)
 
 # Create a data frame for plotting
-plot_data.1 <- data.frame(
-  Location = rep("Fox River", nrow(test_data)),
-  Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
-)
+plot_data.1 <- data.frame(Location = rep("Fox River", nrow(test_data)),
+                          Actual = log10(test_data$tPCB),
+                          Predicted = predictions.1)
 
 # Export results
 write.csv(plot_data.1,
