@@ -1,0 +1,185 @@
+## Water PCB concentrations data analysis per site
+## Anacostia River
+## data only tPCB
+## Random forest model
+
+# Install packages
+install.packages("randomForest")
+install.packages("tidyverse")
+install.packages("ggplot2")
+install.packages("robustbase")
+install.packages("dplyr")
+install.packages("tibble")
+install.packages("Matrix")
+install.packages("zoo")
+install.packages("dataRetrieval")
+install.packages("reshape")
+install.packages("tidyr")
+install.packages('patchwork')
+install.packages("scales")
+install.packages("sf")
+install.packages("units")
+install.packages("sfheaders")
+
+# Load libraries
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
+  library(tidyr) # function gather
+  library(patchwork) # combine plots
+  library(sf) # Create file to be used in Google Earth
+  library(units)
+  library(randomForest)
+}
+
+# Read data ---------------------------------------------------------------
+# Data in pg/L
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
+
+# Select anrsatonic River data ---------------------------------------------------
+anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
+
+# Data preparation --------------------------------------------------------
+{
+  # Change date format
+  anr$SampleDate <- as.Date(anr$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(anr$SampleDate) - min(as.Date(anr$SampleDate)))
+  # Create individual code for each site sampled
+  #site.numb <- anr$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(anr$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  anr.tpcb <- cbind(factor(anr$SiteID), anr$SampleDate, as.matrix(anr$tPCB),
+                    data.frame(time.day), season.s)
+  # Add column names
+  colnames(anr.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
+}
+
+# Include USGS flow and temperature data --------------------------------------------------
+{
+  # https://maps.waterdata.usgs.gov/mapper/index.html
+  # Include flow data from USGS station Anacostia River
+  siteanrN1 <- "01649500" # flow @ NORTHEAST BRANCH ANACOSTIA RIVER AT RIVERDALE, MD
+  siteanrN2 <- "01651000" # flow @ NORTHWEST BR ANACOSTIA RIVER NR HYATTSVILLE, MD
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  paramtemp <- "00010" # water temperature, C
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(siteanrN1, paramflow,
+                     min(anr.tpcb$date), max(anr.tpcb$date))
+  flow.2 <- readNWISdv(siteanrN2, paramflow,
+                       min(anr.tpcb$date), max(anr.tpcb$date))
+  temp.1 <- readNWISdv(siteanrN1, paramtemp,
+                     min(anr.tpcb$date), max(anr.tpcb$date))
+  # Dont use temp.2
+  # temp.2 <- readNWISdv(siteanrN2, paramtemp,
+  #                   min(anr.tpcb$date), max(anr.tpcb$date))
+  # Add USGS data to anr.tpcb.2, matching dates, conversion to m3/s
+  anr.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(anr.tpcb$date, flow.1$Date)]
+  anr.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(anr.tpcb$date, flow.2$Date)]
+  anr.tpcb$temp.1 <- 273.15 + temp.1$X_00010_00003[match(anr.tpcb$date,
+                                                         temp.1$Date)]
+  #anr.tpcb$temp.2 <- 273.15 + temp.2$X_Center.of.flow_00010_00003[match(anr.tpcb$date,
+  #                                                                    temp.2$Date)]
+}
+
+# Random Forest Model -----------------------------------------------------
+# Using all the data, spo.tpcb
+# Train-Test Split
+set.seed(123)
+train_indices <- sample(1:nrow(anr.tpcb), 0.8 * nrow(anr.tpcb))
+train_data <- anr.tpcb[train_indices, ]
+test_data <- anr.tpcb[-train_indices, ]
+
+# Fit the Model. Flow.3
+rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.1 + flow.2 +
+                             temp.1,
+                           data = train_data)
+
+# Make Predictions
+predictions.1 <- predict(rf_model.1, newdata = test_data)
+
+# Evaluate Model Performance
+mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
+rmse.1 <- sqrt(mse.1)
+r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+compare_df.1 <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions.1)
+
+# Estimate a factor of 2 between observations and predictions
+compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+
+# Create the data frame directly
+performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
+                             Value = c(rmse.1, r_squared.1,
+                                       factor2_percentage.1))
+
+# Remove unnecessary columns
+performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
+
+# Print the modified data frame
+print(performance_df)
+
+# Export results
+write.csv(performance_df,
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFPerformancetPCB.csv")
+
+# Feature Importance
+importance.1 <- importance(rf_model.1)
+# Plot features
+barplot(importance.1[, 1], names.arg = rownames(importance.1),
+        main = "Feature Importance", las = 2, cex.names = 0.7)
+
+# Create a data frame for plotting
+plot_data.1 <- data.frame(
+  Location = rep("Anacostia River", nrow(test_data)),
+  Actual = log10(test_data$tPCB),
+  Predicted = predictions.1
+)
+
+# Export results
+write.csv(plot_data.1,
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCB.csv")
+
+# Create the scatter plot
+plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(1, 10^5),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(1, 10^5),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 2:1 line (factor of 2)
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl")
+
+# Print the plot
+print(plotRF)
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFtPCBV01.png",
+       plot = plotRF, width = 6, height = 5, dpi = 500)
