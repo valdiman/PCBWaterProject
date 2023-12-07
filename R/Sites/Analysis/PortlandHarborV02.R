@@ -1,5 +1,6 @@
 ## Water PCB concentrations data analysis per site
-# Portland Harbor
+## Portland Harbor
+## Using quadratic function for the flow
 
 # Install packages
 install.packages("tidyverse")
