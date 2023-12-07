@@ -14,51 +14,54 @@ install.packages("RColorBrewer")
 # Read generated data
 {
   # Anacostia River
-  anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPredtPCB.csv")
+  anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCB.csv")
   anr <- anr[, -1]
   # Bannister Federal Complex
-  bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredtPCB.csv")
-  bfc <- bfc[, -1]
+  #bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredtPCB.csv")
+  #bfc <- bfc[, -1]
   # Chesapeake Bay data
-  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv")
-  che <- che[, -1]
+  #che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv")
+  #che <- che[, -1]
   # Fox River data
-  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredtPCB.csv")
+  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredtPCB.csv")
   fox <- fox[, -1]
+  # Great Lakes
+  grl <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesRFObsPredtPCB.csv")
+  grl <- grl[, -1]
+  # Housatonic River
+  hou <- read.csv("Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFObsPredtPCB.csv")
+  hou <- hou[, -1]
+  # Hudson River
+  hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFObsPredtPCB.csv")
+  hud <- hud[, -1]
   # Kalamazoo River data
-  kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooObsPredtPCB.csv")
+  kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverRFObsPredtPCB.csv")
   kal <- kal[, -1]
   # Lake Washington
-  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredtPCB.csv")
-  lwa <- lwa[, -1]
+  #lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredtPCB.csv")
+  #lwa <- lwa[, -1]
   # New Bedford Harbor data
-  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredtPCBV02.csv")
+  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHRFObsPredtPCB.csv")
   nbh <- nbh[, -1]
+  # Passaic River
+  pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFObsPredtPCB.csv")
+  pas <- pas[, -1]
   # Portland Harbord data
-  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborObsPredtPCB.csv")
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredtPCB.csv")
   por <- por[, -1]
   # Richardson Hill Road Landfill
-  rhr <- read.csv("Output/Data/Sites/csv/Richardson/RichardsonObsPredtPCB.csv")
-  rhr <- rhr[, -1]
+  #rhr <- read.csv("Output/Data/Sites/csv/Richardson/RichardsonObsPredtPCB.csv")
+  #rhr <- rhr[, -1]
   # Spokane River data
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverObsPredtPCB.csv")
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCB.csv")
   spo <- spo[, -1]
   # Combine the data frames
-  combined_data <- rbind(anr, bfc, che, fox, kal, lwa, nbh, por, rhr, spo)
+  combined_data <- rbind(anr, fox, grl, hou, hud, kal, nbh, pas, por, spo)
 }
 
-# Fox River data
-fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredtPCB.csv")
-fox <- fox[, -1]
-
-hou <- read.csv("Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFObsPredtPCB.csv")
-hou <- hou[, -1]
-
-combined_data <- rbind(fox, hou)
-
 # Create a custom color palette with 10 different colors
-n_colors <- 2
-custom_palette <- colorRampPalette(brewer.pal(3, "Set1"))(n_colors)
+n_colors <- 10
+custom_palette <- colorRampPalette(brewer.pal(9, "Set1"))(n_colors)
 
 # Add a new column with the number of rows for each Location
 combined_data$Location <- paste0(combined_data$Location,
@@ -68,7 +71,7 @@ combined_data$Location <- paste0(combined_data$Location,
 
 # Plot prediction vs. observations, 1:1 line
 CombinePredObsPlot <- ggplot(combined_data,
-                             aes(x = Actual, y = Predicted, fill = Location)) +
+                             aes(x = 10^(Actual), y = 10^(Predicted), fill = Location)) +
   geom_point(shape = 21, size = 4, alpha = 0.5) +
   scale_y_log10(limits = c(1, 10^8), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -94,6 +97,6 @@ CombinePredObsPlot <- ggplot(combined_data,
 print(CombinePredObsPlot)
 
 # Save plot
-ggsave("Output/Figures/Sites/CombineObsPredtPCBV02.png",
+ggsave("Output/Figures/Sites/CombineRFObsPredtPCBV01.png",
        plot = CombinePredObsPlot, width = 18, height = 8, dpi = 500)
 
