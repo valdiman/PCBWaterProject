@@ -93,8 +93,8 @@ ANRTime <- ggplot(anr.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
-    breaks = c(1, 10, 100, 1000, 10000),  # Specify the desired breaks
-    labels = label_comma()(c(1, 10, 100, 1000, 10000))  # Specify the desired labels
+    breaks = c(1, 10, 100, 1000, 10000),
+    labels = label_comma()(c(1, 10, 100, 1000, 10000))
   ) +
   theme_classic() +
   ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
@@ -103,7 +103,8 @@ ANRTime <- ggplot(anr.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
     axis.title.y = element_text(face = "bold", size = 20),
     axis.text.x = element_text(size = 24, angle = 60, hjust = 1),
     axis.title.x = element_text(face = "bold", size = 17),
-    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+    plot.margin = unit(c(0, 0, 0, 0), "cm")  # Correct the usage of unit function
+  )
 
 # Pint plot
 print(ANRTime)
@@ -159,16 +160,47 @@ ggplot(anr.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   annotate("text", x = 15, y = 10^4.5, label = "Anacostia River",
            size = 3)
 
+# Include USGS flow and temperature data --------------------------------------------------
+{
+  # https://maps.waterdata.usgs.gov/mapper/index.html
+  # Include flow data from USGS station Anacostia River
+  siteanrN1 <- "01649500" # flow @ NORTHEAST BRANCH ANACOSTIA RIVER AT RIVERDALE, MD
+  siteanrN2 <- "01651000" # flow @ NORTHWEST BR ANACOSTIA RIVER NR HYATTSVILLE, MD
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  paramtemp <- "00010" # water temperature, C
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(siteanrN1, paramflow,
+                     min(anr.tpcb$date), max(anr.tpcb$date))
+  flow.2 <- readNWISdv(siteanrN2, paramflow,
+                       min(anr.tpcb$date), max(anr.tpcb$date))
+  temp.1 <- readNWISdv(siteanrN1, paramtemp,
+                     min(anr.tpcb$date), max(anr.tpcb$date))
+  # Dont use temp.2
+  # temp.2 <- readNWISdv(siteanrN2, paramtemp,
+  #                   min(anr.tpcb$date), max(anr.tpcb$date))
+  # Add USGS data to anr.tpcb.2, matching dates, conversion to m3/s
+  anr.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(anr.tpcb$date, flow.1$Date)]
+  anr.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(anr.tpcb$date, flow.2$Date)]
+  anr.tpcb$temp.1 <- 273.15 + temp.1$X_00010_00003[match(anr.tpcb$date,
+                                                         temp.1$Date)]
+  #anr.tpcb$temp.2 <- 273.15 + temp.2$X_Center.of.flow_00010_00003[match(anr.tpcb$date,
+  #                                                                    temp.2$Date)]
+}
+
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- anr.tpcb$tPCB
 time <- anr.tpcb$time
+flow.1 <- anr.tpcb$flow.1 # use this one
+# flow.2 <- anr.tpcb$flow.2
+temp <- anr.tpcb$temp.1
 site <- anr.tpcb$site.code
 season <- anr.tpcb$season
 
 # tPCB vs. time + flow + season + site
-lme.anr.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
+lme.anr.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow.1 + temp + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
@@ -190,32 +222,38 @@ summary(lme.anr.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.anr.tpcb)) # p-value = 0.04
+shapiro.test(resid(lme.anr.tpcb)) # p-value = 0.1738
 
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 21)
+  lme.tpcb <- matrix(nrow = 1, ncol = 27)
   lme.tpcb[1] <- fixef(lme.anr.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.anr.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.anr.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
   lme.tpcb[4] <- fixef(lme.anr.tpcb)[2] # time
   lme.tpcb[5] <- summary(lme.anr.tpcb)$coef[2,"Std. Error"] # time error
   lme.tpcb[6] <- summary(lme.anr.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.anr.tpcb)[3] # season 1
-  lme.tpcb[8] <- summary(lme.anr.tpcb)$coef[3,"Std. Error"] # season 1 error
-  lme.tpcb[9] <- summary(lme.anr.tpcb)$coef[3,"Pr(>|t|)"] # season 1 p-value
-  lme.tpcb[10] <- fixef(lme.anr.tpcb)[4] # season 2
-  lme.tpcb[11] <- summary(lme.anr.tpcb)$coef[4,"Std. Error"] # season 2 error
-  lme.tpcb[12] <- summary(lme.anr.tpcb)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[13] <- fixef(lme.anr.tpcb)[5] # season 3
-  lme.tpcb[14] <- summary(lme.anr.tpcb)$coef[5,"Std. Error"] # season 3 error
-  lme.tpcb[15] <- summary(lme.anr.tpcb)$coef[5,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[16] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[17] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[18] <- as.data.frame(VarCorr(lme.anr.tpcb))[1,'sdcor']
-  lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.anr.tpcb))[1, 'R2m']
-  lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.anr.tpcb))[1, 'R2c']
-  lme.tpcb[21] <- shapiro.test(resid(lme.anr.tpcb))$p.value
+  lme.tpcb[7] <- fixef(lme.anr.tpcb)[3] # flow
+  lme.tpcb[8] <- summary(lme.anr.tpcb)$coef[3,"Std. Error"] # flow error
+  lme.tpcb[9] <- summary(lme.anr.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.tpcb[10] <- fixef(lme.anr.tpcb)[4] # temperature
+  lme.tpcb[11] <- summary(lme.anr.tpcb)$coef[4,"Std. Error"] # temperature error
+  lme.tpcb[12] <- summary(lme.anr.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
+  lme.tpcb[13] <- fixef(lme.anr.tpcb)[5] # season 1
+  lme.tpcb[14] <- summary(lme.anr.tpcb)$coef[5,"Std. Error"] # season 1 error
+  lme.tpcb[15] <- summary(lme.anr.tpcb)$coef[5,"Pr(>|t|)"] # season 1 p-value
+  lme.tpcb[16] <- fixef(lme.anr.tpcb)[6] # season 2
+  lme.tpcb[17] <- summary(lme.anr.tpcb)$coef[6,"Std. Error"] # season 2 error
+  lme.tpcb[18] <- summary(lme.anr.tpcb)$coef[6,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[19] <- fixef(lme.anr.tpcb)[7] # season 3
+  lme.tpcb[20] <- summary(lme.anr.tpcb)$coef[7,"Std. Error"] # season 3 error
+  lme.tpcb[21] <- summary(lme.anr.tpcb)$coef[7,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[22] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[23] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[24] <- as.data.frame(VarCorr(lme.anr.tpcb))[1,'sdcor']
+  lme.tpcb[25] <- as.data.frame(r.squaredGLMM(lme.anr.tpcb))[1, 'R2m']
+  lme.tpcb[26] <- as.data.frame(r.squaredGLMM(lme.anr.tpcb))[1, 'R2c']
+  lme.tpcb[27] <- shapiro.test(resid(lme.anr.tpcb))$p.value
 }
 
 # Just 3 significant figures
@@ -223,6 +261,8 @@ lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 # Add column names
 colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Intercept.pv", "time", "time.error", "time.pv",
+                        "flow", "flow.error", "flow.pv",
+                        "temp", "temp.error", "temp.pv",
                         "season1", "season1.error", "season1.pv",
                         "season2", "season2.error", "season2.pv",
                         "season3", "season3.error", "season3.pv", "t05",
