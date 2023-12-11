@@ -48,6 +48,41 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
 # Dredging from 2009 to 2015
 # https://www.epa.gov/system/files/documents/2021-08/hudson_summer2021_floodplainrifs_factsheet_final.pdf
 
+# Add distance to source --------------------------------------------------
+{
+  # Define source coordinates
+  source1 <- c(Latitude = 43.295369, Longitude = -73.590631)  # GE Hudson Falls Plant
+  source2 <- c(Latitude = 43.28639, Longitude = -73.588380)  # GE Fort Edward Plant
+  # Create an sf point for the source
+  source1_sf <- st_sfc(st_point(c(source1["Longitude"], source1["Latitude"])))
+  source2_sf <- st_sfc(st_point(c(source2["Longitude"], source1["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(source1_sf) <- 4326
+  st_crs(source2_sf) <- 4326
+  # Transform source1_sf to UTM Zone 18N (EPSG:32618)
+  source1_sf_utm <- st_transform(source1_sf, 32618)
+  # Transform source2_sf to UTM Zone 18N (EPSG:32618)
+  source2_sf_utm <- st_transform(source2_sf, 32618)
+  # Convert the data frame to an sf object
+  sf_hud <- st_as_sf(hud, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_hud <- st_set_crs(sf_hud, 4326)
+  # Transform to UTM Zone 18N
+  sf_hud_utm <- st_transform(sf_hud, 32618)
+  # Calculate distances in meters from each location to source1
+  distances_meters1 <- st_distance(sf_hud_utm, source1_sf_utm)
+  # Convert distances to kilometers
+  distances_km1 <- units::set_units(distances_meters1, "km")
+  # Extract numeric values and assign to the DistanceToSource column
+  hud$DistanceToSource1 <- as.numeric(distances_km1[, 1])
+  # Calculate distances in meters from each location to source2
+  distances_meters2 <- st_distance(sf_hud_utm, source2_sf_utm)
+  # Convert distances to kilometers
+  distances_km2 <- units::set_units(distances_meters2, "km")
+  # Extract numeric values and assign to the DistanceToSource column
+  hud$DistanceToSource2 <- as.numeric(distances_km2[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -61,38 +96,12 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   # Create data frame
   hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate,
                     hud$Latitude, hud$Longitude, as.matrix(hud$tPCB),
-                    data.frame(time.day), season.s)
+                    data.frame(time.day), season.s, hud$DistanceToSource1,
+                    hud$DistanceToSource2)
   # Add column names
   colnames(hud.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
-}
-
-# Include distance to sources
-{
-  # Source locations
-  source1 <- c(Latitude = 43.295369, Longitude = -73.590631)  # GE Hudson Falls Plant
-  source2 <- c(Latitude = 43.28639, Longitude = -73.588380)  # GE Fort Edward Plant
-  # Create sf points
-  source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"]))
-  source2_sf <- st_point(c(source2["Latitude"], source2["Longitude"]))
-  # Initialize a list to store point geometries
-  point_list <- list()
-  # Loop to create point geometries
-  for (i in 1:nrow(hud.tpcb)) {
-    point <- st_point(c(hud.tpcb[i, "Latitude"], hud.tpcb[i, "Longitude"]))
-    point_list[[i]] <- point
-  }
-  # Create an sf object from the list of point geometries
-  hud.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-  # Ensure that both objects have the same CRS
-  st_crs(hud.tpcb_sf) <- st_crs(source1_sf)
-  st_crs(hud.tpcb_sf) <- st_crs(source2_sf)
-  # Calculate distances
-  distances1 <- st_distance(hud.tpcb_sf, source1_sf) * 100
-  distances2 <- st_distance(hud.tpcb_sf, source2_sf) * 100
-  # Add distances to hud.tpcb data.frame
-  hud.tpcb$Distance_to_source1 <- distances1
-  hud.tpcb$Distance_to_source2 <- distances2
+                          "tPCB", "time", "season", "DistanceSource1",
+                          "DistanceSource2")
 }
 
 # Remove site -------------------------------------------------------------
@@ -152,7 +161,7 @@ test_data <- hud.tpcb.2[-train_indices, ]
 
 # Fit the Model (4)
 rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season +
-                             flow.3 + temp + Distance_to_source1,
+                             flow.3 + temp + DistanceSource1,
                            data = train_data)
 
 # Make Predictions
@@ -238,7 +247,7 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCBV01.png",
   # Remove metadata
   hud.pcb <- subset(hud, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  hud.pcb <- subset(hud.pcb, select = -c(A1016:tPCB))
+  hud.pcb <- subset(hud.pcb, select = -c(A1016:DistanceToSource2))
   # Log10 individual PCBs 
   hud.pcb <- log10(hud.pcb)
   # Replace -inf to NA
@@ -259,30 +268,15 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCBV01.png",
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  #site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # add distance to source
+  DistanceToSource1 <- hud$DistanceToSource1
   # Add date and time to hud.pcb.1
   hud.pcb.1 <- cbind(hud.pcb.1, SiteID, Latitude, Longitude, SampleDate,
-                     data.frame(time.day), season.s)
-  # Initialize a list to store point geometries
-  point_list <- list()
-  # Loop to create point geometries
-  for (i in 1:nrow(hud.pcb.1)) {
-    point <- st_point(c(hud.pcb.1[i, "Latitude"], hud.pcb.1[i, "Longitude"]))
-    point_list[[i]] <- point
-  }
-  # Create an sf object from the list of point geometries
-  hud.pcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-  # Ensure that both objects have the same CRS
-  st_crs(hud.pcb_sf) <- st_crs(source1_sf)
-  # Calculate distances
-  distances1 <- st_distance(hud.pcb_sf, source1_sf) * 100
-  # Add distances to hud.tpcb data.frame
-  hud.pcb.1$Distance_to_source1 <- distances1
+                     data.frame(time.day), season.s, DistanceToSource1)
   # Remove site Bakers Falls. Upstream source
   # North Bakers Falls = WCPCB-HUD006 and
   # South Bakers Falls = WCPCB-HUD006.
