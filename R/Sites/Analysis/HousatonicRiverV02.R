@@ -47,6 +47,30 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Select Housatonic River data ---------------------------------------------------
 hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
 
+# Add distance to source --------------------------------------------------
+{
+  # Define source coordinates
+  source1 <- c(Latitude = 42.456479, Longitude = -73.217587) # GE Pittsfield
+  # Create an sf point for the source
+  source1_sf <- st_sfc(st_point(c(source1["Longitude"], source1["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(source1_sf) <- 4326
+  # Transform source1_sf to UTM Zone 18N (EPSG:32618)
+  source1_sf_utm <- st_transform(source1_sf, 32618)
+  # Convert the data frame to an sf object
+  sf_hou <- st_as_sf(hou, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_hou <- st_set_crs(sf_hou, 4326)
+  # Transform to UTM Zone 18N
+  sf_hou_utm <- st_transform(sf_hou, 32618)
+  # Calculate distances in meters from each location to the source
+  distances_meters <- st_distance(sf_hou_utm, source1_sf_utm)
+  # Convert distances to kilometers
+  distances_km <- units::set_units(distances_meters, "km")
+  # Extract numeric values and assign to the DistanceToSource column
+  hou$DistanceToSource <- as.numeric(distances_km[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -60,34 +84,11 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
   # Create data frame
   hou.tpcb <- cbind(factor(hou$SiteID), hou$SampleDate,
                     hou$Latitude, hou$Longitude, as.matrix(hou$tPCB),
-                    data.frame(time.day), season.s)
+                    data.frame(time.day), season.s, hou$DistanceToSource)
   # Add column names
   colnames(hou.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+                          "tPCB", "time", "season", "DistanceToSource")
 }
-
-# Source locations + distance to samples
-{
-  source1 <- c(Latitude =  42.456479, Longitude = -73.217587)  # GE Pittsfield
-  # Create sf points
-  source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"])) #Euclidean (straight-line) distance
-  # Initialize a list to store point geometries
-  point_list <- list()
-  # Loop to create point geometries
-  for (i in 1:nrow(hou.tpcb)) {
-    point <- st_point(c(hou.tpcb[i, "Latitude"], hou.tpcb[i, "Longitude"])) # check this
-    point_list[[i]] <- point
-  }
-  # Create an sf object from the list of point geometries
-  hou.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-  # Ensure that both objects have the same CRS
-  st_crs(hou.tpcb_sf) <- st_crs(source1_sf)
-  # Calculate distances
-  distances1 <- st_distance(hou.tpcb_sf, source1_sf) * 100
-  # Add distances to hud.tpcb data.frame
-  hou.tpcb$Distance_to_source1 <- distances1
-}
-
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Housatonic River
@@ -118,7 +119,7 @@ test_data <- hou.tpcb[-train_indices, ]
 
 # Fit the Model (1)
 rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.1 + flow.2 +
-                             Distance_to_source1, data = train_data)
+                             DistanceToSource, data = train_data)
 
 # Make Predictions
 predictions.1 <- predict(rf_model.1, newdata = test_data)
