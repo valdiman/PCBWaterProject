@@ -63,13 +63,13 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
   # Set the CRS to WGS 84 (EPSG:4326) for the center
   sf_center <- st_set_crs(sf_center, 4326)
   # Transform to UTM Zone 17 for the center
-  sf_center_utm <- st_transform(sf_center, 32617)  # UTM Zone 17N
+  sf_center_utm <- st_transform(sf_center, 32616)  # UTM Zone 16N
   # Convert the data frame to an sf object
   sf_grl <- st_as_sf(grl, coords = c("Longitude", "Latitude"))
   # Set the CRS to WGS 84 (EPSG:4326)
   sf_grl <- st_set_crs(sf_grl, 4326)
   # Transform to UTM Zone 17
-  sf_grl <- st_transform(sf_grl, 32617)  # UTM Zone 17N
+  sf_grl <- st_transform(sf_grl, 32616)  # UTM Zone 16N
   # Calculate distances in meters from each location to the center
   distances_meters <- st_distance(sf_grl, sf_center_utm)
   # Convert distances to kilometers
