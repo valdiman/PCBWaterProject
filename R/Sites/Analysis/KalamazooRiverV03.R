@@ -50,6 +50,30 @@ kal <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
 # and 30 miles of Portage Creek (south), Cork St and Portage Creek Cork St sites
 # Dredging occurred at Plainwell Dam site.
 
+# Add distance to source --------------------------------------------------
+{
+  # Define source coordinates
+  source1 <- c(Latitude =  42.270024, Longitude = -85.575727)  # Allied Paper, Inc.
+  # Create an sf point for the source
+  source1_sf <- st_sfc(st_point(c(source1["Longitude"], source1["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(source1_sf) <- 4326
+  # Transform source1_sf to UTM Zone 16N (EPSG:32616)
+  source1_sf_utm <- st_transform(source1_sf, 32616)
+  # Convert the data frame to an sf object
+  sf_kal <- st_as_sf(kal, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_kal <- st_set_crs(sf_kal, 4326)
+  # Transform to UTM Zone 16N
+  sf_kal_utm <- st_transform(sf_kal, 32616)
+  # Calculate distances in meters from each location to the source
+  distances_meters <- st_distance(sf_kal_utm, source1_sf_utm)
+  # Convert distances to kilometers
+  distances_km <- units::set_units(distances_meters, "km")
+  # Extract numeric values and assign to the DistanceToSource column
+  kal$DistanceToSource <- as.numeric(distances_km[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -62,43 +86,15 @@ kal <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
   yq.s <- as.yearqtr(as.yearmon(kal$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add distance to source
+  DistanceToSource <- kal$DistanceToSource
   # Create data frame
   kal.tpcb <- cbind(factor(kal$SiteID), kal$SampleDate,
                     kal$Latitude, kal$Longitude, as.matrix(kal$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), site.numb, season.s, DistanceToSource)
   # Add column names
   colnames(kal.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
-}
-
-# Include distance to sources
-{
-  # Source locations
-  source1 <- c(Latitude =  42.270024, Longitude = -85.575727)  # Allied Paper, Inc.
-  
-  # Create sf points
-  source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"]))
-  
-  # Initialize a list to store point geometries
-  point_list <- list()
-  
-  # Loop to create point geometries
-  for (i in 1:nrow(kal.tpcb)) {
-    point <- st_point(c(kal.tpcb[i, "Latitude"], kal.tpcb[i, "Longitude"]))
-    point_list[[i]] <- point
-  }
-  
-  # Create an sf object from the list of point geometries
-  kal.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-  
-  # Ensure that both objects have the same CRS
-  st_crs(kal.tpcb_sf) <- st_crs(source1_sf)
-  
-  # Calculate distances
-  distances1 <- st_distance(kal.tpcb_sf, source1_sf) * 100
-  
-  # Add distances to hud.tpcb data.frame
-  kal.tpcb$Distance_to_source1 <- distances1
+                          "tPCB", "time", "site.code", "season", "DistanceToSource")
 }
 
 # Include USGS flow data --------------------------------------------------
@@ -133,7 +129,7 @@ test_data <- kal.tpcb[-train_indices, ]
 
 # Fit the Model
 rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + flow.3 +
-                             Distance_to_source1, data = train_data)
+                             DistanceToSource, data = train_data)
 
 # Make Predictions
 predictions.1 <- predict(rf_model.1, newdata = test_data)
