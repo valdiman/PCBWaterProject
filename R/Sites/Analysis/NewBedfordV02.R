@@ -57,6 +57,30 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Select nbh River data ---------------------------------------------------
 nbh <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
 
+# Add distance to source --------------------------------------------------
+{
+  # Define source coordinates
+  source <- c(Latitude = 41.675042, Longitude = -70.916295)  # Former Aerovox Site
+  # Create an sf point for the source
+  source_sf <- st_sfc(st_point(c(source["Longitude"], source["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(source_sf) <- 4326
+  # Transform source1_sf to UTM Zone 19N (EPSG:32618)
+  source_sf_utm <- st_transform(source_sf, 32619)
+  # Convert the data frame to an sf object
+  sf_nbh <- st_as_sf(nbh, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_nbh <- st_set_crs(sf_nbh, 4326)
+  # Transform to UTM Zone 19N
+  sf_nbh_utm <- st_transform(sf_nbh, 32619)
+  # Calculate distances in meters from each location to source
+  distances_meters <- st_distance(sf_nbh_utm, source_sf_utm)
+  # Convert distances to kilometers
+  distances_km <- units::set_units(distances_meters, "km")
+  # Extract numeric values and assign to the DistanceToSource column
+  nbh$DistanceToSource <- as.numeric(distances_km[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -68,35 +92,11 @@ nbh <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  nbh.tpcb <- cbind(factor(nbh$SiteID), nbh$SampleDate,
-                    nbh$Latitude, nbh$Longitude, as.matrix(nbh$tPCB),
-                    data.frame(time.day), season.s)
+  nbh.tpcb <- cbind(factor(nbh$SiteID), nbh$SampleDate, as.matrix(nbh$tPCB),
+                    data.frame(time.day), season.s, nbh$DistanceToSource)
   # Add column names
-  colnames(nbh.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
-}
-
-# Include distance to sources
-{
-  # Source locations
-  source1 <- c(Latitude = 41.675042, Longitude = -70.916295)  # Former Aerovox Site
-  # Create sf points
-  source1_sf <- st_point(c(source1["Latitude"], source1["Longitude"]))
-  # Initialize a list to store point geometries
-  point_list <- list()
-  # Loop to create point geometries
-  for (i in 1:nrow(nbh.tpcb)) {
-    point <- st_point(c(nbh.tpcb[i, "Latitude"], nbh.tpcb[i, "Longitude"]))
-    point_list[[i]] <- point
-  }
-  # Create an sf object from the list of point geometries
-  nbh.tpcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-  # Ensure that both objects have the same CRS
-  st_crs(nbh.tpcb_sf) <- st_crs(source1_sf)
-  # Calculate distances
-  distances <- st_distance(nbh.tpcb_sf, source1_sf) * 100
-  # Add distances to nbh.tpcb data.frame
-  nbh.tpcb$Distance_to_source1 <- distances
+  colnames(nbh.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToSource")
 }
 
 # Random Forest Model -----------------------------------------------------
@@ -109,7 +109,7 @@ test_data <- nbh.tpcb[-train_indices, ]
 
 # Fit the Model (1)
 rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season +
-                             Distance_to_source1, data = train_data)
+                             DistanceToSource, data = train_data)
 
 # Make Predictions
 predictions.1 <- predict(rf_model.1, newdata = test_data)
@@ -195,7 +195,7 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NBHRFtPCBV01.png",
   # Remove metadata
   nbh.pcb <- subset(nbh, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  nbh.pcb <- subset(nbh.pcb, select = -c(A1016:tPCB))
+  nbh.pcb <- subset(nbh.pcb, select = -c(A1016:DistanceToSource))
   # Log10 individual PCBs 
   nbh.pcb <- log10(nbh.pcb)
   # Replace -inf to NA
@@ -207,9 +207,6 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NBHRFtPCBV01.png",
                        -which(colSums(is.na(nbh.pcb))/nrow(nbh.pcb) > 0.7)]
   # Add site ID
   SiteID <- factor(nbh$SiteID)
-  # Add coordinates
-  Latitude <- nbh$Latitude
-  Longitude <- nbh$Longitude
   # Change date format
   SampleDate <- as.Date(nbh$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
@@ -220,27 +217,13 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NBHRFtPCBV01.png",
   yq.s <- as.yearqtr(as.yearmon(nbh$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add distance to source
+  DistanceToSource <- nbh$DistanceToSource
   # Add date and time to nbh.pcb.1
-  nbh.pcb.1 <- cbind(nbh.pcb.1, SiteID, Latitude, Longitude, SampleDate,
-                     data.frame(time.day), season.s)
-  # Initialize a list to store point geometries
-  point_list <- list()
-  # Loop to create point geometries
-  for (i in 1:nrow(nbh.pcb.1)) {
-    point <- st_point(c(nbh.pcb.1[i, "Latitude"], nbh.pcb.1[i, "Longitude"]))
-    point_list[[i]] <- point
-  }
-  # Create an sf object from the list of point geometries
-  nbh.pcb_sf <- st_sf(geometry = st_sfc(point_list), crs = 4326)
-  # Ensure that both objects have the same CRS
-  st_crs(nbh.pcb_sf) <- st_crs(source1_sf)
-  # Calculate distances
-  distances1 <- st_distance(nbh.pcb_sf, source1_sf) * 100
-  # Add distances to nbh.tpcb data.frame
-  nbh.pcb.1$Distance_to_source1 <- distances1
+  nbh.pcb.1 <- cbind(nbh.pcb.1, SiteID, SampleDate,
+                     data.frame(time.day), season.s, DistanceToSource)
   # Remove metadata not use in the random forest
-  nbh.pcb.1 <- nbh.pcb.1[, !(names(nbh.pcb.1) %in% c("SampleDate", "Latitude",
-                                                     "Longitude"))]
+  nbh.pcb.1 <- nbh.pcb.1[, !(names(nbh.pcb.1) %in% c("SampleDate"))]
 }
 
 # Set the seed for reproducibility
@@ -307,12 +290,24 @@ for (i in seq_along(pcb_numeric_columns)) {
     Location = rep("New Bedford Harbor", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
-    Predicted = predictions
+    Predicted = predictions,
+    R_squared = r_squared  # Add R_squared column
   )
   
   # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
+
+# Remove congeners w/R2 < 0
+rf_results <- rf_results %>%
+  filter(R_squared >= 0)
+
+# Remove rows in all_results where R_squared < 0
+all_results <- all_results %>%
+  filter(R_squared >= 0)
+
+# Remove the "R_squared" column from all_results
+all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
