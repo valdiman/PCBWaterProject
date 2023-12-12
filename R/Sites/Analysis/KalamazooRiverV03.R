@@ -86,15 +86,12 @@ kal <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
   yq.s <- as.yearqtr(as.yearmon(kal$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-  # Add distance to source
-  DistanceToSource <- kal$DistanceToSource
   # Create data frame
-  kal.tpcb <- cbind(factor(kal$SiteID), kal$SampleDate,
-                    kal$Latitude, kal$Longitude, as.matrix(kal$tPCB),
-                    data.frame(time.day), site.numb, season.s, DistanceToSource)
+  kal.tpcb <- cbind(factor(kal$SiteID), kal$SampleDate, as.matrix(kal$tPCB),
+                    data.frame(time.day), site.numb, season.s, kal$DistanceToSource)
   # Add column names
-  colnames(kal.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season", "DistanceToSource")
+  colnames(kal.tpcb) <- c("SiteID", "date", "tPCB", "time", "site.code",
+                          "season", "DistanceToSource", "DistanceToSource1")
 }
 
 # Include USGS flow data --------------------------------------------------
