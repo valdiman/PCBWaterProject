@@ -158,15 +158,28 @@ ggplot(che.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   annotate("text", x = 5, y = 20, label = "Chesapeake Bay",
            size = 3)
 
+# Add water temperature data ----------------------------------------------
+{
+  # Read water temperature
+  wtp <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayWT.csv")
+  # Convert date columns to Date format
+  wtp$Date <- as.Date(wtp$Date)
+  # Add water temperature to grl.tpcb
+  che.tpcb$temp <- wtp$WTMP_K[match(che.tpcb$date, wtp$Date)]
+  # Remove samples with temp = NA
+  che.tpcb <- na.omit(che.tpcb)
+}
+
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- che.tpcb$tPCB
 time <- che.tpcb$time
+wtmp <- che.tpcb$temp
 site <- che.tpcb$site.code
 season <- che.tpcb$season
 # tPCB vs. time + season + flow + temp + site
-lme.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
+lme.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + wtmp + season + (1|site),
                      REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
                                            check.nobs.vs.rankZ = "ignore",
@@ -190,64 +203,33 @@ summary(lme.che.tpcb)
 # Shapiro test
 shapiro.test(resid(lme.che.tpcb))
 
-# Remove minimum and bottom 2 values, ~ 10 pg/L
-che.tpcb.1 <- subset(che.tpcb, tPCB > 10)
-
-# Perform Linear Mixed-Effects Model (lme)
-# Get variables
-tpcb <- che.tpcb.1$tPCB
-time <- che.tpcb.1$time
-site <- che.tpcb.1$site.code
-season <- che.tpcb.1$season
-# tPCB vs. time + season + flow + temp + site
-lme.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
-                     REML = FALSE,
-                     control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                           check.nobs.vs.rankZ = "ignore",
-                                           check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lme.che.tpcb)
-# Look at residuals
-{
-  res.che.tpcb <- resid(lme.che.tpcb) # get list of residuals
-  # Create Q-Q plot for residuals
-  # Create pdf file
-  pdf("Output/Plots/Sites/Q-Q/ChesapeakeBayQ-QtPCBV02.pdf")
-  qqnorm(res.che.tpcb,
-         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
-                                 "PCB)")))
-  # Add a straight diagonal line to the plot
-  qqline(res.che.tpcb)
-  dev.off()
-}
-# Shapiro test
-shapiro.test(resid(lme.che.tpcb))
-
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 21)
+  lme.tpcb <- matrix(nrow = 1, ncol = 24)
   lme.tpcb[1] <- fixef(lme.che.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.che.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.che.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
   lme.tpcb[4] <- fixef(lme.che.tpcb)[2] # time
   lme.tpcb[5] <- summary(lme.che.tpcb)$coef[2,"Std. Error"] # time error
   lme.tpcb[6] <- summary(lme.che.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.che.tpcb)[3] # season 1
-  lme.tpcb[8] <- summary(lme.che.tpcb)$coef[3,"Std. Error"] # season 1 error
-  lme.tpcb[9] <- summary(lme.che.tpcb)$coef[3,"Pr(>|t|)"] # season 1 p-value
-  lme.tpcb[10] <- fixef(lme.che.tpcb)[4] # season 2
-  lme.tpcb[11] <- summary(lme.che.tpcb)$coef[4,"Std. Error"] # season 2 error
-  lme.tpcb[12] <- summary(lme.che.tpcb)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[13] <- fixef(lme.che.tpcb)[5] # season 3
-  lme.tpcb[14] <- summary(lme.che.tpcb)$coef[5,"Std. Error"] # season 3 error
-  lme.tpcb[15] <- summary(lme.che.tpcb)$coef[5,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[16] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[17] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[18] <- as.data.frame(VarCorr(lme.che.tpcb))[1,'sdcor']
-  lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.che.tpcb))[1, 'R2m']
-  lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.che.tpcb))[1, 'R2c']
-  lme.tpcb[21] <- shapiro.test(resid(lme.che.tpcb))$p.value
+  lme.tpcb[7] <- fixef(lme.che.tpcb)[3] # water temperature
+  lme.tpcb[8] <- summary(lme.che.tpcb)$coef[3,"Std. Error"] # water temperature error
+  lme.tpcb[9] <- summary(lme.che.tpcb)$coef[3,"Pr(>|t|)"] # water temperature p-value
+  lme.tpcb[10] <- fixef(lme.che.tpcb)[4] # season 1
+  lme.tpcb[11] <- summary(lme.che.tpcb)$coef[4,"Std. Error"] # season 1 error
+  lme.tpcb[12] <- summary(lme.che.tpcb)$coef[4,"Pr(>|t|)"] # season 1 p-value
+  lme.tpcb[13] <- fixef(lme.che.tpcb)[5] # season 2
+  lme.tpcb[14] <- summary(lme.che.tpcb)$coef[5,"Std. Error"] # season 2 error
+  lme.tpcb[15] <- summary(lme.che.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[16] <- fixef(lme.che.tpcb)[6] # season 3
+  lme.tpcb[17] <- summary(lme.che.tpcb)$coef[6,"Std. Error"] # season 3 error
+  lme.tpcb[18] <- summary(lme.che.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[21] <- as.data.frame(VarCorr(lme.che.tpcb))[1,'sdcor']
+  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.che.tpcb))[1, 'R2m']
+  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.che.tpcb))[1, 'R2c']
+  lme.tpcb[24] <- shapiro.test(resid(lme.che.tpcb))$p.value
 }
 
 # Just 3 significant figures
@@ -255,6 +237,7 @@ lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 # Add column names
 colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Intercept.pv", "time", "time.error", "time.pv",
+                        "temperature", "temperature.error", "temperature.pv",
                         "season1", "season1.error", "season1.pv", "season2",
                         "season2.error", "season2, pv", "season3",
                         "season3.error", "season3.pv", "t05", "t05.error",
@@ -269,20 +252,20 @@ fit.lme.values.che.tpcb <- as.data.frame(fitted(lme.che.tpcb))
 # Add column name
 colnames(fit.lme.values.che.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-che.tpcb.1$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
+che.tpcb$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
 # Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = che.tpcb.1$tPCB, predicted = che.tpcb.1$predicted)
+predic.obs <- data.frame(tPCB = che.tpcb$tPCB, predicted = che.tpcb$predicted)
 predic.obs <- data.frame(Location = che$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
           "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
-p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
+p <- ggplot(che.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_y_log10(limits = c(1, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(1, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
@@ -293,8 +276,7 @@ p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 75, y = 10^5,
-           label = expression(atop(" Chesapeake Bay (R"^2*"= 0.49)",
-                                   paste("t"[1/2]*" = 15 ± 4.6 (yr)"))),
+           label = expression("Chesapeake Bay (R"^2*"= 0.48)"),
            size = 4, fontface = 2)
 # See plot
 print(p)
@@ -308,8 +290,8 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeObsPredtPCB.png",
   png("Output/Plots/Sites/Residual/res_plotlmeChesapeakeBaytPCB.png", width = 800,
       height = 600)
   # Create your plot
-  plot(che.tpcb.1$predicted, resid(lme.che.tpcb),
-       points(che.tpcb.1$predicted, resid(lme.che.tpcb), pch = 16, 
+  plot(che.tpcb$predicted, resid(lme.che.tpcb),
+       points(che.tpcb$predicted, resid(lme.che.tpcb), pch = 16, 
               col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
@@ -324,9 +306,9 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeObsPredtPCB.png",
 }
 
 # Estimate a factor of 2 between observations and predictions
-che.tpcb.1$factor2 <- che.tpcb.1$tPCB/che.tpcb.1$predicted
-factor2.tpcb <- nrow(che.tpcb.1[che.tpcb.1$factor2 > 0.5 & che.tpcb.1$factor2 < 2,
-                                ])/length(che.tpcb.1[,1])*100
+che.tpcb$factor2 <- che.tpcb$tPCB/che.tpcb$predicted
+factor2.tpcb <- nrow(che.tpcb[che.tpcb$factor2 > 0.5 & che.tpcb$factor2 < 2,
+                                ])/length(che.tpcb[,1])*100
 
 # Convert the vector to a data frame
 factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
@@ -368,22 +350,25 @@ write.csv(factor2.tpcb,
   # Add date and time to fox.pcb.1
   che.pcb.1 <- cbind(che.pcb.1, SiteID, SampleDate, data.frame(time.day),
                      site.numb, season.s)
+  # Add water temperature to grl.pcb.1
+  che.pcb.1$wtemp <- wtp$WTMP_K[match(che.pcb.1$SampleDate, wtp$Date)]
   # Remove metadata
-  che.pcb.2 <- subset(che.pcb.1, select = -c(SiteID:season.s))
+  che.pcb.2 <- subset(che.pcb.1, select = -c(SiteID:wtemp))
 }
 
 # LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- che.pcb.1$time
+wtemp <- che.pcb.1$wtemp
 season <- che.pcb.1$season
 site <- che.pcb.1$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(che.pcb.2[1,]), ncol = 21)
+lme.pcb <- matrix(nrow = length(che.pcb.2[1,]), ncol = 24)
 
 # Perform LME
 for (i in 1:length(che.pcb.2[1,])) {
-  fit <- lmer(che.pcb.2[,i] ~ 1 + time + season + (1|site),
+  fit <- lmer(che.pcb.2[,i] ~ 1 + time + wtemp + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -394,21 +379,24 @@ for (i in 1:length(che.pcb.2[1,])) {
   lme.pcb[i,4] <- fixef(fit)[2] # time
   lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
   lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.pcb[i,7] <- fixef(fit)[3] # # season 1
-  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
-  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # # season 1 p-value
-  lme.pcb[i,10] <- fixef(fit)[4] # season 2
-  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
-  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  lme.pcb[i,13] <- fixef(fit)[5] # season 3
-  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
-  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
-  lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
-  lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
-  lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
-  lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
-  lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
-  lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+  lme.pcb[i,7] <- fixef(fit)[3] # water temperature
+  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # water temperature error
+  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # water temperature p-value
+  lme.pcb[i,10] <- fixef(fit)[4] # # season 1
+  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 1 error
+  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # # season 1 p-value
+  lme.pcb[i,13] <- fixef(fit)[5] # season 2
+  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 2 error
+  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 2 p-value
+  lme.pcb[i,16] <- fixef(fit)[6] # season 3
+  lme.pcb[i,17] <- summary(fit)$coef[6,"Std. Error"] # season 3 error
+  lme.pcb[i,18] <- summary(fit)$coef[6,"Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i,19] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,20] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,21] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,24] <- shapiro.test(resid(fit))$p.value
 }
 
 # Just 3 significant figures
@@ -419,9 +407,10 @@ lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
+                       "temperature", "temperature. error", "temperature.pv",
                        "season1", "season1.error", "season1.pv", "season2",
-                       "season2.error", "season2, pv", "season3",
-                       "season3.error", "season3.pv", "t05", "t05.error",
+                       "season2.error", "season3, pv", "season3",
+                       "season3.error", "season3, pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
@@ -447,7 +436,7 @@ lme.fit.pcb <- matrix(nrow = length(che.pcb.3[,1]),
                       ncol = length(che.pcb.3[1,]))
 
 for (i in 1:length(che.pcb.3[1,])) {
-  fit <- lmer(che.pcb.3[,i] ~ 1 + time + season + (1|site),
+  fit <- lmer(che.pcb.3[,i] ~ 1 + time + wtemp + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
