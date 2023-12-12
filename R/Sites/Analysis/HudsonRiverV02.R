@@ -94,14 +94,12 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate,
-                    hud$Latitude, hud$Longitude, as.matrix(hud$tPCB),
+  hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate, as.matrix(hud$tPCB),
                     data.frame(time.day), season.s, hud$DistanceToSource1,
                     hud$DistanceToSource2)
   # Add column names
-  colnames(hud.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season", "DistanceSource1",
-                          "DistanceSource2")
+  colnames(hud.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceSource1", "DistanceSource2")
 }
 
 # Remove site -------------------------------------------------------------
@@ -160,9 +158,8 @@ train_data <- hud.tpcb.2[train_indices, ]
 test_data <- hud.tpcb.2[-train_indices, ]
 
 # Fit the Model (4)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season +
-                             flow.3 + temp + DistanceSource1,
-                           data = train_data)
+rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.3 +
+                             temp + DistanceSource1, data = train_data)
 
 # Make Predictions
 predictions.1 <- predict(rf_model.1, newdata = test_data)
@@ -259,9 +256,6 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCBV01.png",
                        -which(colSums(is.na(hud.pcb))/nrow(hud.pcb) > 0.7)]
   # Add site ID
   SiteID <- factor(hud$SiteID)
-  # Add coordinates
-  Latitude <- hud$Latitude
-  Longitude <- hud$Longitude
   # Change date format
   SampleDate <- as.Date(hud$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
@@ -272,11 +266,11 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCBV01.png",
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-  # add distance to source
+  # Add distance to source
   DistanceToSource1 <- hud$DistanceToSource1
   # Add date and time to hud.pcb.1
-  hud.pcb.1 <- cbind(hud.pcb.1, SiteID, Latitude, Longitude, SampleDate,
-                     data.frame(time.day), season.s, DistanceToSource1)
+  hud.pcb.1 <- cbind(hud.pcb.1, SiteID, SampleDate, data.frame(time.day),
+                     season.s, DistanceToSource1)
   # Remove site Bakers Falls. Upstream source
   # North Bakers Falls = WCPCB-HUD006 and
   # South Bakers Falls = WCPCB-HUD006.
@@ -305,8 +299,7 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCBV01.png",
   # Remove samples with flow.3 = NA
   hud.pcb.2 <- hud.pcb.1[!is.na(hud.pcb.1$flow.3), ]
   # Remove metadata not use in the random forest
-  hud.pcb.2 <- hud.pcb.2[, !(names(hud.pcb.2) %in% c("SampleDate",
-                                                      "Latitude", "Longitude"))]
+  hud.pcb.2 <- hud.pcb.2[, !(names(hud.pcb.2) %in% c("SampleDate"))]
 }
 
 # Set the seed for reproducibility
