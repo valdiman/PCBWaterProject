@@ -155,7 +155,7 @@ write.csv(performance_df,
           file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancetPCB.csv")
 
 # Feature Importance
-importance.1 <- importance(rf_model.1)
+importance.1 <- randomForest::importance(rf_model.1)
 # Plot features
 barplot(importance.1[, 1], names.arg = rownames(importance.1),
         main = "Feature Importance", las = 2, cex.names = 0.7)
