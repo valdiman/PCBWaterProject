@@ -45,6 +45,38 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Select Spokane River data ---------------------------------------------------
 spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
 
+
+# Located eastern location & calculate distance to other locations ---------
+{
+  # Identify the eastern sample based on the maximum Latitude
+  index_of_eastern_sample <- which.max(spo$Latitude)
+  # Extract coordinates for the eastern sample
+  eastern_sample_latitude <- spo$Latitude[index_of_eastern_sample]
+  eastern_sample_longitude <- spo$Longitude[index_of_eastern_sample]
+  # Define source coordinates for the eastern sample
+  eastern_source <- c(Latitude = eastern_sample_latitude,
+                      Longitude = eastern_sample_longitude)
+  # Create an sf point for the eastern source
+  eastern_source_sf <- st_sfc(st_point(c(eastern_source["Longitude"],
+                                         eastern_source["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(eastern_source_sf) <- 4326
+  # Transform eastern_source_sf to UTM Zone 10N (EPSG:32610)
+  eastern_source_sf_utm <- st_transform(eastern_source_sf, 32610)
+  # Convert the data frame to an sf object for the eastern sample (spo)
+  sf_spo <- st_as_sf(spo, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_spo <- st_set_crs(sf_spo, 4326)
+  # Transform to UTM Zone 10N
+  sf_spo_utm <- st_transform(sf_spo, 32610)
+  # Calculate distances in meters from each location to eastern source
+  distances_meters_spo <- st_distance(sf_spo_utm, eastern_source_sf_utm)
+  # Convert distances to kilometers
+  distances_km_spo <- units::set_units(distances_meters_spo, "km")
+  # Extract numeric values and assign to the DistanceToEasternSource column
+  spo$DistanceToEasternLocation <- as.numeric(distances_km_spo[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -57,9 +89,11 @@ spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   spo.tpcb <- cbind(factor(spo$SiteID), spo$SampleDate,
-                    as.matrix(spo$tPCB), data.frame(time.day), season.s)
+                    as.matrix(spo$tPCB), data.frame(time.day), season.s,
+                    spo$DistanceToEasternLocation)
   # Add column names
-  colnames(spo.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
+  colnames(spo.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToEasternLocation")
   # Include flow data from USGS station Spokane River
   siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
   siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
@@ -111,8 +145,8 @@ train_data <- spo.tpcb.1[train_indices, ]
 test_data <- spo.tpcb.1[-train_indices, ]
 
 # Fit the Model. Flow.3
-rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.3,
-                           data = train_data)
+rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.3 +
+                             DistanceToEasternLocation, data = train_data)
 
 # Make Predictions
 predictions.1 <- predict(rf_model.1, newdata = test_data)
@@ -146,10 +180,11 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancetPCB.csv")
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancetPCBV02.csv")
 
 # Feature Importance
-importance.1 <- importance(rf_model.1)
+importance.1 <- randomForest::importance(rf_model.1)
+
 # Plot features
 barplot(importance.1[, 1], names.arg = rownames(importance.1),
         main = "Feature Importance", las = 2, cex.names = 0.7)
@@ -163,7 +198,7 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCBV02.csv")
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
@@ -189,7 +224,7 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverRFtPCBV02.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Individual PCB Analysis -------------------------------------------------
@@ -219,9 +254,11 @@ ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverRFtPCBV01.png",
   yq.s <- as.yearqtr(as.yearmon(spo$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add distance to eastern location
+  eastern <- spo$DistanceToEasternLocation
   # Add date and time to spo.pcb.1
   spo.pcb.1 <- cbind(spo.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     season.s)
+                     season.s, eastern)
   # Include flow data from USGS station Spokane River
   siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
   # Codes to retrieve data
@@ -331,12 +368,12 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancePCBV02.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredPCBV02.csv",
           row.names = FALSE)
 
 # Plot
@@ -361,6 +398,6 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverRFPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverRFPCBV02.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
 
