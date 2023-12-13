@@ -69,18 +69,14 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
                           "tPCB", "time", "site.code", "season")
 }
 
-# Add water temperature
+# Add water temperature data ----------------------------------------------
 {
   # Read water temperature
-  wt93 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1993.csv")
-  wt94 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1994.csv")
-  wt95 <- read.csv("Output/Data/Sites/csv/GreatLakes/WT1995.csv")
-  # Stack water data
-  wt <- rbind(wt93, wt94, wt95)
+  wtp <- read.csv("Output/Data/Sites/csv/GreatLakes/LakeMichiganWT.csv")
   # Convert date columns to Date format
-  wt$Date <- as.Date(wt$Date)
+  wtp$Date <- as.Date(wtp$Date)
   # Add water temperature to grl.tpcb
-  grl.tpcb$temp <- wt$WTMP_K[match(grl.tpcb$date, wt$Date)]
+  grl.tpcb$temp <- wtp$WTMP_K[match(grl.tpcb$date, wtp$Date)]
   # Remove samples with temp = NA
   grl.tpcb <- na.omit(grl.tpcb)
 }
@@ -207,7 +203,8 @@ ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFtPCBV01.png",
   grl.pcb.1 <- cbind(grl.pcb.1, SampleDate, data.frame(time.day),
                      site.numb, season.s)
   # Add water temperature to grl.pcb.1
-  grl.pcb.1$temp <- wt$WTMP_K[match(grl.pcb.1$SampleDate, wt$Date)]
+  grl.pcb.1$temp <- LakeMichiganWT$WTMP_K[match(grl.pcb.1$SampleDate,
+                                                LakeMichiganWT$Date)]
   # Remove samples with temperature = NA
   grl.pcb.2 <- grl.pcb.1[!is.na(grl.pcb.1$temp), ]
 }
