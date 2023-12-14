@@ -97,9 +97,10 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
 }
 
 # Add water temperature data ----------------------------------------------
+# See code: R/ExtractingData/ChesapeakeBay/WaterTemp.R
 {
   # Read water temperature
-  wtp <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayWT.csv")
+  wtp <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/Watertemp/ChesapeakeBayWT.csv")
   # Convert date columns to Date format
   wtp$Date <- as.Date(wtp$Date)
   # Add water temperature to grl.tpcb
@@ -169,7 +170,8 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredtPCB.csv",
+          row.names = FALSE)
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
@@ -215,7 +217,7 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFtPCBV01.png",
                        -which(colSums(is.na(che.pcb))/nrow(che.pcb) > 0.7)]
   
   # Create individual code for each site sampled
-  site.numb <- che$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- factor(che$SiteID %>% as.factor() %>% as.numeric)
   # Change date format
   SampleDate <- as.Date(che$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
@@ -236,6 +238,8 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFtPCBV01.png",
                                                wtp$Date)]
   # Remove samples with temperature = NA
   che.pcb.2 <- che.pcb.1[!is.na(che.pcb.1$temp), ]
+  # Remove metadata not use in the random forest
+  che.pcb.2 <- che.pcb.2[, !(names(che.pcb.2) %in% c("SampleDate"))]
 }
 
 # Set the seed for reproducibility
@@ -274,9 +278,6 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Remove the SampleDate column from the training data
-  train_data <- train_data[, -which(names(train_data) == "SampleDate")]
-  
   # Modeling code using randomForest
   fit <- randomForest(train_data[, 1] ~ ., data = train_data)
   
@@ -300,7 +301,7 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Store the results in the matrix
   rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
   
-  # Create a data frame for each column's results, including R_squared
+  # Create a data frame for each column's results
   col_results <- data.frame(
     Location = rep("Chesapeake Bay", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
@@ -337,10 +338,10 @@ write.csv(all_results,
 # Plot
 plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(1, 10^5),
+  scale_y_log10(limits = c(0.1, 10^5),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^5),
+  scale_x_log10(limits = c(0.1, 10^5),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
