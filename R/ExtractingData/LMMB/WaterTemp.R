@@ -40,5 +40,5 @@ LakeMichiganWT$Date <- as.Date(paste(LakeMichiganWT$MM, LakeMichiganWT$DD,
 
 # Export results
 write.csv(LakeMichiganWT,
-          file = "Output/Data/Sites/csv/GreatLakes/LakeMichiganWT.csv")
+          file = "Output/Data/Sites/csv/GreatLakes/WaterTemp/LakeMichiganWT.csv")
 
