@@ -45,6 +45,37 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Select Portland Harbor data ---------------------------------------------------
 por <- wdc[str_detect(wdc$LocationName, 'Portland Harbor'),]
 
+# Located northern location & calculate distance to other locations -------
+{
+  # Identify the northern sample based on the maximum Longitude
+  index_of_northern_sample <- which.max(por$Longitude)
+  # Extract coordinates for the northern sample
+  northern_sample_latitude <- por$Latitude[index_of_northern_sample]
+  northern_sample_longitude <- por$Longitude[index_of_northern_sample]
+  # Define source coordinates for the northern sample
+  northern_source <- c(Latitude = northern_sample_latitude,
+                       Longitude = northern_sample_longitude)
+  # Create an sf point for the northern source
+  northern_source_sf <- st_sfc(st_point(c(northern_source["Longitude"],
+                                          northern_source["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(northern_source_sf) <- 4326
+  # Transform northern_source_sf to UTM Zone 10N (EPSG:32610)
+  northern_source_sf_utm <- st_transform(northern_source_sf, 32610)
+  # Convert the data frame to an sf object for the northern sample (spo)
+  sf_por <- st_as_sf(por, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_por <- st_set_crs(sf_por, 4326)
+  # Transform to UTM Zone 10N
+  sf_por_utm <- st_transform(sf_por, 32610)
+  # Calculate distances in meters from each location to northern source
+  distances_meters_por <- st_distance(sf_por_utm, northern_source_sf_utm)
+  # Convert distances to kilometers
+  distances_km_por <- units::set_units(distances_meters_por, "km")
+  # Extract numeric values and assign to the DistanceToNorthernSource column
+  por$DistanceToNorthernLocation <- as.numeric(distances_km_por[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -57,9 +88,10 @@ por <- wdc[str_detect(wdc$LocationName, 'Portland Harbor'),]
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   por.tpcb <- cbind(factor(por$SiteID), por$SampleDate, as.matrix(por$tPCB),
-                    data.frame(time.day), season.s)
+                    data.frame(time.day), season.s, por$DistanceToNorthernLocation)
   # Add column names
-  colnames(por.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
+  colnames(por.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToNorthernLocation")
   # Include USGC station Portland Harbor flow and water temperature
   sitePorN1 <- "14211720" # WILLAMETTE RIVER AT PORTLAND, OR
   sitePorN2 <- "14211820" # COLUMBIA SLOUGH AT PORTLAND, OR
@@ -78,19 +110,20 @@ por <- wdc[str_detect(wdc$LocationName, 'Portland Harbor'),]
   por.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(por.tpcb$date, flow.2$Date)]
   por.tpcb$temp <- 273.15 + temp$X_00010_00003[match(por.tpcb$date, temp$Date)]
   # Remove samples with temp = NA
-  por.tpcb.2 <- na.omit(por.tpcb)
+  por.tpcb.1 <- na.omit(por.tpcb)
 }
 
 # Random Forest Model -----------------------------------------------------
 # Train-Test Split
 set.seed(123)
-train_indices <- sample(1:nrow(por.tpcb.2), 0.8 * nrow(por.tpcb.2))
-train_data <- por.tpcb.2[train_indices, ]
-test_data <- por.tpcb.2[-train_indices, ]
+train_indices <- sample(1:nrow(por.tpcb.1), 0.8 * nrow(por.tpcb.1))
+train_data <- por.tpcb.1[train_indices, ]
+test_data <- por.tpcb.1[-train_indices, ]
 
 # Fit the Model. Flow.2
 rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season +
-                            flow.2 + temp, data = train_data)
+                             flow.2 + temp + DistanceToNorthernLocation,
+                           data = train_data)
 
 # Make Predictions
 predictions.1 <- predict(rf_model.1, newdata = test_data)
@@ -124,14 +157,14 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancetPCB.csv")
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancetPCBV02.csv")
 
 # Feature Importance
 importance.1 <- importance(rf_model.1)
 barplot(importance.1[, 1], names.arg = rownames(importance.1),
         main = "Feature Importance", las = 2, cex.names = 0.7)
 
-# Create a data frame for plotting
+# Create a data frame for plotting and exporting
 plot_data.1 <- data.frame(
   Location = rep("Portland Harbor", nrow(test_data)),
   Actual = log10(test_data$tPCB),
@@ -140,7 +173,8 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredtPCBV02.csv",
+          row.names = FALSE)
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
@@ -166,7 +200,7 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFtPCBV02.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Individual PCB Analysis -------------------------------------------------
@@ -175,7 +209,7 @@ ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFtPCBV01.png",
   # Remove metadata
   por.pcb <- subset(por, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  por.pcb <- subset(por.pcb, select = -c(A1016:tPCB))
+  por.pcb <- subset(por.pcb, select = -c(A1016:DistanceToNorthernLocation))
   # Log10 individual PCBs 
   por.pcb <- log10(por.pcb)
   # Replace -inf to NA
@@ -197,9 +231,11 @@ ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFtPCBV01.png",
   yq.s <- as.yearqtr(as.yearmon(por$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add distance to northern location sample
+  DistanceToNorthernLocation <- por$DistanceToNorthernLocation
   # Add date and time to por.pcb.1
   por.pcb.1 <- cbind(por.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     season.s)
+                     season.s, DistanceToNorthernLocation)
   # Include flow data from USGS station Portland Harbor
   sitePorN1 <- "14211720" # WILLAMETTE RIVER AT PORTLAND, OR
   sitePorN2 <- "14211820" # COLUMBIA SLOUGH AT PORTLAND, OR
@@ -293,12 +329,12 @@ for (i in seq_along(pcb_numeric_columns)) {
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancePCBV02.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredPCBV02.csv",
           row.names = FALSE)
 
 # Plot
@@ -323,6 +359,6 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFPCBV02.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
 
