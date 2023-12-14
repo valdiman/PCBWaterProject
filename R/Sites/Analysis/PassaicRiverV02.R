@@ -187,7 +187,7 @@ importance.1 <- importance(rf_model.1)
 barplot(importance.1[, 1], names.arg = rownames(importance.1),
         main = "Feature Importance", las = 2, cex.names = 0.7)
 
-# Create a data frame for plotting
+# Create a data frame for plotting and exporting
 plot_data.1 <- data.frame(
   Location = rep("Passaic River", nrow(test_data)),
   Actual = log10(test_data$tPCB),
@@ -196,7 +196,8 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFObsPredtPCB.csv",
+          row.names = FALSE)
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
