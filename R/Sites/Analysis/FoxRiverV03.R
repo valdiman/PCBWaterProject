@@ -44,6 +44,38 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Fox River data ---------------------------------------------------
 fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
+
+# Located eastern location & calculate distance to other locations ---------
+{
+  # Identify the eastern sample based on the maximum Latitude
+  index_of_eastern_sample <- which.max(fox$Latitude)
+  # Extract coordinates for the eastern sample
+  eastern_sample_latitude <- fox$Latitude[index_of_eastern_sample]
+  eastern_sample_longitude <- fox$Longitude[index_of_eastern_sample]
+  # Define source coordinates for the eastern sample
+  eastern_source <- c(Latitude = eastern_sample_latitude,
+                      Longitude = eastern_sample_longitude)
+  # Create an sf point for the eastern source
+  eastern_source_sf <- st_sfc(st_point(c(eastern_source["Longitude"],
+                                         eastern_source["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(eastern_source_sf) <- 4326
+  # Transform eastern_source_sf to UTM Zone 16N (EPSG:32610)
+  eastern_source_sf_utm <- st_transform(eastern_source_sf, 32616)
+  # Convert the data frame to an sf object for the eastern sample (fox)
+  sf_fox <- st_as_sf(fox, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_fox <- st_set_crs(sf_fox, 4326)
+  # Transform to UTM Zone 16N
+  sf_fox_utm <- st_transform(sf_fox, 32616)
+  # Calculate distances in meters from each location to eastern source
+  distances_meters_fox <- st_distance(sf_fox_utm, eastern_source_sf_utm)
+  # Convert distances to kilometers
+  distances_km_fox <- units::set_units(distances_meters_fox, "km")
+  # Extract numeric values and assign to the DistanceToEasternSource column
+  fox$DistanceToEasternLocation <- as.numeric(distances_km_fox[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -56,9 +88,10 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   fox.tpcb <- cbind(factor(fox$SiteID), fox$SampleDate, as.matrix(fox$tPCB),
-                    data.frame(time.day), season.s)
+                    data.frame(time.day), season.s, fox$DistanceToEasternLocation)
   # Add column names
-  colnames(fox.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
+  colnames(fox.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToEasternLocation")
 }
 
 # Remove site -------------------------------------------------------------
@@ -80,9 +113,9 @@ fox.tpcb <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
                      min(fox.tpcb$date), max(fox.tpcb$date))
   # Add USGS data to fox.tpcb.2, matching dates, conversion to m3/s
   fox.tpcb$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb$date,
-                                                                         flow$Date)]
+                                                                       flow$Date)]
   fox.tpcb$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb$date,
-                                                       temp$Date)]
+                                                     temp$Date)]
   # Remove samples with temp = NA
   fox.tpcb <- na.omit(fox.tpcb)
 }
@@ -96,7 +129,7 @@ test_data <- fox.tpcb[-train_indices, ]
 
 # Fit the Model (1)
 rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow
-                           + temp, data = train_data)
+                           + temp + DistanceToEasternLocation, data = train_data)
 
 # Make Predictions
 predictions.1 <- predict(rf_model.1, newdata = test_data)
@@ -145,7 +178,8 @@ plot_data.1 <- data.frame(Location = rep("Fox River", nrow(test_data)),
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredtPCB.csv",
+          row.names = FALSE)
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
@@ -179,7 +213,7 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCBV01.png",
 {
   fox.pcb <- subset(fox, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  fox.pcb <- subset(fox.pcb, select = -c(A1016:tPCB))
+  fox.pcb <- subset(fox.pcb, select = -c(A1016:DistanceToEasternLocation))
   # Log10 individual PCBs 
   fox.pcb <- log10(fox.pcb)
   # Replace -inf to NA
@@ -202,9 +236,11 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCBV01.png",
   yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add distance to eastern location
+  eastern <- fox$DistanceToEasternLocation
   # Add date and time to fox.pcb.1
-  fox.pcb.1 <- cbind(fox.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     season.s)
+  fox.pcb.1 <- cbind(fox.pcb.1, SampleDate, data.frame(time.day), SiteID,
+                     season.s, eastern)
   # Remove site Lake Winnebago (background site)
   fox.pcb.1 <- subset(fox.pcb.1, SiteID != c("WCPCB-FOX001"))
   # Include flow data from USGS station Fox River
@@ -225,6 +261,8 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCBV01.png",
                                                       temp$Date)]
   # Remove samples with temperature = NA
   fox.pcb.2 <- fox.pcb.1[!is.na(fox.pcb.1$temp), ]
+  # Remove metadata not use in the random forest
+  fox.pcb.2 <- fox.pcb.2[, !(names(fox.pcb.2) %in% c("SampleDate"))]
 }
 
 # Set the seed for reproducibility
@@ -263,9 +301,6 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Remove the SampleDate column from the training data
-  train_data <- train_data[, -which(names(train_data) == "SampleDate")]
-  
   # Modeling code using randomForest
   fit <- randomForest(train_data[, 1] ~ ., data = train_data)
   
@@ -294,12 +329,24 @@ for (i in seq_along(pcb_numeric_columns)) {
     Location = rep("Fox River", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
-    Predicted = predictions
+    Predicted = predictions,
+    R_squared = r_squared  # Add R_squared column
   )
   
   # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
+
+# Remove congeners w/R2 < 0
+rf_results <- rf_results %>%
+  filter(R_squared >= 0)
+
+# Remove rows in all_results where R_squared < 0
+all_results <- all_results %>%
+  filter(R_squared >= 0)
+
+# Remove the "R_squared" column from all_results
+all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
