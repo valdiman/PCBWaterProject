@@ -159,9 +159,10 @@ ggplot(che.tpcb, aes(x = factor(SiteID), y = tPCB)) +
            size = 3)
 
 # Add water temperature data ----------------------------------------------
+# See code: R/ExtractingData/ChesapeakeBay/WaterTemp.R
 {
   # Read water temperature
-  wtp <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayWT.csv")
+  wtp <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/WaterTemp/ChesapeakeBayWT.csv")
   # Convert date columns to Date format
   wtp$Date <- as.Date(wtp$Date)
   # Add water temperature to grl.tpcb
