@@ -46,6 +46,37 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Select anrsatonic River data ---------------------------------------------------
 anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
 
+# Located northern location & calculate distance to other locations -------
+{
+  # Identify the northern sample based on the maximum Longitude
+  index_of_northern_sample <- which.max(anr$Longitude)
+  # Extract coordinates for the northern sample
+  northern_sample_latitude <- anr$Latitude[index_of_northern_sample]
+  northern_sample_longitude <- anr$Longitude[index_of_northern_sample]
+  # Define source coordinates for the northern sample
+  northern_source <- c(Latitude = northern_sample_latitude,
+                       Longitude = northern_sample_longitude)
+  # Create an sf point for the northern source
+  northern_source_sf <- st_sfc(st_point(c(northern_source["Longitude"],
+                                          northern_source["Latitude"])))
+  # Set the CRS to EPSG:4326
+  st_crs(northern_source_sf) <- 4326
+  # Transform northern_source_sf to UTM Zone 18N (EPSG:32618)
+  northern_source_sf_utm <- st_transform(northern_source_sf, 32618)
+  # Convert the data frame to an sf object for the northern sample (anr)
+  sf_anr <- st_as_sf(anr, coords = c("Longitude", "Latitude"))
+  # Set the CRS to WGS 84 (EPSG:4326)
+  sf_anr <- st_set_crs(sf_anr, 4326)
+  # Transform to UTM Zone 18N
+  sf_anr_utm <- st_transform(sf_anr, 32618)
+  # Calculate distances in meters from each location to northern source
+  distances_meters_anr <- st_distance(sf_anr_utm, northern_source_sf_utm)
+  # Convert distances to kilometers
+  distances_km_anr <- units::set_units(distances_meters_anr, "km")
+  # Extract numeric values and assign to the DistanceToNorthernSource column
+  anr$DistanceToNorthernLocation <- as.numeric(distances_km_anr[, 1])
+}
+
 # Data preparation --------------------------------------------------------
 {
   # Change date format
@@ -60,9 +91,10 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   anr.tpcb <- cbind(factor(anr$SiteID), anr$SampleDate, as.matrix(anr$tPCB),
-                    data.frame(time.day), season.s)
+                    data.frame(time.day), season.s, anr$DistanceToNorthernLocation)
   # Add column names
-  colnames(anr.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
+  colnames(anr.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToNorthernLocation")
 }
 
 # Include USGS flow and temperature data --------------------------------------------------
@@ -81,16 +113,11 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
                        min(anr.tpcb$date), max(anr.tpcb$date))
   temp.1 <- readNWISdv(siteanrN1, paramtemp,
                      min(anr.tpcb$date), max(anr.tpcb$date))
-  # Dont use temp.2
-  # temp.2 <- readNWISdv(siteanrN2, paramtemp,
-  #                   min(anr.tpcb$date), max(anr.tpcb$date))
   # Add USGS data to anr.tpcb.2, matching dates, conversion to m3/s
   anr.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(anr.tpcb$date, flow.1$Date)]
   anr.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(anr.tpcb$date, flow.2$Date)]
   anr.tpcb$temp.1 <- 273.15 + temp.1$X_00010_00003[match(anr.tpcb$date,
                                                          temp.1$Date)]
-  #anr.tpcb$temp.2 <- 273.15 + temp.2$X_Center.of.flow_00010_00003[match(anr.tpcb$date,
-  #                                                                    temp.2$Date)]
 }
 
 # Random Forest Model -----------------------------------------------------
@@ -103,7 +130,7 @@ test_data <- anr.tpcb[-train_indices, ]
 
 # Fit the Model. Flow.3
 rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.1 + flow.2 +
-                             temp.1,
+                             temp.1 + DistanceToNorthernLocation,
                            data = train_data)
 
 # Make Predictions
@@ -138,7 +165,8 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFPerformancetPCB.csv")
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFPerformancetPCBV02.csv",
+          row.names = FALSE)
 
 # Feature Importance
 importance.1 <- importance(rf_model.1)
@@ -155,7 +183,8 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCBV02.csv",
+          row.names = FALSE)
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
@@ -181,5 +210,5 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFtPCBV02.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
