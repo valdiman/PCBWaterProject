@@ -169,7 +169,8 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFObsPredtPCB.csv",
+          row.names = FALSE)
 
 # Create the scatter plot using ggplot2
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
