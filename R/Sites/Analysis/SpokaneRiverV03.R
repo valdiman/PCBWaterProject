@@ -45,7 +45,6 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Select Spokane River data ---------------------------------------------------
 spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
 
-
 # Located eastern location & calculate distance to other locations ---------
 {
   # Identify the eastern sample based on the maximum Latitude
@@ -189,7 +188,7 @@ importance.1 <- randomForest::importance(rf_model.1)
 barplot(importance.1[, 1], names.arg = rownames(importance.1),
         main = "Feature Importance", las = 2, cex.names = 0.7)
 
-# Create a data frame for plotting
+# Create a data frame for plotting and exporting
 plot_data.1 <- data.frame(
   Location = rep("Spokane River", nrow(test_data)),
   Actual = log10(test_data$tPCB),
@@ -198,7 +197,8 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCBV02.csv")
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCBV02.csv",
+          row.names = FALSE)
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
@@ -233,7 +233,7 @@ ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverRFtPCBV02.png",
   # Remove metadata
   spo.pcb <- subset(spo, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  spo.pcb <- subset(spo.pcb, select = -c(A1016:tPCB))
+  spo.pcb <- subset(spo.pcb, select = -c(A1016:DistanceToEasternLocation))
   # Log10 individual PCBs 
   spo.pcb <- log10(spo.pcb)
   # Replace -inf to NA
