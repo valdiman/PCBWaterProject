@@ -70,9 +70,10 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
 }
 
 # Add water temperature data ----------------------------------------------
+# See code: R/ExtractingData/LMMB/WaterTemp.R
 {
   # Read water temperature
-  wtp <- read.csv("Output/Data/Sites/csv/GreatLakes/LakeMichiganWT.csv")
+  wtp <- read.csv("Output/Data/Sites/csv/GreatLakes/WaterTemp/LakeMichiganWT.csv")
   # Convert date columns to Date format
   wtp$Date <- as.Date(wtp$Date)
   # Add water temperature to grl.tpcb
