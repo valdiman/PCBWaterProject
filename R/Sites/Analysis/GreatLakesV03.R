@@ -48,6 +48,7 @@ grl <- wdc[str_detect(wdc$LocationName, 'Lake Michigan Mass Balance'), ]
 # Just get Lake Michigan data, remove data from tributaries
 grl <- grl[!grepl("^Tributary", grl$SiteName), ]
 
+# Calculate central location ---------------------------------------------
 {
   # Calculate the mean latitude and longitude
   center_lat <- mean(grl$Latitude)
@@ -62,14 +63,14 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
   sf_center <- st_as_sf(center_df, coords = c("Longitude", "Latitude"))
   # Set the CRS to WGS 84 (EPSG:4326) for the center
   sf_center <- st_set_crs(sf_center, 4326)
-  # Transform to UTM Zone 17 for the center
-  sf_center_utm <- st_transform(sf_center, 32616)  # UTM Zone 16N
+  # Transform to UTM Zone 16 for the center
+  sf_center_utm <- st_transform(sf_center, 32616)
   # Convert the data frame to an sf object
   sf_grl <- st_as_sf(grl, coords = c("Longitude", "Latitude"))
   # Set the CRS to WGS 84 (EPSG:4326)
   sf_grl <- st_set_crs(sf_grl, 4326)
-  # Transform to UTM Zone 17
-  sf_grl <- st_transform(sf_grl, 32616)  # UTM Zone 16N
+  # Transform to UTM Zone 16
+  sf_grl <- st_transform(sf_grl, 32616)
   # Calculate distances in meters from each location to the center
   distances_meters <- st_distance(sf_grl, sf_center_utm)
   # Convert distances to kilometers
@@ -100,9 +101,10 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
 }
 
 # Add water temperature data ----------------------------------------------
+# See code: R/ExtractingData/LMMB/WaterTemp.R
 {
   # Read water temperature
-  wtp <- read.csv("Output/Data/Sites/csv/GreatLakes/LakeMichiganWT.csv")
+  wtp <- read.csv("Output/Data/Sites/csv/GreatLakes/WaterTemp/LakeMichiganWT.csv")
   # Convert date columns to Date format
   wtp$Date <- as.Date(wtp$Date)
   # Add water temperature to grl.tpcb
@@ -172,7 +174,8 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesRFObsPredtPCB.csv")
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesRFObsPredtPCB.csv",
+          row.names = FALSE)
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
@@ -219,7 +222,7 @@ ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFtPCBV01.png",
                        -which(colSums(is.na(grl.pcb))/nrow(grl.pcb) > 0.7)]
   
   # Create individual code for each site sampled
-  site.numb <- grl$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- factor(grl$SiteID %>% as.factor() %>% as.numeric)
   # Change date format
   SampleDate <- as.Date(grl$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
@@ -236,10 +239,13 @@ ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFtPCBV01.png",
   grl.pcb.1 <- cbind(grl.pcb.1, SampleDate, data.frame(time.day),
                      site.numb, season.s, centroid)
   # Add water temperature to grl.pcb.1
-  grl.pcb.1$temp <- LakeMichiganWT$WTMP_K[match(grl.pcb.1$SampleDate,
-                                                LakeMichiganWT$Date)]
+  grl.pcb.1$temp <- wtp$WTMP_K[match(grl.pcb.1$SampleDate,
+                                     wtp$Date)]
   # Remove samples with temperature = NA
   grl.pcb.2 <- grl.pcb.1[!is.na(grl.pcb.1$temp), ]
+  # Remove metadata not use in the random forest
+  grl.pcb.2 <- grl.pcb.2[, !(names(grl.pcb.2) %in% c("SampleDate"))]
+  
 }
 
 # Set the seed for reproducibility
@@ -278,9 +284,6 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Remove the SampleDate column from the training data
-  train_data <- train_data[, -which(names(train_data) == "SampleDate")]
-  
   # Modeling code using randomForest
   fit <- randomForest(train_data[, 1] ~ ., data = train_data)
   
@@ -304,9 +307,9 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Store the results in the matrix
   rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
   
-  # Create a data frame for each column's results, including R_squared
+  # Create a data frame for each column's results
   col_results <- data.frame(
-    Location = rep("Greate Lakes", length(test_data[, 1])),
+    Location = rep("Great Lakes", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
     Predicted = predictions,
