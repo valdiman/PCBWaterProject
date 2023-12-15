@@ -16,21 +16,16 @@ install.packages("tidyverse")
 }
 
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
-# Data preparation
-# Remove samples (rows) with total PCBs = 0
-wdc.1 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE) == 0), ]
-# Calculate total PCB
-tpcb <- rowSums(wdc.1[, c(14:117)], na.rm = TRUE)
-# Create data.frame
-wdc.2 <- data.frame(
-  SiteID = with(wdc.1, SiteID),
-  date = with(wdc.1, as.Date(SampleDate, format = "%m/%d/%y")),
-  Latitude = with(wdc.1, as.numeric(Latitude)),
-  Longitude = with(wdc.1, as.numeric(Longitude)),
-  tPCB = as.numeric(tpcb/1000),
-  LocationName = with(wdc.1, LocationName) # Add LocationName column
+# Data.frame
+tPCB <- data.frame(
+  SiteID = with(wdc, SiteID),
+  LocationName = with(wdc, LocationName),
+  date = with(wdc, as.Date(SampleDate, format = "%m/%d/%y")),
+  Latitude = with(wdc, as.numeric(Latitude)),
+  Longitude = with(wdc, as.numeric(Longitude)),
+  tPCB = with(wdc, as.numeric(tPCB))
 )
 
 # Shiny app ---------------------------------------------------------------
@@ -53,9 +48,9 @@ server <- function(input, output, session) {
   # Filter the data based on the selected location
   filtered_data <- reactive({
     if (input$location_select == "All") {
-      wdc.2  # Return all data
+      tPCB  # Return all data
     } else {
-      subset(wdc.2, LocationName == input$location_select)  # Filter by selected location
+      subset(tPCB, LocationName == input$location_select)  # Filter by selected location
     }
   })
   
@@ -75,9 +70,9 @@ server <- function(input, output, session) {
   output$data <- renderTable({
     if (!is.null(input$map_marker_click)) {
       siteid <- input$map_marker_click$id
-      filtered_data <- subset(wdc.2, SiteID == siteid)[, c("SiteID", "date", "tPCB")]
+      filtered_data <- subset(tPCB, SiteID == siteid)[, c("SiteID", "date", "tPCB")]
       filtered_data$date <- format(as.Date(filtered_data$date, format = "%m/%d/%y"), "%m-%d-%Y")
-      colnames(filtered_data)[3] <- paste("\u03A3", "PCB ", "(ng/L)", sep = "")
+      colnames(filtered_data)[3] <- paste("\u03A3", "PCB ", "(pg/L)", sep = "")
       
       # Sort the data by date
       filtered_data <- filtered_data[order(as.Date(filtered_data$date, format = "%m-%d-%Y")), ]
@@ -113,7 +108,7 @@ server <- function(input, output, session) {
       
       p <- ggplot(data_agg, aes(x = week, y = tPCB)) +
         geom_col(fill = "steelblue", width = width) +
-        labs(x = NULL, y = paste("\u03A3", "PCB (ng/L)", sep = "")) +
+        labs(x = NULL, y = paste("\u03A3", "PCB (pg/L)", sep = "")) +
         theme_bw() +
         theme(
           axis.text.x = element_text(angle = 90, hjust = 1),
@@ -136,8 +131,8 @@ server <- function(input, output, session) {
   
   output$plot_text <- renderPrint({
     if (!is.null(input$map_marker_click)) {
-      cat("Plots are showing the aggregated data per week.\n")
-      cat("If the maximum tPCB is too large (>80000 ng/L), the y-axis changes to log10 scale.\n")
+      cat("Plots are showing the mean data per week.\n")
+      cat("If the maximum tPCB is too large (>50,000 pg/L), the y-axis changes to log10 scale.\n")
       cat("Source:")
     }
   })  
