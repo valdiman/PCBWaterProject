@@ -235,90 +235,98 @@ season <- mic.pcb.1$season
 site <- mic.pcb.1$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(mic.pcb.2[1,]), ncol = 18)
+lme.pcb <- matrix(nrow = length(mic.pcb.2[1,]), ncol = 19)
 
 # Perform LME
+for (i in 1:length(mic.pcb.2[1,])) {
+  fit <- lmer(mic.pcb.2[, i] ~ 1 + time + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"))
+  lme.pcb[i, 1] <- fixef(fit)[1] # intercept
+  lme.pcb[i, 2] <- summary(fit)$coef[1, "Std. Error"] # intercept error
+  lme.pcb[i, 3] <- summary(fit)$coef[1, "Pr(>|t|)"] # intercept p-value
+  lme.pcb[i, 4] <- fixef(fit)[2] # time
+  lme.pcb[i, 5] <- summary(fit)$coef[2, "Std. Error"] # time error
+  lme.pcb[i, 6] <- summary(fit)$coef[2, "Pr(>|t|)"] # time p-value
+  lme.pcb[i, 7] <- fixef(fit)[3] # season 2
+  lme.pcb[i, 8] <- summary(fit)$coef[3, "Std. Error"] # season 2 error
+  lme.pcb[i, 9] <- summary(fit)$coef[3, "Pr(>|t|)"] # # season 2 p-value
+  lme.pcb[i, 10] <- fixef(fit)[4] # season 3
+  lme.pcb[i, 11] <- summary(fit)$coef[4, "Std. Error"] # season 3 error
+  lme.pcb[i, 12] <- summary(fit)$coef[4, "Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i, 13] <- -log(2)/lme.pcb[i, 4]/365 # t0.5
+  lme.pcb[i, 14] <- abs(-log(2)/lme.pcb[i, 4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i, 15] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i, 16] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i, 17] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i, 18] <- shapiro.test(resid(fit))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(fit)
+  # Calculate residuals and RMSE
+  residuals <- mic.pcb.2[, i] - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.pcb[i, 19] <- sqrt(mean(residuals[non_na_indices]^2))
+}
+
+# Transfor result to data.frame
+lme.pcb <- as.data.frame(lme.pcb)
+
+# Add factor of 2
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(mic.pcb.2[,1]),
+                      ncol = length(mic.pcb.2[1,]))
+
+# Create a vector to store factor2.pcb for each congener
+factor2_vector <- numeric(length = length(mic.pcb.2[1,]))
+
 for (i in 1:length(mic.pcb.2[1,])) {
   fit <- lmer(mic.pcb.2[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"))
-  lme.pcb[i,1] <- fixef(fit)[1] # intercept
-  lme.pcb[i,2] <- summary(fit)$coef[1,"Std. Error"] # intercept error
-  lme.pcb[i,3] <- summary(fit)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.pcb[i,4] <- fixef(fit)[2] # time
-  lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
-  lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.pcb[i,7] <- fixef(fit)[3] # season 2
-  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 2 error
-  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # # season 2 p-value
-  lme.pcb[i,10] <- fixef(fit)[4] # season 3
-  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 3 error
-  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 3 p-value
-  lme.pcb[i,13] <- -log(2)/lme.pcb[i,4]/365 # t0.5
-  lme.pcb[i,14] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
-  lme.pcb[i,15] <- as.data.frame(VarCorr(fit))[1,'sdcor']
-  lme.pcb[i,16] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
-  lme.pcb[i,17] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
-  lme.pcb[i,18] <- shapiro.test(resid(fit))$p.value
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  
+  lme.fit.pcb[,i] <- fitted(fit)
+  
+  # Calculate factor2 for each congener
+  factor2 <- 10^(lme.fit.pcb[, i])/10^(mic.pcb.2[, i])
+  factor2_vector[i] <- sum(factor2 > 0.5 & factor2 < 2,
+                           na.rm = TRUE) / (sum(!is.na(factor2))) * 100
 }
 
-# Just 3 significant figures
+# Add factor 2 to lme.pcb data.frame
+lme.pcb$factor2 <- factor2_vector
+
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+
+lme.pcb[, 1:20] <- formatC(signif(as.matrix(lme.pcb[, 1:20]), digits = 3),
+                           format = "f")
+
 # Add congener names
 congeners <- colnames(mic.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "season2", "season2.error", "season2.pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
+                       "RMSE", "Factor2")
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
 # Get the congeners that are not showing normality
-lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.045, ]
-lme.pcb <- lme.pcb[lme.pcb$Normality > 0.045, ]
+lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
+lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/21Mich/21MichLmePCB.csv")
-
-# Generate predictions
-# Select congeners that are not showing normality to be remove from pass.pcb.2
-df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
-# Get column indices to remove
-cols_to_remove <- which(names(mic.pcb.2) %in% df$names_to_remove)
-# Remove columns from che.pcb.2 with congeners that don't show normality
-mic.pcb.3 <- mic.pcb.2[, -cols_to_remove]
-
-# Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(mic.pcb.3[,1]),
-                      ncol = length(mic.pcb.3[1,]))
-
-for (i in 1:length(mic.pcb.3[1,])) {
-  fit <- lmer(mic.pcb.3[,i] ~ 1 + time + season + (1|site),
-              REML = FALSE,
-              control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                    check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"),
-              na.action = na.exclude)
-  lme.fit.pcb[,i] <- fitted(fit)
-}
-
-# Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(mic.pcb.3)/10^(lme.fit.pcb)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
-# Convert the vector to a data frame
-factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
-
-# Export results
-write.csv(factor2.pcb,
-          file = "Output/Data/Sites/csv/21Mich/21MichFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)
