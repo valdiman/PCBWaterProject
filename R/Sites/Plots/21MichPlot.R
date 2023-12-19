@@ -1,4 +1,4 @@
-## Water PCB concentrations data analysis per site
+## Water PCB concentrations plots per site
 ## Data from DEQ Michigan
 
 # Install packages
@@ -35,12 +35,11 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  mic.tpcb <- cbind(factor(mic$SiteID), mic$SampleDate,
-                    mic$Latitude, mic$Longitude, as.matrix(mic$tPCB),
+  mic.tpcb <- cbind(factor(mic$SiteID), mic$SampleDate, as.matrix(mic$tPCB),
                     data.frame(time.day), site.numb, season.s)
   # Add column names
-  colnames(mic.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+  colnames(mic.tpcb) <- c("SiteID", "date", "tPCB", "time",
+                          "site.code", "season")
 }
 
 # General plots -------------------------------------------------------------------
