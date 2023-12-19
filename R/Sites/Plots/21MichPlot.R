@@ -7,7 +7,6 @@ install.packages("scales")
 install.packages("stringr")
 install.packages("zoo")
 
-
 # Load libraries
 {
   library(ggplot2)
