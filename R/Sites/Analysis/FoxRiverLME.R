@@ -1,6 +1,6 @@
 ## Water PCB concentrations data analysis
 ## Fox River 2005 - 2018
-## Only Linear Mixed-Effects Model (lme) and
+## Only Linear Mixed-Effects Model (lme)
 
 # Install packages
 install.packages("tidyverse")
@@ -442,7 +442,7 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 # Export results
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv")
 
-# Individual PCB congener plots -------------------------------------------
+# Estimate overall factor of 2 between observations and predictions
 # Generate predictions
 # Select congeners that are not showing normality to be remove from fox.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
@@ -465,7 +465,7 @@ for (i in 1:length(fox.pcb.4[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Estimate the overall factor of 2 between observations and predictions
+# Factor of 2
 factor2 <- 10^(fox.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
