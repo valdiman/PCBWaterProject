@@ -1,7 +1,6 @@
 ## Water PCB concentrations data analysis
 ## Fox River 2005 - 2018
-## Only Linear Mixed-Effects Model (lme), using quadratic for flow, and 
-## log10SumPCB
+## Only Linear Mixed-Effects Model (lme) and using quadratic for flow
 
 # Install packages
 install.packages("tidyverse")
@@ -112,146 +111,9 @@ lme.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + poly(flow, 2) + tem + season +
 
 # See results
 summary(lme.fox.tpcb)
-# Look at residuals
-{
-  res.fox.tpcb <- resid(lme.fox.tpcb) # get list of residuals
-  # Create Q-Q plot for residuals
-  # Create pdf file
-  pdf("Output/Plots/Sites/Q-Q/FoxRiverQ-QtPCBV02.pdf")
-  qqnorm(res.fox.tpcb,
-         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
-                                 "PCB)")))
-  # Add a straight diagonal line to the plot
-  qqline(res.fox.tpcb)
-  dev.off()
-}
 
 # Shapiro-Wilk normality  test
-shapiro.test(resid(lme.fox.tpcb)) # p-value < 0.05!
-
-# Create matrix to store results from lme analysis
-{
-  lme.tpcb <- matrix(nrow = 1, ncol = 27)
-  lme.tpcb[1] <- fixef(lme.fox.tpcb)[1] # intercept
-  lme.tpcb[2] <- summary(lme.fox.tpcb)$coef[1,"Std. Error"] # intercept error
-  lme.tpcb[3] <- summary(lme.fox.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.tpcb[4] <- fixef(lme.fox.tpcb)[2] # time
-  lme.tpcb[5] <- summary(lme.fox.tpcb)$coef[2,"Std. Error"] # time error
-  lme.tpcb[6] <- summary(lme.fox.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.fox.tpcb)[3] # flow linear
-  lme.tpcb[8] <- summary(lme.fox.tpcb)$coef[3,"Std. Error"] # flow error
-  lme.tpcb[9] <- summary(lme.fox.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
-  lme.tpcb[10] <- fixef(lme.fox.tpcb)[4] # flow quadratic
-  lme.tpcb[11] <- summary(lme.fox.tpcb)$coef[4,"Std. Error"] # flow error
-  lme.tpcb[12] <- summary(lme.fox.tpcb)$coef[4,"Pr(>|t|)"] # flow p-value
-  lme.tpcb[13] <- fixef(lme.fox.tpcb)[5] # temperature
-  lme.tpcb[14] <- summary(lme.fox.tpcb)$coef[5,"Std. Error"] # temperature error
-  lme.tpcb[15] <- summary(lme.fox.tpcb)$coef[5,"Pr(>|t|)"] # temperature p-value
-  lme.tpcb[16] <- fixef(lme.fox.tpcb)[6] # season 2
-  lme.tpcb[17] <- summary(lme.fox.tpcb)$coef[6,"Std. Error"] # season 2 error
-  lme.tpcb[18] <- summary(lme.fox.tpcb)$coef[6,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[19] <- fixef(lme.fox.tpcb)[7] # season 3
-  lme.tpcb[20] <- summary(lme.fox.tpcb)$coef[7,"Std. Error"] # season 3 error
-  lme.tpcb[21] <- summary(lme.fox.tpcb)$coef[7,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[22] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[23] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[24] <- as.data.frame(VarCorr(lme.fox.tpcb))[1,'sdcor']
-  lme.tpcb[25] <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2m']
-  lme.tpcb[26] <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2c']
-  lme.tpcb[27] <- shapiro.test(resid(lme.fox.tpcb))$p.value
-}
-
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                       "Intercept.pv", "time", "time.error", "time.pv",
-                       "flow.l", "flow.l.error", "flow.l.pv", "flow.q",
-                       "flow.q.error", "flow.q.pv", "temperature",
-                       "temperature.error", "temperature.pv", "season2",
-                       "season2.error", "season2, pv", "season3",
-                       "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
-
-# Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCBV02.csv")
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
-# Add column name
-colnames(fit.lme.values.fox.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-fox.tpcb.1$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = fox.tpcb.1$tPCB, predicted = fox.tpcb.1$predicted)
-predic.obs <- data.frame(Location = fox$LocationName[1], predic.obs)
-# Save new data
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredtPCBV02.csv")
-
-# Plot prediction vs. observations, 1:1 line
-tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^4.5),
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^4.5),
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
-              linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
-              linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 50, y = 10^4.3,
-           label = expression(atop("Fox River (R"^2*"= 0.80)",
-                                   paste("t"[1/2]*" = 12 ± 2 (yr)"))),
-           size = 4, fontface = 2)
-
-# Print plot
-print(tPCBObsPred)
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCBV02.png",
-       plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
-
-# Plot residuals vs. predictions
-{
-  # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeFoxRivertPCBV02.png", width = 800,
-      height = 600)
-  # Create plot
-  plot(fox.tpcb.1$predicted, resid(lme.fox.tpcb),
-       points(fox.tpcb.1$predicted, resid(lme.fox.tpcb), pch = 16, 
-              col = "white"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  # Add lines to the plot
-  abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(0, 5000, 1000), col = "grey")
-  # Close the PNG graphics device
-  dev.off()
-  }
-
-# Estimate a factor of 2 between observations and predictions
-fox.tpcb.1$factor2 <- fox.tpcb.1$tPCB/fox.tpcb.1$predicted
-factor2.tpcb <- nrow(fox.tpcb.1[fox.tpcb.1$factor2 > 0.5 & fox.tpcb.1$factor2 < 2,
-                              ])/length(fox.tpcb.1[,1])*100
-
-# Convert the vector to a data frame
-factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
-
-# Export results
-write.csv(factor2.tpcb,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverFactor2tPCBV02.csv")
+shapiro.test(resid(lme.fox.tpcb)) # p-value < 0.05! Doesn't work
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -319,7 +181,7 @@ season <- fox.pcb.2$season
 site <- fox.pcb.2$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 27)
+lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 28)
 
 # Perform LME
 for (i in 1:length(fox.pcb.3[1,])) {
@@ -355,22 +217,64 @@ for (i in 1:length(fox.pcb.3[1,])) {
     lme.pcb[i,25] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
     lme.pcb[i,26] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
     lme.pcb[i,27] <- shapiro.test(resid(fit))$p.value
+    # Calculate RMSE
+    # Predictions
+    predictions <- predict(fit)
+    # Calculate residuals and RMSE
+    residuals <- fox.pcb.3[, i] - predictions
+    non_na_indices <- !is.na(residuals)
+    lme.pcb[i, 28] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
 # Just 3 significant figures
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+
+# Transform result to data.frame so factor 2 can be included
+lme.pcb <- as.data.frame(lme.pcb)
+
+# Add factor of 2
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(fox.pcb.3[,1]),
+                      ncol = length(fox.pcb.3[1,]))
+
+# Create a vector to store factor 2 for each congener
+factor2_vector <- numeric(length = length(fox.pcb.3[1,]))
+
+for (i in 1:length(fox.pcb.3[1,])) {
+  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  
+  lme.fit.pcb[,i] <- fitted(fit)
+  
+  # Calculate factor2 for each congener
+  factor2 <- 10^(lme.fit.pcb[, i])/10^(fox.pcb.3[, i])
+  factor2_vector[i] <- sum(factor2 > 0.5 & factor2 < 2,
+                           na.rm = TRUE) / (sum(!is.na(factor2))) * 100
+}
+
+# Add factor 2 to lme.pcb data.frame
+lme.pcb$factor2 <- factor2_vector
+
+# Change number format of factor 2 to 3 significant figures
+lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
+
 # Add congener names
 congeners <- colnames(fox.pcb.3)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
-                       "flow.l", "flow.l.error", "flow.l.pv", "flow.q",
-                       "flow.q.error", "flow.q.pv", "temperature",
-                       "temperature.error", "temperature.pv", "season2",
-                       "season2.error", "season2, pv", "season3",
-                       "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "flow", "flow.error", "flow.pv", "flow2", "flow2.error",
+                       "flow2.pv", "temperature", "temperature.error",
+                       "temperature.pv", "season2", "season2.error",
+                       "season2, pv", "season3", "season3.error", "season3.pv",
+                       "t05", "t05.error", "RandonEffectSiteStdDev", "R2nR",
+                       "R2R", "Normality", "RMSE", "Factor2")
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
@@ -380,8 +284,9 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCBV02.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverLmePCB.csv")
 
+# Estimate overall factor of 2 between observations and predictions
 # Generate predictions
 # Select congeners that are not showing normality to be remove from fox.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
@@ -392,10 +297,10 @@ fox.pcb.4 <- fox.pcb.3[, -cols_to_remove]
 
 # Create matrix to store results
 lme.fit.pcb <- matrix(nrow = length(fox.pcb.4[,1]),
-                  ncol = length(fox.pcb.4[1,]))
+                      ncol = length(fox.pcb.4[1,]))
 
 for (i in 1:length(fox.pcb.4[1,])) {
-  fit <- lmer(fox.pcb.4[,i] ~ 1 + time + poly(flow, 2) + temper + season + (1|site),
+  fit <- lmer(fox.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -404,17 +309,10 @@ for (i in 1:length(fox.pcb.4[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Estimate a factor of 2 between observations and predictions
+# Factor of 2
 factor2 <- 10^(fox.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
-# Convert the vector to a data frame
-factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
-
-# Export results
-write.csv(factor2.pcb,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverFactor2PCBV02.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)
@@ -453,8 +351,8 @@ for (i in 2:length(df1)) {
     annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/FoxRiver/", col_name, "V02.png"), plot = p,
-         width = 6, height = 6, dpi = 500)
+  ggsave(paste0("Output/Plots/Sites/ObsPred/FoxRiver/Quadratic/", col_name, ".png"),
+         plot = p, width = 6, height = 6, dpi = 500)
 }
 
 # (2)
@@ -490,7 +388,7 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/combined_plotV02.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/Quadratic/combined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
 # (3)
@@ -523,7 +421,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Fox River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredPCBV02.csv")
+          file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
@@ -545,11 +443,11 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 1, y = 10^3.7,
            label = expression(atop("Fox River",
-                                   paste("17 PCB congeners (n = 1024 pairs)"))),
+                                   paste("18 PCB congeners (n = 1024 pairs)"))),
            size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredPCBV02.png",
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/Quadratic/FoxRiverObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
