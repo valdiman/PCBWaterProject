@@ -116,9 +116,9 @@ time <- fox.tpcb.1$time
 site <- fox.tpcb.1$site.code
 season <- fox.tpcb.1$season
 flow <- fox.tpcb.1$flow
-tem <- fox.tpcb.1$temp
+wtemp <- fox.tpcb.1$temp
 # tPCB vs. time + season + flow + temp + site
-lme.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
+lme.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + wtemp + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
@@ -335,7 +335,7 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.png",
 # Get covariates
 time <- fox.pcb.2$time
 flow <- fox.pcb.2$flow
-temper <- fox.pcb.2$temp
+wtemp <- fox.pcb.2$temp
 season <- fox.pcb.2$season
 site <- fox.pcb.2$site.numb
 
@@ -344,7 +344,7 @@ lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 25)
 
 # Perform LME
 for (i in 1:length(fox.pcb.3[1,])) {
-    fit <- lmer(fox.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
+    fit <- lmer(fox.pcb.3[,i] ~ 1 + time + flow + wtemp + season + (1|site),
                 REML = FALSE,
                 control = lmerControl(check.nobs.vs.nlev = "ignore",
                                       check.nobs.vs.rankZ = "ignore",
@@ -397,7 +397,7 @@ lme.fit.pcb <- matrix(nrow = length(fox.pcb.3[,1]),
 factor2_vector <- numeric(length = length(fox.pcb.3[1,]))
 
 for (i in 1:length(fox.pcb.3[1,])) {
-  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + season + (1|site),
+  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + flow + wtemp + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -456,7 +456,7 @@ lme.fit.pcb <- matrix(nrow = length(fox.pcb.4[,1]),
                   ncol = length(fox.pcb.4[1,]))
 
 for (i in 1:length(fox.pcb.4[1,])) {
-  fit <- lmer(fox.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
+  fit <- lmer(fox.pcb.4[,i] ~ 1 + time + flow + wtemp + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -466,7 +466,7 @@ for (i in 1:length(fox.pcb.4[1,])) {
 }
 
 # Factor of 2
-factor2 <- 10^(fox.pcb.4)/10^(lme.fit.pcb)
+factor2 <- 10^(lme.fit.pcb)/10^(fox.pcb.4)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
