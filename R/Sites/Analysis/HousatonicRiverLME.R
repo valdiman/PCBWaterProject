@@ -1,0 +1,136 @@
+## Water PCB concentrations data analysis
+## Housatonic River
+## Only Linear Mixed-Effects Model (lme)
+## Aroclors 1254 and 1260, no congener analysis
+## GE facility map @https://semspub.epa.gov/work/01/574882.pdf
+
+# Install packages
+install.packages("tidyverse")
+install.packages("ggplot2")
+install.packages("robustbase")
+install.packages("dplyr")
+install.packages("tibble")
+install.packages("Matrix")
+install.packages("lme4")
+install.packages("MuMIn")
+install.packages("lmerTest")
+install.packages("zoo")
+install.packages("dataRetrieval")
+install.packages("reshape")
+install.packages("tidyr")
+install.packages('patchwork')
+install.packages("scales")
+install.packages("sf")
+install.packages("sfheaders")
+
+# Load libraries
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(lme4) # performs lme
+  library(MuMIn) # gets Rs from lme
+  library(lmerTest) # gets the p-value from lme
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
+  library(tidyr) # function gather
+  library(patchwork) # combine plots
+  library(sf) # Create file to be used in Google Earth
+  library(sfheaders) # Create file to be used in Google Earth
+}
+
+# Read data ---------------------------------------------------------------
+# Data in pg/L
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
+
+# Select Housatonic River data ---------------------------------------------------
+hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
+
+# Data preparation --------------------------------------------------------
+{
+  # Change date format
+  hou$SampleDate <- as.Date(hou$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(hou$SampleDate) - min(as.Date(hou$SampleDate)))
+  # Create individual code for each site sampled
+  site.numb <- hou$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(hou$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  hou.tpcb <- cbind(factor(hou$SiteID), hou$SampleDate,
+                    hou$Latitude, hou$Longitude, as.matrix(hou$tPCB),
+                    data.frame(time.day), site.numb, season.s)
+  # Add column names
+  colnames(hou.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                          "tPCB", "time", "site.code", "season")
+}
+
+# Get coordinates per site to plot in Google Earth
+location <- hou.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
+# Average tPCB per site
+location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                      data = location, mean)
+# Create an sf data frame
+sf_location <- st_as_sf(location, coords = c("Longitude", "Latitude"))
+# Set the CRS to WGS 84 (EPSG:4326)
+sf_location <- st_set_crs(sf_location, 4326)
+# Define the full file path for the KML file
+kmlFilePath <- "Output/Data/Sites/GoogleEarth/HousatonicRiverLocations.kml"
+# Write the KML file to the specified directory
+st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
+
+# Include USGS flow data --------------------------------------------------
+# Include flow data from USGS station Housatonic River
+{
+  siteHouN1 <- "01197000" # EAST BRANCH HOUSATONIC RIVER AT COLTSVILLE, MA
+  siteHouN2 <- "01197500" # HOUSATONIC RIVER NEAR GREAT BARRINGTON, MA
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(siteHouN1, paramflow,
+                       min(hou.tpcb$date), max(hou.tpcb$date))
+  flow.2 <- readNWISdv(siteHouN2, paramflow,
+                       min(hou.tpcb$date), max(hou.tpcb$date))
+  # Add USGS data to hou.tpcb, matching dates (m3/s, 0.03 conversion factor)
+  hou.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(hou.tpcb$date,
+                                                     flow.1$Date)]
+  hou.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(hou.tpcb$date,
+                                                     flow.2$Date)]
+}
+
+# tPCB Regressions --------------------------------------------------------
+# Perform Linear Mixed-Effects Model (lme)
+# Get variables
+tpcb <- hou.tpcb$tPCB
+time <- hou.tpcb$time
+flow <- hou.tpcb$flow.1
+site <- hou.tpcb$site.code
+season <- hou.tpcb$season
+lme.hou.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + season + (1|site),
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE="ignore"))
+
+# See results
+summary(lme.hou.tpcb)
+
+# Look at residuals
+{
+  res.hou.tpcb <- resid(lme.hou.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.hou.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.hou.tpcb)
+}
+# Shapiro test
+shapiro.test(resid(lme.hou.tpcb))
+# Lme does not provide a good model for the data.
