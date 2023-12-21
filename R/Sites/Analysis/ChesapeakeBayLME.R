@@ -100,11 +100,11 @@ st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 # Get variables
 tpcb <- che.tpcb$tPCB
 time <- che.tpcb$time
-wtmp <- che.tpcb$temp
+wtemp <- che.tpcb$temp
 site <- che.tpcb$site.code
 season <- che.tpcb$season
 # tPCB vs. time + season + flow + temp + site
-lme.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + wtmp + season + (1|site),
+lme.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + wtemp + season + (1|site),
                      REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
                                            check.nobs.vs.rankZ = "ignore",
