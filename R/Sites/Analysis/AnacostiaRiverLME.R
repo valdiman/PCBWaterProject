@@ -118,12 +118,12 @@ tpcb <- anr.tpcb$tPCB
 time <- anr.tpcb$time
 flow.1 <- anr.tpcb$flow.1 # use this one
 # flow.2 <- anr.tpcb$flow.2
-temp <- anr.tpcb$temp.1
+wtemp <- anr.tpcb$temp.1
 site <- anr.tpcb$site.code
 season <- anr.tpcb$season
 
 # tPCB vs. time + flow + season + site
-lme.anr.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow.1 + temp + season + (1|site),
+lme.anr.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow.1 + wtemp + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
