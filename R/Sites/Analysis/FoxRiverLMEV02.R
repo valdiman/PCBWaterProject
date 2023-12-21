@@ -241,8 +241,8 @@ lme.fit.pcb <- matrix(nrow = length(fox.pcb.3[,1]),
 factor2_vector <- numeric(length = length(fox.pcb.3[1,]))
 
 for (i in 1:length(fox.pcb.3[1,])) {
-  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + season + (1|site),
-              REML = FALSE,
+  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + poly(flow, 2) + temper + season +
+                (1|site), REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
                                     check.nobs.vs.nRE="ignore"),
@@ -300,8 +300,8 @@ lme.fit.pcb <- matrix(nrow = length(fox.pcb.4[,1]),
                       ncol = length(fox.pcb.4[1,]))
 
 for (i in 1:length(fox.pcb.4[1,])) {
-  fit <- lmer(fox.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
-              REML = FALSE,
+  fit <- lmer(fox.pcb.4[,i] ~ 1 + time + poly(flow, 2) + temper + season +
+                (1|site), REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
                                     check.nobs.vs.nRE="ignore"),
