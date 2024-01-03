@@ -41,15 +41,11 @@ install.packages("tidyr")
 # Read data ---------------------------------------------------------------
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
+
 # Extract sample site locations -------------------------------------------
 # Average tPCB per sample site
 tpcb.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                       data = wdc, mean)
-
-# USA/State maps -------------------------------------------------------------
-us <- map_data("usa")
-states <- map_data("state")
-counties <- map_data("county")
 
 # Find number of samples per StateSampled
 wdc.2 <- wdc %>%
@@ -66,6 +62,11 @@ wdc.4 <- wdc %>%
 
 # Convert wdc.4 to long format
 wdc.5 <- gather(wdc.4, key = "Variable", value = "Value", -LocationName)
+
+# USA/State maps -------------------------------------------------------------
+us <- map_data("usa")
+states <- map_data("state")
+counties <- map_data("county")
 
 # (1) Map of US with locations
 maploc <- ggplot() +
@@ -100,8 +101,6 @@ ggsave("Output/Maps/Global/maplocV05.pdf", plot = maploc,
 maptPCB <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
                color = "black", fill = NA) +
-  geom_polygon(data = counties, aes(x = long, y = lat, group = group),
-               color = "grey", fill = NA) +  # County boundaries
   geom_path(data = states, aes(x = long, y = lat, group = group),
             colour = "black") +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude,
@@ -133,7 +132,7 @@ maptPCB <- ggplot() +
 print(maptPCB)  # Print the plot
 
 # Save the plot as PDF
-ggsave("Output/Maps/Global/maptPCBV06.pdf", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBV07.pdf", plot = maptPCB,
        width = 14, height = 4)
 
 # Individual PCB Maps -----------------------------------------------------
@@ -459,9 +458,11 @@ ggsave("Output/Maps/Global/mapPCB182.pdf", plot = mapPCB182,
 # Specific locations ------------------------------------------------------
 # Version 1
 # Midwest
-mid.west <- subset(wdc, LocationName %in% c("Fox River", "Kalamazoo River",
+mid.west <- subset(wdc,
+                   LocationName %in% c("21Mich", "Fox River", "Kalamazoo River",
                                             "Lake Michigan Mass Balance",
-                                            "Indiana Harbor and Ship Canal"))
+                                            "Indiana Harbor and Ship Canal",
+                                            "USGS (Wisconsin)"))
 
 mid.west.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                           data = mid.west, mean)
@@ -475,16 +476,16 @@ maptPCB <- ggplot() +
             colour = "black") +
   geom_point(data = mid.west.ave, aes(x = Longitude, y = Latitude,
                                       fill = tPCB), alpha = 1, color  = "black",
-             shape = 21, size = 2, stroke = 0.75) +
+             shape = 21, size = 3, stroke = 0.75) +
   scale_fill_viridis_c(
     name = element_blank(),
-    limits = c(30, 1000000),
+    limits = c(20, 730000),
     trans = "log10",
     labels = scales::comma,
     begin = 1,  # Adjust the starting color (lower value)
     end = 0.001     # Adjust the ending color (higher value)
   ) +
-  coord_fixed(1.3, xlim = c(-89, -84.6), ylim = c(41.5, 45.9)) +  # Adjust these values accordingly
+  coord_fixed(1.3, xlim = c(-89.1, -81), ylim = c(41.5, 47.2)) +  # Adjust these values accordingly
   theme_minimal() +
   theme(
     axis.text = element_blank(),
@@ -494,23 +495,22 @@ maptPCB <- ggplot() +
     panel.border = element_blank(),
     legend.key.width = unit(0.75, "lines"),
     legend.key.height = unit(3, "lines"),
-    legend.position = c(1.25, 0.55),  # Adjust the legend position
+    legend.position = c(1.0, 0.55),  # Adjust the legend position
     legend.text = element_text(size = 18),  # Adjust the size of legend labels
     legend.title = element_text(size = 18),
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold",
                               margin = margin(b = 10))  # Adjust title position
   ) +
-  ggtitle("(X) Fox & Kalamazzo Rivers, LMMB & IHSC")
+  ggtitle("(X) Fox & Kalamazzo Rivers, LMMB, IHSC, MI & WI")
 
 print(maptPCB)
 
 # Save the plot as PDF
-ggsave("Output/Maps/Global/maptPCBLMV01.pdf", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBMidWestV01.pdf", plot = maptPCB,
        width = 14, height = 4)
 
-# Housatonic Hudson & Passaic Rivers
-hhp <- subset(wdc, LocationName %in% c("Housatonic River", "Hudson River",
-                                       "Passaic River"))
+# Housatonic & Hudson Rivers
+hhp <- subset(wdc, LocationName %in% c("Housatonic River", "Hudson River"))
 
 hhp.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                      data = hhp, mean)
@@ -524,16 +524,16 @@ maptPCB <- ggplot() +
             colour = "black") +
   geom_point(data = hhp.ave, aes(x = Longitude, y = Latitude,
                                  fill = tPCB), alpha = 1, color  = "black",
-             shape = 21, size = 2, stroke = 0.75) +
+             shape = 21, size = 3, stroke = 0.75) +
   scale_fill_viridis_c(
     name = element_blank(),
-    limits = c(40, 600000),
+    limits = c(1000, 600000),
     trans = "log10",
     labels = scales::comma,
     begin = 1,  # Adjust the starting color (lower value)
     end = 0.001     # Adjust the ending color (higher value)
   ) +
-  coord_fixed(1.3, xlim = c(-74.9, -70.4), ylim = c(38.8, 43.3)) +  # Adjust these values accordingly
+  coord_fixed(1.3, xlim = c(-73.9, -70.1), ylim = c(41.55, 43.3)) +  # Adjust these values accordingly
   theme_minimal() +
   theme(
     axis.text = element_blank(),
@@ -543,18 +543,68 @@ maptPCB <- ggplot() +
     panel.border = element_blank(),
     legend.key.width = unit(0.75, "lines"),
     legend.key.height = unit(3, "lines"),
-    legend.position = c(1.3, 0.55),  # Adjust the legend position
+    legend.position = c(0.55, 0.55),  # Adjust the legend position
     legend.text = element_text(size = 18),  # Adjust the size of legend labels
     legend.title = element_text(size = 18),
+    legend.background = element_rect(color = "white"),
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold",
                               margin = margin(b = 10))  # Adjust title position
   ) +
-  ggtitle("(X) Housatonic, Hudson & Passaic Rivers")
+  ggtitle("(X) Housatonic & Hudson Rivers")
 
 print(maptPCB)
 
 # Save the plot as PDF
-ggsave("Output/Maps/Global/maptPCBHHPV02.pdf", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBHHV02.pdf", plot = maptPCB,
+       width = 14, height = 4)
+
+# Passaic River
+pas <- subset(wdc, LocationName %in% c("Passaic River"))
+
+pas.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                     data = pas, mean)
+
+maptPCB <- ggplot() +
+  geom_polygon(data = us, aes(x = long, y = lat, group = group),
+               color = "black", fill = NA) +
+  geom_polygon(data = counties, aes(x = long, y = lat, group = group),
+               color = "grey", fill = NA) +  # County boundaries
+  geom_path(data = states, aes(x = long, y = lat, group = group),
+            colour = "black") +
+  geom_point(data = pas.ave, aes(x = Longitude, y = Latitude,
+                                 fill = tPCB), alpha = 1, color  = "black",
+             shape = 21, size = 3, stroke = 0.75) +
+  scale_fill_viridis_c(
+    name = element_blank(),
+    limits = c(50, 300000),
+    trans = "log10",
+    labels = scales::comma,
+    begin = 1,  # Adjust the starting color (lower value)
+    end = 0.001     # Adjust the ending color (higher value)
+  ) +
+  coord_fixed(1.3, xlim = c(-74.3, -73.5), ylim = c(40.0, 40.97)) +  # Adjust these values accordingly
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.key.width = unit(0.75, "lines"),
+    legend.key.height = unit(3, "lines"),
+    legend.position = c(0.9, 0.55),  # Adjust the legend position
+    legend.text = element_text(size = 18),  # Adjust the size of legend labels
+    legend.title = element_text(size = 18),
+    legend.background = element_rect(color = "white"),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold",
+                              margin = margin(b = 10))  # Adjust title position
+  ) +
+  ggtitle("(X) Passaic River")
+
+print(maptPCB)
+
+# Save the plot as PDF
+ggsave("Output/Maps/Global/maptPCBPasRiverV01.pdf", plot = maptPCB,
        width = 14, height = 4)
 
 # North West
@@ -572,7 +622,7 @@ maptPCB <- ggplot() +
             colour = "black") +
   geom_point(data = now.ave, aes(x = Longitude, y = Latitude,
                                  fill = tPCB), alpha = 1, color  = "black",
-             shape = 21, size = 2, stroke = 0.75) +
+             shape = 21, size = 3, stroke = 0.75) +
   scale_fill_viridis_c(
     name = element_blank(),
     limits = c(80, 2000),
@@ -581,7 +631,7 @@ maptPCB <- ggplot() +
     begin = 1,  # Adjust the starting color (lower value)
     end = 0.001     # Adjust the ending color (higher value)
   ) +
-  coord_fixed(1.3, xlim = c(-124.2, -121.7), ylim = c(45.5, 47.8)) +  # Adjust these values accordingly
+  coord_fixed(1.3, xlim = c(-124.2, -122.2), ylim = c(45.5, 47.6)) +  # Adjust these values accordingly
   theme_minimal() +
   theme(
     axis.text = element_blank(),
@@ -602,7 +652,7 @@ maptPCB <- ggplot() +
 print(maptPCB)
 
 # Save the plot as PDF
-ggsave("Output/Maps/Global/maptPCBNOWV02.pdf", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBNOWV03.pdf", plot = maptPCB,
        width = 14, height = 4)
 
 # Version 2
