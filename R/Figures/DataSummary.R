@@ -11,7 +11,7 @@ install.packages("RColorBrewer")
   library(RColorBrewer)
 }
 
-# Read generated data
+# Read generated data from LME Model
 {
   # 21 Mich
   mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichLmePCB.csv")
