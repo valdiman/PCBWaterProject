@@ -218,7 +218,7 @@ print(plot.cong.freq)
 ggsave("Output/Plots/Global/FreqPCBV02.png", plot = plot.cong.freq,
        width = 5, height = 10, dpi = 300)
 
-# Total Concentration Analysis --------------------------------------------
+# Total PCB description ---------------------------------------------------
 # Data preparation
 {
   # Change date format
@@ -547,6 +547,196 @@ print(plot.time.tPCB)
 # Save plot in folder
 ggsave("Output/Plots/Global/tPCBTimeV03.png", plot = plot.time.tPCB,
        width = 10, height = 3, dpi = 300)
+
+# (7) Individual PCB trend plots
+# (7.1) PCB5.8
+pcb5.8 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB5.8,
+                data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb5.8) <- c("SiteID", "date", "PCB5.8", "time",
+                      "site.code", "season")
+# Remove 0s and NA values
+pcb5.8 <- pcb5.8[complete.cases(pcb5.8$PCB5.8) & pcb5.8$PCB5.8 != 0, ]
+
+plot.time.pcb5.8 <- ggplot(pcb5.8, aes(y = PCB5.8,
+                                     x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold("Water Concentration PCB 5+8 1994 - 2019 (pg/L)"))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.pcb5.8)
+
+# (7.2) PCB11
+pcb11 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB11,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb11) <- c("SiteID", "date", "PCB11", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb11 <- pcb11[complete.cases(pcb11$PCB11) & pcb11$PCB11 != 0, ]
+
+plot.time.pcb11 <- ggplot(pcb11, aes(y = PCB11,
+                                   x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold("Water Concentration PCB11 2006 - 2019 (pg/L)"))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.pcb11)
+
+# (7.3) PCB18.30
+pcb18.30 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB18.30,
+                  data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb18.30) <- c("SiteID", "date", "PCB18.30", "time",
+                        "site.code", "season")
+# Remove 0s and NA values
+pcb18.30 <- pcb18.30[complete.cases(pcb18.30$PCB18.30) & pcb18.30$PCB18.30 != 0, ]
+
+plot.time.pcb18.30 <- ggplot(pcb18.30, aes(y = PCB18.30,
+                                     x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold("Water Concentration PCB 18+30 1994 - 2019 (pg/L)"))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.pcb18.30)
+
+# (7.4) PCB20.21.28.31.33.50.53
+pcb20 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB20.21.28.31.33.50.53,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb20) <- c("SiteID", "date", "PCB20", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb20 <- pcb20[complete.cases(pcb20$PCB20) & pcb20$PCB20 != 0, ]
+
+plot.time.pcb20 <- ggplot(pcb20, aes(y = PCB20,
+                                     x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold("Water Concentration PCB 20.. 1994 - 2019 (pg/L)"))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.pcb20)
+
+# (7.5) PCB44+47+65
+pcb44 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB44.47.65,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb44) <- c("SiteID", "date", "PCB44", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb44 <- pcb44[complete.cases(pcb44$PCB44) & pcb44$PCB44 != 0, ]
+
+plot.time.pcb44 <- ggplot(pcb44, aes(y = PCB44,
+                                     x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold("Water Concentration PCB 44.. 1994 - 2019 (pg/L)"))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.pcb44)
+
+# (7.6) PCB 67
+pcb67 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB67,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb67) <- c("SiteID", "date", "PCB67", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb67 <- pcb67[complete.cases(pcb67$PCB67) & pcb67$PCB67 != 0, ]
+
+plot.time.pcb67 <- ggplot(pcb67, aes(y = PCB67,
+                                     x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold("Water Concentration PCB 67 2004 - 2019 (pg/L)"))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.pcb67)
+
+# (7.7) PCB 106+118
+pcb106.118 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB106.118,
+                    data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb106.118) <- c("SiteID", "date", "PCB106.118", "time",
+                          "site.code", "season")
+# Remove 0s and NA values
+pcb106.118 <- pcb106.118[complete.cases(pcb106.118$PCB106.118) & pcb106.118$PCB106.118 != 0, ]
+
+plot.time.pcb106.118 <- ggplot(pcb106.118, aes(y = PCB106.118,
+                                     x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold("Water Concentration PCB 106+118 2004 - 2019 (pg/L)"))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.pcb106.118)
 
 # Extra plots -------------------------------------------------------------
 # (7) Seasonality
