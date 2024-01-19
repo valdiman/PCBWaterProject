@@ -9,11 +9,7 @@ install.packages("robustbase")
 install.packages("dplyr")
 install.packages("tibble")
 install.packages("Matrix")
-install.packages("lme4")
-install.packages("MuMIn")
-install.packages("lmerTest")
 install.packages("zoo")
-install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("sf")
 install.packages("sfheaders")
@@ -26,11 +22,7 @@ install.packages("sfheaders")
   library(robustbase) # function colMedians
   library(dplyr) # performs %>%
   library(tibble) # adds a column
-  library(lme4) # performs lme
-  library(MuMIn) # gets Rs from lme
-  library(lmerTest) # gets the p-value from lme
   library(zoo) # yields seasons
-  library(dataRetrieval) # read data from USGS
   library(reshape)
   library(sf)
   library(sfheaders) # Create file to be used in Google Earth
@@ -143,7 +135,7 @@ plot.aroclor.congener <- ggplot(precomputed_percentages,
         axis.title.y = element_text(face = "bold", size = 11)) +
   coord_cartesian(ylim = c(0, 100))
 
-# Print the plot
+# See the plot
 print(plot.aroclor.congener)
 
 # Save plot in folder
@@ -219,7 +211,8 @@ plot.cong.freq <- ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)
         axis.title.x = element_text(face = "bold", size = 8)) +
   theme(axis.text.y = element_text(face = "bold", size = 7))
 
-print(plot.cong.freq)  # Print the plot
+# See plot
+print(plot.cong.freq)
 
 # Save map in folder
 ggsave("Output/Plots/Global/FreqPCBV02.png", plot = plot.cong.freq,
@@ -269,6 +262,28 @@ max_sample <- wdc[which.max(wdc$tPCB), ]
 max_sample <- max_sample[c("LocationName", "SampleDate", "SiteName")]
 print(max_sample)
 
+# Individual congeners description
+summary(wdc.cong.1, na.rm = T, zero = T)
+# Get the max value for each congener
+cong.max <-as.numeric(sub('.*:', '',
+                          summary(wdc.cong.1, na.rm = T,
+                                  zero = T)[6,]))
+# Add congener
+cong.max <- cbind(congener, data.frame(cong.max))
+
+# Obtain the median for each individual congener
+cong.median <- as.numeric(sub('.*:',
+                              '', summary(wdc.cong.1, na.rm = T,
+                                          zero = T)[3,]))
+# Add congener
+cong.median <- cbind(congener, data.frame(cong.median))
+# Min
+print(min(cong.median$cong.median))
+#Max
+print(max(cong.median$cong.median))
+# Mean
+print(mean(cong.median$cong.median))
+
 # Global plots ------------------------------------------------------------
 # (1) Histogram
 hist(tpcb$tPCB)
@@ -298,7 +313,7 @@ plot.box.tPCB <- ggplot(tpcb, aes(x = "", y = tPCB)) +
   geom_hline(yintercept = 64, color = "#CC6666",
              linewidth = 0.8)
 
-# Print or save the plot
+# See plot
 print(plot.box.tPCB)
 
 # Save map in folder
@@ -309,29 +324,44 @@ ggsave("Output/Plots/Global/tPCBBoxPlotV03.png", plot = plot.box.tPCB,
 EPA640 <- sum(tpcb$tPCB > 640)/nrow(tpcb)*100
 EPA64 <- sum(tpcb$tPCB > 64)/nrow(tpcb)*100
 
-# Individual congeners
-summary(wdc.cong.1, na.rm = T, zero = T)
-# Get the max value for each congener
-cong.max <-as.numeric(sub('.*:', '',
-                          summary(wdc.cong.1, na.rm = T,
-                                  zero = T)[6,]))
-# Add congener
-cong.max <- cbind(congener, data.frame(cong.max))
+# (3) Total PCBs for selected locations
+sites_to_include <- c("Housatonic River", "New Bedford Harbor", "Passaic River",
+                      "Hudson River", "Kalamazoo River", "Fox River",
+                      "Portland Harbor", "Lake Michigan Mass Balance",
+                      "Spokane River", "Chesapeake Bay")
 
-# Obtain the median for each individual congener
-cong.median <- as.numeric(sub('.*:',
-                              '', summary(wdc.cong.1, na.rm = T,
-                                          zero = T)[3,]))
-# Add congener
-cong.median <- cbind(congener, data.frame(cong.median))
-# Min
-print(min(cong.median$cong.median))
-#Max
-print(max(cong.median$cong.median))
-# Mean
-print(mean(cong.median$cong.median))
+# Filter the data to include only the specified sites
+filtered_data <- wdc %>%
+  filter(LocationName %in% sites_to_include)
 
-# (3) Individual PCB boxplot
+tpcb.site <- ggplot(filtered_data, aes(x = factor(LocationName),
+                                       y = tPCB)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 20/15) +
+  ylab(expression(bold("Water Concentration " *Sigma*"PCB (pg/L)"))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 12)) +
+  theme(axis.text.x = element_text(face = "bold", size = 12,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "white") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+
+# See plot
+print(tpcb.site)
+
+# Save plot in folder
+ggsave("Output/Plots/Global/tPCBSiteV02.png", plot = tpcb.site,
+       width = 5, height = 10, dpi = 300)
+
+# (4) Box plot for individual PCBs
 PCBi_boxplot <- ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -357,107 +387,20 @@ PCBi_boxplot <- ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
                       mid = unit(1.5, "mm"),
                       long = unit(2, "mm"))
 
-# Print the plot
+# See plot
 print(PCBi_boxplot)
 
 # Save map in folder
 ggsave("Output/Plots/Global/PCBiBoxPlotV03.png", plot = PCBi_boxplot,
        width = 10, height = 5, dpi = 300)
 
-# (4) Time trend plots
-plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
-                                   x = format(date,'%Y'))) +
-  geom_point(shape = 21, size = 2.5, fill = "white") +
-  xlab("") +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1979 - 2020 (pg/L)"))))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_classic() +
-  annotation_logticks(sides = "l") +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black")) +
-  theme(axis.text.y = element_text(face = "bold", size = 10),
-        axis.title.y = element_text(face = "bold", size = 11))
-
-# Print the plot
-print(plot.time.tPCB)
-
-# Save plot in folder
-ggsave("Output/Plots/Global/tPCBTimeV03.png", plot = plot.time.tPCB,
-       width = 10, height = 3, dpi = 300)
-
-# (5) Seasonality
-ggplot(tpcb, aes(x = season, y = tPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1979 - 2020 (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-#Until here!
-
-# Spatial Plots and Analysis ----------------------------------------------
-# tPCB
-# List of sites you want to include in the plot
-sites_to_include <- c("Housatonic River", "New Bedford Harbor", "Passaic River",
-                      "Hudson River", "Kalamazoo River", "Fox River",
-                      "Portland Harbor", "Lake Michigan Mass Balance",
-                      "Spokane River", "Chesapeake Bay")
-
-# Filter the data to include only the specified sites
-filtered_data <- wdc %>%
-  filter(LocationName %in% sites_to_include)
-
-# Total PCBs
-tpcb.site <- ggplot(filtered_data, aes(x = factor(LocationName),
-                              y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 20/15) +
-  ylab(expression(bold("Water Concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 12)) +
-  theme(axis.text.x = element_text(face = "bold", size = 12,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
-
-print(tpcb.site)
-
-# Save plot in folder
-ggsave("Output/Plots/Global/tPCBSiteV02.png", plot = tpcb.site,
-       width = 5, height = 10, dpi = 300)
-
-# Individual congeners
+# (5) Individual PCBs for selected locations
 # Filter out rows with NA and 0 values in the 'PCBi' column
+# (5.1) PCB11 plot
 filtered_datai <- wdc %>%
   filter(LocationName %in% sites_to_include, !is.na(PCB11),
          !(PCB11 == 0))
 
-# Create the ggplot
 pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
                                         y = PCB11)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -478,17 +421,18 @@ pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
               shape = 21, fill = "white") +
   geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
 
+# See plot
 print(pcbi.site)
 
 # Save plot in folder
 ggsave("Output/Plots/Global/PCB11Site.png", plot = pcbi.site,
        width = 5, height = 10, dpi = 300)
 
+# (5.2) PCB20.21.28.31.33.50.53 plot
 filtered_datai <- wdc %>%
   filter(LocationName %in% sites_to_include, !is.na(PCB20.21.28.31.33.50.53),
          !(PCB20.21.28.31.33.50.53 == 0))
 
-# Create the ggplot
 pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
                                         y = PCB20.21.28.31.33.50.53)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -509,18 +453,18 @@ pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
               shape = 21, fill = "white") +
   geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
 
+# See plot
 print(pcbi.site)
 
 # Save plot in folder
 ggsave("Output/Plots/Global/PCB20Site.png", plot = pcbi.site,
        width = 5, height = 10, dpi = 300)
 
-# PCB44+47+65
+# (5.3) PCBB44+47+65 plot
 filtered_datai <- wdc %>%
   filter(LocationName %in% sites_to_include, !is.na(PCB44.47.65),
          !(PCB44.47.65 == 0))
 
-# Create the ggplot
 pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
                                         y = PCB44.47.65)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -541,18 +485,18 @@ pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
               shape = 21, fill = "white") +
   geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
 
+# See plot
 print(pcbi.site)
 
 # Save plot in folder
 ggsave("Output/Plots/Global/PCB44Site.png", plot = pcbi.site,
        width = 5, height = 10, dpi = 300)
 
-# PCB 67
+# (5.4) PCBB67 plot
 filtered_datai <- wdc %>%
   filter(LocationName %in% sites_to_include, !is.na(PCB67),
          !(PCB67 == 0))
 
-# Create the ggplot
 pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
                                         y = PCB67)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -573,9 +517,57 @@ pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
               shape = 21, fill = "white") +
   geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
 
+# See plot
 print(pcbi.site)
 
 # Save plot in folder
 ggsave("Output/Plots/Global/PCB67Site.png", plot = pcbi.site,
        width = 5, height = 10, dpi = 300)
+
+# (6) Time trend plots
+plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
+                                   x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  xlab("") +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB 1979 - 2020 (pg/L)"))))) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1,
+                                   color = "black")) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 11))
+
+# See plot
+print(plot.time.tPCB)
+
+# Save plot in folder
+ggsave("Output/Plots/Global/tPCBTimeV03.png", plot = plot.time.tPCB,
+       width = 10, height = 3, dpi = 300)
+
+# Extra plots -------------------------------------------------------------
+# (7) Seasonality
+ggplot(tpcb, aes(x = season, y = tPCB)) +
+  xlab("") +
+  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB 1979 - 2020 (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 9)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
