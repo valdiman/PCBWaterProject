@@ -324,7 +324,6 @@ cong.median <- as.numeric(sub('.*:',
                                           zero = T)[3,]))
 # Add congener
 cong.median <- cbind(congener, data.frame(cong.median))
-
 # Min
 print(min(cong.median$cong.median))
 #Max
