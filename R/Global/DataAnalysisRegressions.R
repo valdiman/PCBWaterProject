@@ -13,10 +13,8 @@ install.packages("lme4")
 install.packages("MuMIn")
 install.packages("lmerTest")
 install.packages("zoo")
-install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("sf")
-install.packages("sfheaders")
 
 # Load libraries
 {
@@ -30,10 +28,8 @@ install.packages("sfheaders")
   library(MuMIn) # gets Rs from lme
   library(lmerTest) # gets the p-value from lme
   library(zoo) # yields seasons
-  library(dataRetrieval) # read data from USGS
   library(reshape)
   library(sf)
-  library(sfheaders) # Create file to be used in Google Earth
 }
 
 # Read data ---------------------------------------------------------------
@@ -62,7 +58,7 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
                       "tPCB", "time", "site.code", "season")
 }
 
-# Regressions -------------------------------------------------------------
+# Total PCB Regressions ---------------------------------------------------
 # Get variables
 tPCB <- tpcb$tPCB
 time <- tpcb$time
@@ -143,19 +139,19 @@ summary(mlr.tpcb)
 }
 
 # (4) Perform Linear Mixed-Effects Model (lme)
-lmem.tpcb <- lmer(log10(tPCB) ~ 1 + time + season + (1|site),
+lme.tpcb <- lmer(log10(tPCB) ~ 1 + time + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
                                         check.nobs.vs.nRE = "ignore"))
 
 # See results
-summary(lmem.tpcb)
+summary(lme.tpcb)
 #Create a Q-Q plot and save it.
 {
   # Create a new PNG graphics device
   png("Output/Plots/Global/qq_plotlmetPCBV02.png", width = 800, height = 600)
-  res <- resid(lmem.tpcb) # get list of residuals
+  res <- resid(lme.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   qqnorm(res,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
@@ -166,12 +162,12 @@ summary(lmem.tpcb)
   dev.off()
 }
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lme.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2c']
+R2.re <- as.data.frame(r.squaredGLMM(lme.tpcb))[1, 'R2c']
 # Extract coefficient values
-time.coeff <- summary(lmem.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.tpcb)$coef[2, "Std. Error"]
+time.coeff <- summary(lme.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
 t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
 # Calculate error
@@ -179,7 +175,7 @@ t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.tpcb <- as.data.frame(fitted(lmem.tpcb))
+fit.values.tpcb <- as.data.frame(fitted(lme.tpcb))
 # Add column name
 colnames(fit.values.tpcb) <- c("lme.predicted")
 # Add predicted values to data.frame
@@ -216,8 +212,8 @@ ggsave("Output/Plots/Global/tPCBObsPredV04.png", plot = tPCBObsPred,
     # Open a PNG graphics device
     png("Output/Plots/Global/res_plotlmetPCBV02.png", width = 800, height = 600)
     # Create your plot
-    plot(tpcb$lmepredicted, resid(lmem.tpcb),
-         points(tpcb$lmepredicted, resid(lmem.tpcb), pch = 16, col = "white"),
+    plot(tpcb$lmepredicted, resid(lme.tpcb),
+         points(tpcb$lmepredicted, resid(lme.tpcb), pch = 16, col = "white"),
          ylim = c(-4, 4),
          xlim = c(1, 10^6.1),
          xlab = expression(paste("Predicted lme concentration ",
@@ -231,172 +227,311 @@ ggsave("Output/Plots/Global/tPCBObsPredV04.png", plot = tPCBObsPred,
     dev.off()
   }
 
-#Until here!
+# Individual PCB Regressions ----------------------------------------------
+# PCB5.8
+pcb5.8 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB5.8,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb5.8) <- c("SiteID", "date", "PCB5.8", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb5.8 <- pcb5.8[complete.cases(pcb5.8$PCB5.8) & pcb5.8$PCB5.8 != 0, ]
 
-# Spatial Plots and Analysis ----------------------------------------------
-# tPCB
-# List of sites you want to include in the plot
-sites_to_include <- c("Housatonic River", "New Bedford Harbor", "Passaic River",
-                      "Hudson River", "Kalamazoo River", "Fox River",
-                      "Portland Harbor", "Lake Michigan Mass Balance",
-                      "Spokane River", "Chesapeake Bay")
+# Get variables
+PCBi <- pcb5.8$PCB5.8
+time <- pcb5.8$time
+site <- pcb5.8$site.code
+season <- pcb5.8$season
 
-# Filter the data to include only the specified sites
-filtered_data <- wdc %>%
-  filter(LocationName %in% sites_to_include)
+# (1) Perform linear regression (lr)
+# (1.1) PCB vs. time
+lr.pcb5.8.t <- lm(log10(PCBi) ~ time)
+# See results
+summary(lr.pcb5.8.t)
 
-# Total PCBs
-tpcb.site <- ggplot(filtered_data, aes(x = factor(LocationName),
-                              y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 20/15) +
-  ylab(expression(bold("Water Concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 12)) +
-  theme(axis.text.x = element_text(face = "bold", size = 12,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+# (1.2) PCB vs. season
+lr.pcb5.8.s <- lm(log10(PCBi) ~ season)
+# See results
+summary(lr.pcb5.8.s)
 
-print(tpcb.site)
+# (1.3) MLR
+mlr.pcb5.8 <- lm(log10(PCBi) ~ time + season)
+# See results
+summary(mlr.pcb5.8)
 
-# Save plot in folder
-ggsave("Output/Plots/Global/tPCBSiteV02.png", plot = tpcb.site,
-       width = 5, height = 10, dpi = 300)
+# (1.4) Perform Linear Mixed-Effects Model (lme)
+lme.pcb5.8 <- lmer(log10(PCBi) ~ 1 + time + season + (1|site),
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
 
-# Individual congeners
-# Filter out rows with NA and 0 values in the 'PCBi' column
-filtered_datai <- wdc %>%
-  filter(LocationName %in% sites_to_include, !is.na(PCB11),
-         !(PCB11 == 0))
+# See results
+summary(lme.pcb5.8)
 
-# Create the ggplot
-pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
-                                        y = PCB11)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 20/15) +
-  ylab(expression(bold("PCB 11 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 14)) +
-  theme(axis.text.x = element_text(face = "bold", size = 12,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+# Shapiro test
+shapiro.test(resid(lme.pcb5.8)) # p-value <<< 0.5
 
-print(pcbi.site)
+# PCB11
+pcb11 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB11,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb11) <- c("SiteID", "date", "PCB11", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb11 <- pcb11[complete.cases(pcb11$PCB11) & pcb11$PCB11 != 0, ]
 
-# Save plot in folder
-ggsave("Output/Plots/Global/PCB11Site.png", plot = pcbi.site,
-       width = 5, height = 10, dpi = 300)
+# Get variables
+PCBi <- pcb11$PCB11
+time <- pcb11$time
+site <- pcb11$site.code
+season <- pcb11$season
 
-filtered_datai <- wdc %>%
-  filter(LocationName %in% sites_to_include, !is.na(PCB20.21.28.31.33.50.53),
-         !(PCB20.21.28.31.33.50.53 == 0))
+# (1) Perform linear regression (lr)
+# (1.1) PCB vs. time
+lr.pcb11.t <- lm(log10(PCBi) ~ time)
+# See results
+summary(lr.pcb11.t)
 
-# Create the ggplot
-pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
-                                        y = PCB20.21.28.31.33.50.53)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 20/15) +
-  ylab(expression(bold("PCB 20+21+28+31+33+50+53 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 14,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+# (1.2) PCB vs. season
+lr.pcb11.s <- lm(log10(PCBi) ~ season)
+# See results
+summary(lr.pcb11.s)
 
-print(pcbi.site)
+# (1.3) MLR
+mlr.pcb11 <- lm(log10(PCBi) ~ time + season)
+# See results
+summary(mlr.pcb11)
 
-# Save plot in folder
-ggsave("Output/Plots/Global/PCB20Site.png", plot = pcbi.site,
-       width = 5, height = 10, dpi = 300)
+# (1.4) Perform Linear Mixed-Effects Model (lme)
+lme.pcb11 <- lmer(log10(PCBi) ~ 1 + time + season + (1|site),
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
+
+# See results
+summary(lme.pcb11)
+
+# Shapiro test
+shapiro.test(resid(lme.pcb11)) # p-value <<< 0.5
+
+# PCB18.30
+pcb18.30 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB18.30,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb18.30) <- c("SiteID", "date", "PCB18.30", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb18.30 <- pcb18.30[complete.cases(pcb18.30$PCB18.30) & pcb18.30$PCB18.30 != 0, ]
+
+# Get variables
+PCBi <- pcb18.30$PCB18.30
+time <- pcb18.30$time
+site <- pcb18.30$site.code
+season <- pcb18.30$season
+
+# (1) Perform linear regression (lr)
+# (1.1) PCB vs. time
+lr.pcb18.30.t <- lm(log10(PCBi) ~ time)
+# See results
+summary(lr.pcb18.30.t)
+
+# (1.2) PCB vs. season
+lr.pcb18.30.s <- lm(log10(PCBi) ~ season)
+# See results
+summary(lr.pcb18.30.s)
+
+# (1.3) MLR
+mlr.pcb18.30 <- lm(log10(PCBi) ~ time + season)
+# See results
+summary(mlr.pcb18.30)
+
+# (1.4) Perform Linear Mixed-Effects Model (lme)
+lme.pcb18.30 <- lmer(log10(PCBi) ~ 1 + time + season + (1|site),
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
+
+# See results
+summary(lme.pcb18.30)
+
+# Shapiro test
+shapiro.test(resid(lme.pcb18.30)) # p-value <<< 0.5
+
+# PCB20.21.28.31.33.50.53
+pcb20 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB20.21.28.31.33.50.53,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb20) <- c("SiteID", "date", "PCB20", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb20 <- pcb20[complete.cases(pcb20$PCB20) & pcb20$PCB20 != 0, ]
+
+# Get variables
+PCBi <- pcb20$PCB20
+time <- pcb20$time
+site <- pcb20$site.code
+season <- pcb20$season
+
+# (1) Perform linear regression (lr)
+# (1.1) PCB vs. time
+lr.pcb20.t <- lm(log10(PCBi) ~ time)
+# See results
+summary(lr.pcb20.t)
+
+# (1.2) PCB vs. season
+lr.pcb20.s <- lm(log10(PCBi) ~ season)
+# See results
+summary(lr.pcb11.s)
+
+# (1.3) MLR
+mlr.pcb20 <- lm(log10(PCBi) ~ time + season)
+# See results
+summary(mlr.pcb20)
+
+# (1.4) Perform Linear Mixed-Effects Model (lme)
+lme.pcb20 <- lmer(log10(PCBi) ~ 1 + time + season + (1|site),
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
+
+# See results
+summary(lme.pcb20)
+
+# Shapiro test
+shapiro.test(resid(lme.pcb20)) # p-value <<< 0.5
 
 # PCB44+47+65
-filtered_datai <- wdc %>%
-  filter(LocationName %in% sites_to_include, !is.na(PCB44.47.65),
-         !(PCB44.47.65 == 0))
+pcb44 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB44.47.65,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb44) <- c("SiteID", "date", "PCB44", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb44 <- pcb44[complete.cases(pcb44$PCB44) & pcb44$PCB44 != 0, ]
 
-# Create the ggplot
-pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
-                                        y = PCB44.47.65)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 20/15) +
-  ylab(expression(bold("PCB 44+47+65 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 14,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+# Get variables
+PCBi <- pcb44$PCB44
+time <- pcb44$time
+site <- pcb44$site.code
+season <- pcb44$season
 
-print(pcbi.site)
+# (1) Perform linear regression (lr)
+# (1.1) PCB vs. time
+lr.pcb44.t <- lm(log10(PCBi) ~ time)
+# See results
+summary(lr.pcb44.t)
 
-# Save plot in folder
-ggsave("Output/Plots/Global/PCB44Site.png", plot = pcbi.site,
-       width = 5, height = 10, dpi = 300)
+# (1.2) PCB vs. season
+lr.pcb44.s <- lm(log10(PCBi) ~ season)
+# See results
+summary(lr.pcb44.s)
+
+# (1.3) MLR
+mlr.pcb44 <- lm(log10(PCBi) ~ time + season)
+# See results
+summary(mlr.pcb44)
+
+# (1.4) Perform Linear Mixed-Effects Model (lme)
+lme.pcb44 <- lmer(log10(PCBi) ~ 1 + time + season + (1|site),
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
+
+# See results
+summary(lme.pcb44)
+
+# Shapiro test
+shapiro.test(resid(lme.pcb44)) # p-value <<< 0.5
 
 # PCB 67
-filtered_datai <- wdc %>%
-  filter(LocationName %in% sites_to_include, !is.na(PCB67),
-         !(PCB67 == 0))
+pcb67 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB67,
+               data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb67) <- c("SiteID", "date", "PCB67", "time",
+                     "site.code", "season")
+# Remove 0s and NA values
+pcb67 <- pcb67[complete.cases(pcb67$PCB67) & pcb67$PCB67 != 0, ]
 
-# Create the ggplot
-pcbi.site <- ggplot(filtered_datai, aes(x = factor(LocationName),
-                                        y = PCB67)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 20/15) +
-  ylab(expression(bold("PCB 67 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 14,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+# Get variables
+PCBi <- pcb67$PCB67
+time <- pcb67$time
+site <- pcb67$site.code
+season <- pcb67$season
 
-print(pcbi.site)
+# (1) Perform linear regression (lr)
+# (1.1) PCB vs. time
+lr.pcb67.t <- lm(log10(PCBi) ~ time)
+# See results
+summary(lr.pcb67.t)
 
-# Save plot in folder
-ggsave("Output/Plots/Global/PCB67Site.png", plot = pcbi.site,
-       width = 5, height = 10, dpi = 300)
+# (1.2) PCB vs. season
+lr.pcb67.s <- lm(log10(PCBi) ~ season)
+# See results
+summary(lr.pcb67.s)
 
+# (1.3) MLR
+mlr.pcb67 <- lm(log10(PCBi) ~ time + season)
+# See results
+summary(mlr.pcb67)
+
+# (1.4) Perform Linear Mixed-Effects Model (lme)
+lme.pcb67 <- lmer(log10(PCBi) ~ 1 + time + season + (1|site),
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
+
+# See results
+summary(lme.pcb67)
+
+# Shapiro test
+shapiro.test(resid(lme.pcb67)) # p-value <<< 0.5
+
+# PCB 106+118
+pcb106.118 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB106.118,
+                    data.frame(time.day), site.numb, season.s)
+# Add column names
+colnames(pcb106.118) <- c("SiteID", "date", "PCB106.118", "time",
+                          "site.code", "season")
+# Remove 0s and NA values
+pcb106.118 <- pcb106.118[complete.cases(pcb106.118$PCB106.118) & pcb106.118$PCB106.118 != 0, ]
+
+# Get variables
+PCBi <- pcb106.118$PCB106.118
+time <- pcb106.118$time
+site <- pcb106.118$site.code
+season <- pcb106.118$season
+
+# (1) Perform linear regression (lr)
+# (1.1) PCB vs. time
+lr.pcb106.118.t <- lm(log10(PCBi) ~ time)
+# See results
+summary(lr.pcb106.118.t)
+
+# (1.2) PCB vs. season
+lr.pcb106.118.s <- lm(log10(PCBi) ~ season)
+# See results
+summary(lr.pcb106.118.s)
+
+# (1.3) MLR
+mlr.pcb106.118 <- lm(log10(PCBi) ~ time + season)
+# See results
+summary(mlr.pcb106.118)
+
+# (1.4) Perform Linear Mixed-Effects Model (lme)
+lme.pcb106.118 <- lmer(log10(PCBi) ~ 1 + time + season + (1|site),
+                       REML = FALSE,
+                       control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                             check.nobs.vs.rankZ = "ignore",
+                                             check.nobs.vs.nRE = "ignore"))
+
+# See results
+summary(lme.pcb106.118)
+
+# Shapiro test
+shapiro.test(resid(lme.pcb106.118)) # p-value <<< 0.5
