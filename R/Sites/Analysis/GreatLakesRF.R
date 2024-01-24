@@ -201,9 +201,9 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
-# Random Forest doesn't work for tPCB!
+# Random Forest doesn't work for tPCB, R2<0!
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -245,7 +245,6 @@ ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFtPCBV01.png",
   grl.pcb.2 <- grl.pcb.1[!is.na(grl.pcb.1$temp), ]
   # Remove metadata not use in the random forest
   grl.pcb.2 <- grl.pcb.2[, !(names(grl.pcb.2) %in% c("SampleDate"))]
-  
 }
 
 # Set the seed for reproducibility
@@ -333,21 +332,21 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesRFPerformancePCBV02.csv",
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesRFPerformancePCB.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesRFObsPredPCBV02.csv",
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesRFObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot
 plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(0.01, 10^4),
+  scale_y_log10(limits = c(0.01, 10^4.2),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.01, 10^4),
+  scale_x_log10(limits = c(0.01, 10^4.2),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
@@ -363,5 +362,5 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFPCBV02.png",
+ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesRFPCB.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
