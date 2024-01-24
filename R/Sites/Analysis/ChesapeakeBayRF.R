@@ -327,12 +327,12 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancePCBV01.csv",
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancePCB.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredPCBV01.csv",
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot
@@ -357,5 +357,5 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFPCB.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
