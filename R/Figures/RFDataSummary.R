@@ -11,7 +11,7 @@ install.packages("RColorBrewer")
   library(RColorBrewer)
 }
 
-# Read generated data for total PCB
+# Read generated data for total PCB ---------------------------------------
 {
   # 21 Mich
   mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFPerformancetPCB.csv")
@@ -55,26 +55,42 @@ install.packages("RColorBrewer")
   colnames(combined_data) <- c("RMSE", "R2", "Factor2")
 }
 
-# R2R
-min(combined_data)*100
-max(combined_data)*100
-mean(combined_data)*100
-sd(combined_data)*100
+# see data
+print(combined_data)
 
-# t05
-list_loc <- list(mic, bfc, che, fox, grl, glt, hud, lwa, nbh, pas, por, spo)
+# Read generated data for individual PCB ----------------------------------
 
-t05 <- list2env(setNames(lapply(list_loc, function(df) {
-  df %>%
-    filter(time.pv < 0.05) %>%
-    select(Congeners, t05, t05.error)
-}), c("mic_t05", "bfc_t05", "che_t05", "fox_t05", "grl_t05", "glt_t05",
-      "hud_t05", "lwa_t05", "nbh_t05", "pas_t05", "por_t05", "spo_t05")))
+# 21 Mich
+{
+  # 21 Mich
+  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFPerformancePCB.csv")
+  
+  # Bannister Federal Complex
+  bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFPerformancePCB.csv")
+  
+  # Chesapeake Bay data
+  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancePCB.csv")
+  
+  # Fox River data
+  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFPerformancePCB.csv")
+  
+  # Great Lakes (Lake Michigan)
+  grl <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesRFPerformancePCB.csv")
+  
+  # Hudson River
+  hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFPerformancePCB.csv")
+  
+  # Lake Washington
+  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFPerformancePCB.csv")
+  
+  # New Bedford Harbor data
+  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHRFPerformancePCB.csv")
 
-# Combine the data frames into a single data frame
-combined_t05 <- bind_rows(t05$bfc_t05, t05$che_t05)
-
-# Combine all data frames into a single data frame
-combined_t05 <- bind_rows(lapply(t05, function(df) as.data.frame(df)))
+  # Passaic River
+  pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPerformancePCB.csv")
+  
+  
+  
+}
 
 
