@@ -329,12 +329,12 @@ for (i in seq_along(pcb_numeric_columns)) {
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancePCBV02.csv",
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancePCB.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredPCBV02.csv",
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot
