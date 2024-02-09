@@ -368,12 +368,12 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancePCBV02.csv",
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancePCB.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredPCBV02.csv",
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot
