@@ -179,7 +179,8 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancetPCBV02.csv")
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancetPCB.csv",
+          row.names = FALSE)
 
 # Feature Importance
 importance.1 <- randomForest::importance(rf_model.1)
@@ -197,7 +198,7 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCBV02.csv",
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot

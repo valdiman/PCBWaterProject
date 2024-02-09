@@ -137,7 +137,8 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFPerformancetPCB.csv")
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFPerformancetPCB.csv",
+          row.names = FALSE)
 
 # Feature Importance
 importance.1 <- importance(rf_model.1)

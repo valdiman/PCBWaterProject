@@ -163,7 +163,8 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFPerformancetPCB.csv")
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFPerformancetPCB.csv",
+          row.names = FALSE)
 
 # Feature Importance
 importance.1 <- importance(rf_model.1)
