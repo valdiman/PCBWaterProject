@@ -89,7 +89,11 @@ print(combined_data)
   # Passaic River
   pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPerformancePCB.csv")
   
+  # Portland Harbor
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancePCB.csv")
   
+  # Spokane River
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancePCB.csv")
   
 }
 
