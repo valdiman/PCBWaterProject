@@ -15,43 +15,52 @@ install.packages("RColorBrewer")
 {
   # 21 Mich
   mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFPerformancetPCB.csv")
-  mic <- mic[, 3]
+  mic <- mic[, 2]
   # Anacostia River
   anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFPerformancetPCB.csv")
-  anr <- anr[, 3]
+  anr <- anr[, 2]
   # Bannister Federal Complex
   bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFPerformancetPCB.csv")
-  bfc <- bfc[, 3]
+  bfc <- bfc[, 2]
   # Chesapeake Bay data
   che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancetPCB.csv")
-  che <- che[, 3]
-  # Fox River data
+  che <- che[, 2]
+  # Fox River
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFPerformancetPCB.csv")
-  fox <- fox[, 3]
+  fox <- fox[, 2]
+  # Great Lakes (Lake Michigan)
+  lmi <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesRFPerformancetPCB.csv")
+  lmi <- lmi[, 2]
   # Housatonic River
   hou <- read.csv("Output/Data/Sites/csv/HousatonicRiver/HousatonicRiverRFPerformancetPCB.csv")
-  hou <- hou[, 3]
+  hou <- hou[, 2]
   # Hudson River
   hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFPerformancetPCB.csv")
-  hud <- hud[, 3]
+  hud <- hud[, 2]
   # Kalamazoo River
   kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverRFPerformancetPCB.csv")
-  kal <- kal[, 3]
-  # New Bedford Harbor data
+  kal <- kal[, 2]
+  # Lake Washington
+  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFPerformancetPCB.csv")
+  lwa <- lwa[, 2]
+  # New Bedford Harbor
   nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHRFPerformancetPCB.csv")
-  nbh <- nbh[, 3]
+  nbh <- nbh[, 2]
   # Passaic River
   pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPerformancetPCB.csv")
-  pas <- pas[, 3]
-  # Portland Harbor data
-  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancetPCBV02.csv")
-  por <- por[, 3]
-  # Spokane River data
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancetPCBV02.csv")
-  spo <- spo[, 3]
+  pas <- pas[, 2]
+  # Portland Harbor
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancetPCB.csv")
+  por <- por[, 2]
+  # Richardson Hill Road Landfill
+  rhl <- read.csv("Output/Data/Sites/csv/Richardson/RichardsonRFPerformancetPCB.csv")
+  rhl <- rhl[, 2]
+  # Spokane River
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancetPCB.csv")
+  spo <- spo[, 2]
   # Combine the data frames
-  combined_data <- rbind(anr, bfc,  che, mic, fox, hou, hud, kal, nbh,
-                         pas, por, spo)
+  combined_data <- rbind(anr, bfc,  che, mic, fox, lmi, hou, hud, kal, nbh,
+                         lwa, pas, por, rhl, spo)
   colnames(combined_data) <- c("RMSE", "R2", "Factor2")
 }
 
