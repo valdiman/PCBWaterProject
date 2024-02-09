@@ -157,7 +157,7 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancetPCBV02.csv")
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancetPCB.csv")
 
 # Feature Importance
 importance.1 <- importance(rf_model.1)
@@ -173,7 +173,7 @@ plot_data.1 <- data.frame(
 
 # Export results
 write.csv(plot_data.1,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredtPCBV02.csv",
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot
