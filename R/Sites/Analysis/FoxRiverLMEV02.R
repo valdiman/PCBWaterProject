@@ -284,7 +284,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverLmePCB.csv",
+          row.names = FALSE)
 
 # Estimate overall factor of 2 between observations and predictions
 # Generate predictions
@@ -421,7 +422,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Fox River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
