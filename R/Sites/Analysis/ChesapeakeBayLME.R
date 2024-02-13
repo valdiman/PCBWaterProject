@@ -179,7 +179,8 @@ predic.obs <- data.frame(tPCB = che.tpcb$tPCB, predicted = che.tpcb$predicted)
 predic.obs <- data.frame(Location = che$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv")
+          "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv",
+          row.names = FALSE)
 
 # (2) Calculate factor of 2
 che.tpcb$factor2 <- che.tpcb$tPCB/che.tpcb$predicted
@@ -206,7 +207,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RMSE", "Factor2")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmetPCB.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmetPCB.csv",
+          row.names = FALSE)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(che.tpcb, aes(x = tPCB, y = predicted)) +
@@ -399,7 +401,8 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv")
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv",
+          row.names = FALSE)
 
 # Individual PCB congener plots -------------------------------------------
 # Generate predictions
@@ -535,7 +538,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Chesapeake Bay"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
