@@ -192,7 +192,7 @@ write.csv(predic.obs,
 
 # (2) Calculate factor of 2
 kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
-factor2.tpcb <- nrow(kal.tpcb[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
+factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
 ])/length(kal.tpcb.2[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
@@ -218,20 +218,6 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
 write.csv(lme.tpcb,
           file = "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverLmetPCB.csv",
           row.names = FALSE)
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.kal.tpcb <- as.data.frame(fitted(lme.kal.tpcb))
-# Add column name
-colnames(fit.lme.values.kal.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicted)
-predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
-# Save new data
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
@@ -277,16 +263,4 @@ ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverObsPredtPCBV02.p
   # Close the PNG graphics device
   dev.off()
   }
-
-# Estimate a factor of 2 between observations and predictions
-kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
-factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
-                                ])/length(kal.tpcb.2[,1])*100
-
-# Convert the vector to a data frame
-factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
-
-# Export results
-write.csv(factor2.tpcb,
-          file = "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverFactor2tPCB.csv")
 
