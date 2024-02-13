@@ -201,7 +201,8 @@ predic.obs <- data.frame(tPCB = anr.tpcb$tPCB, predicted = anr.tpcb$predicted)
 predic.obs <- data.frame(Location = anr$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPredtPCB.csv")
+          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPredtPCB.csv",
+          row.names = FALSE)
 
 # (2) Calculate factor of 2
 anr.tpcb$factor2 <- anr.tpcb$tPCB/anr.tpcb$predicted
@@ -230,7 +231,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
 
 # Export results
 write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmetPCB.csv")
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmetPCB.csv",
+          row.names = FALSE)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(anr.tpcb, aes(x = tPCB, y = predicted)) +
