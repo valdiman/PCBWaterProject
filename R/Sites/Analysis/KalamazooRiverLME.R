@@ -224,7 +224,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
 
 # Export results
 write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooLmetPCB.csv",
+          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverLmetPCB.csv",
           row.names = FALSE)
 
 # Plot prediction vs. observations, 1:1 line
