@@ -136,12 +136,9 @@ summary(lme.kal.tpcb)
 # Shapiro-Wilk normatily test
 shapiro.test(resid(lme.kal.tpcb)) # p-value = 0.1114
 
-
-# Until here
-
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 24)
+  lme.tpcb <- matrix(nrow = 1, ncol = 25)
   lme.tpcb[1] <- fixef(lme.kal.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.kal.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.kal.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -166,10 +163,47 @@ shapiro.test(resid(lme.kal.tpcb)) # p-value = 0.1114
   lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2m']
   lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2c']
   lme.tpcb[24] <- shapiro.test(resid(lme.kal.tpcb))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(lme.kal.tpcb)
+  # Calculate residuals and RMSE
+  residuals <- log10(tpcb) - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.tpcb[25] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
 # Just 3 significant figures
 lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
+
+# Estimate a factor of 2 between observations and predictions
+# (1) Get predicted values tpcb
+fit.lme.values.kal.tpcb <- as.data.frame(fitted(lme.kal.tpcb))
+# Add column name
+colnames(fit.lme.values.kal.tpcb) <- c("predicted")
+# Add predicted values to data.frame
+kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
+# Create overall plot prediction vs. observations
+predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicted)
+predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs,
+          "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverObsPredtPCB.csv",
+          row.names = FALSE)
+
+# (2) Calculate factor of 2
+kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
+factor2.tpcb <- nrow(kal.tpcb[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
+])/length(kal.tpcb.2[,1])*100
+
+# Transform lme.tpcb to data.frame so factor 2 can be included
+lme.tpcb <- as.data.frame(lme.tpcb)
+
+# Add factor 2 to lme.pcb data.frame
+lme.tpcb$factor2 <- factor2.tpcb
+
+# Change number format of factor 2 to 3 significant figures
+lme.tpcb$factor2 <- formatC(signif(lme.tpcb$factor2, digits = 3))
+
 # Add column names
 colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Intercept.pv", "time", "time.error", "time.pv",
@@ -177,11 +211,13 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "flow.q.error", "flow.q.pv", "season2",
                         "season2.error", "season2, pv", "season3",
                         "season3.error", "season3.pv", "t05", "t05.error",
-                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
+                        "RMSE", "Factor2")
 
 # Export results
 write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooLmetPCBV02.csv")
+          file = "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverLmetPCB.csv",
+          row.names = FALSE)
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -195,7 +231,7 @@ predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicte
 predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/KalamazooRiver/KalamazooObsPredtPCBV02.csv")
+          "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverObsPredtPCB.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
@@ -252,5 +288,5 @@ factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
 
 # Export results
 write.csv(factor2.tpcb,
-          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverFactor2tPCBV02.csv")
+          file = "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverFactor2tPCB.csv")
 
