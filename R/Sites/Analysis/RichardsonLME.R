@@ -83,58 +83,6 @@ kmlFilePath <- "Output/Data/Sites/GoogleEarth/RichardsonHillLocations.kml"
 # Write the KML file to the specified directory
 st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
-# General plots -------------------------------------------------------------------
-# (1) Histograms
-hist(rhr.tpcb$tPCB)
-hist(log10(rhr.tpcb$tPCB))
-
-# (2) Time trend plots
-RHTime <- ggplot(rhr.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  xlab("") +
-  scale_y_log10(
-    breaks = c(150000, 400000, 1000000, 3000000),  # Specify the desired breaks
-    labels = label_comma()(c(150000, 400000, 1000000, 3000000))  # Specify the desired labels
-  ) +
-  theme_classic() +
-  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
-  theme(
-    axis.text.y = element_text(face = "bold", size = 20),
-    axis.title.y = element_text(face = "bold", size = 18),
-    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
-    axis.title.x = element_text(face = "bold", size = 17),
-    plot.margin = margin(0.1, 0, 0, 0, unit = "cm"))
-
-# Print plot
-print(RHTime)
-
-# Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/RichardsonHillTime.png",
-       plot = RHTime, width = 6, height = 5, dpi = 500)
-
-# (4) Sites
-ggplot(rhr.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 6.5, y = 10^4.5, label = "Richardson Hill Road Landfill",
-           size = 3)
-
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
@@ -165,11 +113,11 @@ summary(lme.rhr.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.rhr.tpcb))
+shapiro.test(resid(lme.rhr.tpcb)) # p-value = 0.4767
 
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 15)
+  lme.tpcb <- matrix(nrow = 1, ncol = 16)
   lme.tpcb[1] <- fixef(lme.rhr.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.rhr.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.rhr.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -185,22 +133,18 @@ shapiro.test(resid(lme.rhr.tpcb))
   lme.tpcb[13] <- as.data.frame(r.squaredGLMM(lme.rhr.tpcb))[1, 'R2m']
   lme.tpcb[14] <- as.data.frame(r.squaredGLMM(lme.rhr.tpcb))[1, 'R2c']
   lme.tpcb[15] <- shapiro.test(resid(lme.rhr.tpcb))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(lme.rhr.tpcb)
+  # Calculate residuals and RMSE
+  residuals <- log10(tpcb) - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.tpcb[16] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
 # Just 3 significant figures
 lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                        "Intercept.pv", "time", "time.error", "time.pv",
-                        "season3", "season3.error", "season3.pv", "t05",
-                        "t05.error", "RandonEffectSiteStdDev", "R2nR", "R2R",
-                        "Normality")
 
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/Richardson/RichardsonLmetPCB.csv")
-
-# Modeling plots
 # (1) Get predicted values tpcb
 fit.lme.values.rhr.tpcb <- as.data.frame(fitted(lme.rhr.tpcb))
 # Add column name
@@ -212,7 +156,34 @@ predic.obs <- data.frame(tPCB = rhr.tpcb$tPCB, predicted = rhr.tpcb$predicted)
 predic.obs <- data.frame(Location = rhr$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/Richardson/RichardsonObsPredtPCB.csv")
+          "Output/Data/Sites/csv/Richardson/RichardsonLmeObsPredtPCB.csv",
+          row.names = FALSE)
+
+# (2) Calculate factor of 2
+rhr.tpcb$factor2 <- rhr.tpcb$tPCB/rhr.tpcb$predicted
+factor2.tpcb <- nrow(rhr.tpcb[rhr.tpcb$factor2 > 0.5 & rhr.tpcb$factor2 < 2,
+])/length(rhr.tpcb[,1])*100
+
+# Transform lme.tpcb to data.frame so factor 2 can be included
+lme.tpcb <- as.data.frame(lme.tpcb)
+
+# Add factor 2 to lme.pcb data.frame
+lme.tpcb$factor2 <- factor2.tpcb
+
+# Change number format of factor 2 to 3 significant figures
+lme.tpcb$factor2 <- formatC(signif(lme.tpcb$factor2, digits = 3))
+
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                        "Intercept.pv", "time", "time.error", "time.pv",
+                        "season3", "season3.error", "season3.pv", "t05",
+                        "t05.error", "RandonEffectSiteStdDev", "R2nR", "R2R",
+                        "Normality", "RMSE", "Factor2")
+
+# Export results
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/Richardson/RichardsonLmetPCB.csv",
+          row.names = FALSE)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(rhr.tpcb, aes(x = tPCB, y = predicted)) +
@@ -257,14 +228,3 @@ ggsave("Output/Plots/Sites/ObsPred/Richardson/RichardsonObsPredtPCB.png",
   dev.off()
 }
 
-# Estimate a factor of 2 between observations and predictions
-rhr.tpcb$factor2 <- rhr.tpcb$tPCB/rhr.tpcb$predicted
-factor2.tpcb <- nrow(rhr.tpcb[rhr.tpcb$factor2 > 0.5 & rhr.tpcb$factor2 < 2,
-                                ])/length(rhr.tpcb[,1])*100
-
-# Convert the vector to a data frame
-factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
-
-# Export results
-write.csv(factor2.tpcb,
-          file = "Output/Data/Sites/csv/Richardson/RichardsonFactor2tPCB.csv")
