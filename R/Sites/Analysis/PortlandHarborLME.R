@@ -82,83 +82,6 @@ kmlFilePath <- "Output/Data/Sites/GoogleEarth/PortlandHarborLocations.kml"
 # Write the KML file to the specified directory
 st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
-# General plots -------------------------------------------------------------------
-# (1) Histograms
-# (1.1) tPCB
-hist(por.tpcb$tPCB)
-hist(log10(por.tpcb$tPCB))
-
-# (2) Time trend plots
-POTime <- ggplot(por.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  xlab("") +
-  scale_y_log10(
-    breaks = c(10, 100, 1000),  # Specify the desired breaks
-    labels = label_comma()(c(10, 100, 1000))  # Specify the desired labels
-  ) +
-  theme_classic() +
-  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
-  theme(
-    axis.text.y = element_text(face = "bold", size = 20),
-    axis.title.y = element_text(face = "bold", size = 18),
-    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
-    axis.title.x = element_text(face = "bold", size = 17),
-    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
-
-# Print plot
-print(POTime)
-
-# Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/PortlandTime.png",
-       plot = POTime, width = 6, height = 5, dpi = 500)
-
-# (3) Seasonality
-ggplot(por.tpcb, aes(x = season, y = tPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 1, y = 10^3.7, label = "Portland Harbor",
-           size = 3)
-
-# (4) Sites
-ggplot(por.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 3, y = 10^3.7, label = "Portland Harbor",
-           size = 3)
-
 # Include USGS flow data --------------------------------------------------
 {
   # Include flow data from USGS station Portland Harbor
@@ -219,7 +142,7 @@ shapiro.test(resid(lme.por.tpcb)) # p-value = 0.9216
 
 # Create matrix to store results from lme analysis
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 27)
+  lme.tpcb <- matrix(nrow = 1, ncol = 28)
   lme.tpcb[1] <- fixef(lme.por.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.por.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.por.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -247,25 +170,15 @@ shapiro.test(resid(lme.por.tpcb)) # p-value = 0.9216
   lme.tpcb[25] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2m']
   lme.tpcb[26] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2c']
   lme.tpcb[27] <- shapiro.test(resid(lme.por.tpcb))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(lme.por.tpcb)
+  # Calculate residuals and RMSE
+  residuals <- log10(tpcb) - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.tpcb[28] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                        "Intercept.pv", "time", "time.error", "time.pv",
-                        "flow", "flow.error", "flow.pv", "temperature",
-                        "temperature.error", "temperature.pv", "season1",
-                        "season1.error", "season1.pv", "season2",
-                        "season2.error", "season2.pv", "season3",
-                        "season3.error", "season3.pv", "t05", "t05.error",
-                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
-
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmetPCB.csv")
-
-# Modeling plots
 # (1) Get predicted values tpcb
 fit.lme.values.por.tpcb <- as.data.frame(fitted(lme.por.tpcb))
 # Add column name
@@ -277,7 +190,38 @@ predic.obs <- data.frame(tPCB = por.tpcb.2$tPCB, predicted = por.tpcb.2$predicte
 predic.obs <- data.frame(Location = por$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborObsPredtPCB.csv")
+          "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmeObsPredtPCB.csv",
+          row.names = FALSE)
+
+# (2) Calculate factor of 2
+por.tpcb.2$factor2 <- por.tpcb.2$tPCB/por.tpcb.2$predicted
+factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 2,
+])/length(por.tpcb.2[,1])*100
+
+# Transform lme.tpcb to data.frame so factor 2 can be included
+lme.tpcb <- as.data.frame(lme.tpcb)
+
+# Add factor 2 to lme.pcb data.frame
+lme.tpcb$factor2 <- factor2.tpcb
+
+# Change number format of factor 2 to 3 significant figures
+lme.tpcb$factor2 <- formatC(signif(lme.tpcb$factor2, digits = 3))
+
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                        "Intercept.pv", "time", "time.error", "time.pv",
+                        "flow", "flow.error", "flow.pv", "temperature",
+                        "temperature.error", "temperature.pv", "season1",
+                        "season1.error", "season1.pv", "season2",
+                        "season2.error", "season2.pv", "season3",
+                        "season3.error", "season3.pv", "t05", "t05.error",
+                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
+                        "RMSE", "Factor2")
+
+# Export results
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmetPCB.csv",
+          row.names = FALSE)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
@@ -324,18 +268,6 @@ ggsave(filename = "Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborObsPr
   # Close the PNG graphics device
   dev.off()
 }
-
-# Estimate a factor of 2 between observations and predictions
-por.tpcb.2$factor2 <- por.tpcb.2$tPCB/por.tpcb.2$predicted
-factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 2,
-                                ])/length(por.tpcb.2[,1])*100
-
-# Convert the vector to a data frame
-factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
-
-# Export results
-write.csv(factor2.tpcb,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborFactor2tPCB.csv")
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -404,7 +336,7 @@ season <- por.pcb.2$season
 site <- por.pcb.2$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(por.pcb.3[1,]), ncol = 24)
+lme.pcb <- matrix(nrow = length(por.pcb.3[1,]), ncol = 25)
 
 # Perform LME for each column
 for (i in 1:length(por.pcb.3[1,])) {
@@ -437,13 +369,56 @@ for (i in 1:length(por.pcb.3[1,])) {
     lme.pcb[i, 22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
     lme.pcb[i, 23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
     lme.pcb[i, 24] <- shapiro.test(resid(fit))$p.value
+    # Calculate RMSE
+    # Predictions
+    predictions <- predict(fit)
+    # Calculate residuals and RMSE
+    residuals <- por.pcb.3[, i] - predictions
+    non_na_indices <- !is.na(residuals)
+    lme.pcb[i, 25] <- sqrt(mean(residuals[non_na_indices]^2))
+    
   }
 
 # Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+# lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+
+# Transform result to data.frame so factor 2 can be included
+lme.pcb <- as.data.frame(lme.pcb)
+
+# Add factor of 2
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(por.pcb.3[,1]),
+                      ncol = length(por.pcb.3[1,]))
+
+# Create a vector to store factor 2 for each congener
+factor2_vector <- numeric(length = length(por.pcb.3[1,]))
+
+for (i in 1:length(por.pcb.3[1,])) {
+  fit <- lmer(por.pcb.3[,i] ~ 1 + time + flow + temp + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  
+  lme.fit.pcb[,i] <- fitted(fit)
+  
+  # Calculate factor2 for each congener
+  factor2 <- 10^(lme.fit.pcb[, i])/10^(por.pcb.3[, i])
+  factor2_vector[i] <- sum(factor2 > 0.5 & factor2 < 2,
+                           na.rm = TRUE) / (sum(!is.na(factor2))) * 100
+}
+
+# Add factor 2 to lme.pcb data.frame
+lme.pcb$factor2 <- factor2_vector
+
+# Change number format of factor 2 to 3 significant figures
+lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
+
 # Add congener names
 congeners <- colnames(por.pcb.3)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
@@ -451,7 +426,9 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "temperature.error", "temperature.pv", "season2",
                        "season2.error", "season2, pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
+                       "RMSE", "Factor2")
+
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
@@ -461,7 +438,8 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmePCB.csv")
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmePCB.csv",
+          row.names = FALSE)
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from por.pcb.2
@@ -489,13 +467,6 @@ for (i in 1:length(por.pcb.4[1,])) {
 factor2 <- 10^(por.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
-# Convert the vector to a data frame
-factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
-
-# Export results
-write.csv(factor2.pcb,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborFactor2PCB.csv")
 
 # Individual PCB congener plots -------------------------------------------
 # (1)
