@@ -158,7 +158,8 @@ predic.obs <- data.frame(tPCB = bfc.tpcb$tPCB, predicted = bfc.tpcb$predicted)
 predic.obs <- data.frame(Location = bfc$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredtPCB.csv")
+          "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredtPCB.csv",
+          row.names = FALSE)
 
 # Estimate a factor of 2 between observations and predictions
 bfc.tpcb$factor2 <- bfc.tpcb$tPCB/bfc.tpcb$predicted
@@ -184,7 +185,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
 
 # Export results
 write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmetPCB.csv")
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmetPCB.csv",
+          row.names = FALSE)
 
 # Modeling plots
 
@@ -369,7 +371,8 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmePCB.csv")
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmePCB.csv",
+          row.names = FALSE)
 
 # Individual PCB congener plots -------------------------------------------
 # Generate predictions
@@ -506,7 +509,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Bannister Fed Complex"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
