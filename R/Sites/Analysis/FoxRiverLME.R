@@ -194,7 +194,8 @@ predic.obs <- data.frame(tPCB = fox.tpcb.1$tPCB, predicted = fox.tpcb.1$predicte
 predic.obs <- data.frame(Location = fox$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredtPCB.csv")
+          "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredtPCB.csv",
+          row.names = FALSE)
 
 # (2) Calculate factor of 2
 fox.tpcb.1$factor2 <- fox.tpcb.1$tPCB/fox.tpcb.1$predicted
@@ -221,7 +222,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                        "RMSE", "Factor2")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCB.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCB.csv",
+          row.names = FALSE)
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
@@ -440,7 +442,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv",
+          row.names = FALSE)
 
 # Estimate overall factor of 2 between observations and predictions
 # Generate predictions
@@ -577,7 +580,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Fox River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
