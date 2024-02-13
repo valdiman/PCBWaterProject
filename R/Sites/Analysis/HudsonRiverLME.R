@@ -350,43 +350,15 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverLmePCB.csv",
           row.names = FALSE)
 
-# Estimate overall factor of 2 between observations and predictions
-# Generate predictions
-# Select congeners that are not showing normality to be remove from fox.pcb.2
-df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
-# Get column indices to remove
-cols_to_remove <- which(names(hud.pcb.4) %in% df$names_to_remove)
-# Remove columns from fox.pcb.2 with congeners that don't show normality
-hud.pcb.5 <- hud.pcb.4[, -cols_to_remove]
-
-# Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(hud.pcb.5[,1]),
-                      ncol = length(hud.pcb.5[1,]))
-
-for (i in 1:length(hud.pcb.5[1,])) {
-  fit <- lmer(hud.pcb.5[,i] ~ 1 + time + flow + wtemp + season + (1|site),
-              REML = FALSE,
-              control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                    check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"),
-              na.action = na.exclude)
-  lme.fit.pcb[,i] <- fitted(fit)
-}
-
-# Factor of 2
-factor2 <- 10^(lme.fit.pcb)/10^(hud.pcb.5)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
 # Individual PCB congener plots -------------------------------------------
 # (1)
 # Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(hud.pcb.5)
+colnames(lme.fit.pcb) <- colnames(hud.pcb.4)
 # Add code number to first column
-df1 <- cbind(code = row.names(hud.pcb.5), hud.pcb.5)
+df1 <- cbind(code = row.names(hud.pcb.4), hud.pcb.4)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
 for (i in 2:length(df1)) {

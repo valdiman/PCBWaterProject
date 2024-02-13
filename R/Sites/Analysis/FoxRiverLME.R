@@ -182,7 +182,6 @@ shapiro.test(resid(lme.fox.tpcb)) # p-value = 0.04757
 # Just 3 significant figures
 lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 
-# Estimate a factor of 2 between observations and predictions
 # (1) Get predicted values tpcb
 fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
 # Add column name
@@ -445,7 +444,6 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv",
           row.names = FALSE)
 
-# Estimate overall factor of 2 between observations and predictions
 # Generate predictions
 # Select congeners that are not showing normality to be remove from fox.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
