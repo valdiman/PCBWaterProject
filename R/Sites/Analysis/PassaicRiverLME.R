@@ -45,31 +45,31 @@ install.packages("sfheaders")
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Passaic River data ---------------------------------------------------
-pass <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
+pas <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
 
 # Data preparation --------------------------------------------------------
 {
   # Change date format
-  pass$SampleDate <- as.Date(pass$SampleDate, format = "%m/%d/%y")
+  pas$SampleDate <- as.Date(pas$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(pass$SampleDate) - min(as.Date(pass$SampleDate)))
+  time.day <- data.frame(as.Date(pas$SampleDate) - min(as.Date(pas$SampleDate)))
   # Create individual code for each site sampled
-  site.numb <- pass$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- pas$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(pass$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(pas$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  pass.tpcb <- cbind(factor(pass$SiteID), pass$SampleDate,
-                    pass$Latitude, pass$Longitude, as.matrix(pass$tPCB),
+  pas.tpcb <- cbind(factor(pas$SiteID), pas$SampleDate,
+                    pas$Latitude, pas$Longitude, as.matrix(pas$tPCB),
                     data.frame(time.day), site.numb, season.s)
   # Add column names
-  colnames(pass.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+  colnames(pas.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
                           "tPCB", "time", "site.code", "season")
 }
 
 # Get coordinates per site to plot in Google Earth
-location <- pass.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
+location <- pas.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
 location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                       data = location, mean)
@@ -82,251 +82,175 @@ kmlFilePath <- "Output/Data/Sites/GoogleEarth/PassaicRiverLocations.kml"
 # Write the KML file to the specified directory
 st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
-# General plots -------------------------------------------------------------------
-# (1) Histograms
-hist(pass.tpcb$tPCB)
-hist(log10(pass.tpcb$tPCB))
-
-# (2) Time trend plots
-PASTime <- ggplot(pass.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  xlab("") +
-  scale_y_log10(
-    breaks = c(10, 100, 1000, 10000, 100000),  # Specify the desired breaks
-    labels = label_comma()(c(10, 100, 1000, 10000, 100000))  # Specify the desired labels
-  ) +
-  theme_classic() +
-  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
-  theme(
-    axis.text.y = element_text(face = "bold", size = 20),
-    axis.title.y = element_text(face = "bold", size = 18),
-    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
-    axis.title.x = element_text(face = "bold", size = 17),
-    plot.margin = margin(0.1, 0, 0, 0, unit = "cm"))
-
-# Print plot
-print(PASTime)
-
-# Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/PassaicRiverTime.png",
-       plot = PASTime, width = 6, height = 5, dpi = 500)
-
-# (3) Seasonality
-ggplot(pass.tpcb, aes(x = season, y = tPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 1, y = 20, label = "Passaic River",
-           size = 3)
-
-# (4) Sites
-ggplot(pass.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 5, y = 20, label = "Passaic River",
-           size = 3)
-
 # Include USGS flow and temperature data --------------------------------------------------
 {
   # Include flow data from USGS station Passaic River
-  sitepassN1 <- "01381900" # No temp
-  sitepassN2 <- "01379500" # No temp
-  sitepassN3 <- "01389005" # No flow
-  sitepassN4 <- "01389010" # No temp
-  sitepassN5 <- "01389500" # No temp
-  sitepassN6 <- "01389890" # No temp
+  sitepasN1 <- "01381900" # No temp
+  sitepasN2 <- "01379500" # No temp
+  sitepasN3 <- "01389005" # No flow
+  sitepasN4 <- "01389010" # No temp
+  sitepasN5 <- "01389500" # No temp
+  sitepasN6 <- "01389890" # No temp
 
   # Codes to retrieve data
   paramflow <- "00060" # discharge, ft3/s
   paramtemp <- "00010" # water temperature, C
   # Retrieve USGS data
-  flow.1 <- readNWISdv(sitepassN1, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.2 <- readNWISdv(sitepassN2, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.3 <- readNWISdv(sitepassN4, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.4 <- readNWISdv(sitepassN5, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.5 <- readNWISdv(sitepassN6, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  temp <- readNWISdv(sitepassN3, paramtemp,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
+  flow.1 <- readNWISdv(sitepasN1, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.2 <- readNWISdv(sitepasN2, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.3 <- readNWISdv(sitepasN4, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.4 <- readNWISdv(sitepasN5, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.5 <- readNWISdv(sitepasN6, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  temp <- readNWISdv(sitepasN3, paramtemp,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
   
   # Add USGS data to pass.tpcb.2, matching dates, conversion to m3/s
-  pass.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.1$Date)]
-  pass.tpcb$flow.2 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.2 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.2$Date)]
-  pass.tpcb$flow.3 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.3 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.3$Date)]
-  pass.tpcb$flow.4 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.4 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.4$Date)]
-  pass.tpcb$flow.5 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.5 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.5$Date)]
-  pass.tpcb$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pass.tpcb$date,
+  pas.tpcb$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pas.tpcb$date,
                                                        temp$Date)]
 }
 
 # Remove site -------------------------------------------------------------
 # Remove site located in the ocean.Possible typo in original coordinates.
-pass.tpcb.1 <- subset(pass.tpcb, SiteID != c("WCPCB-PASS022"))
+pas.tpcb.1 <- subset(pas.tpcb, SiteID != c("WCPCB-PASS022"))
 
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
-tpcb <- pass.tpcb$tPCB
-time <- pass.tpcb$time
-site <- pass.tpcb$site.code
-season <- pass.tpcb$season
-flow <- pass.tpcb$flow.5
-tem <- pass.tpcb$temp
+tpcb <- pas.tpcb$tPCB
+time <- pas.tpcb$time
+site <- pas.tpcb$site.code
+season <- pas.tpcb$season
+flow <- pas.tpcb$flow.5
+tem <- pas.tpcb$temp
 # tPCB vs. time + season + flow + temp + site
-lme.pass.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
+lme.pas.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
                                             check.nobs.vs.rankZ = "ignore",
                                             check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lme.pass.tpcb)
+summary(lme.pas.tpcb)
 # Look at residuals
 {
-  res.pass.tpcb <- resid(lme.pass.tpcb) # get list of residuals
+  res.pas.tpcb <- resid(lme.pas.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   # Create pdf file
   pdf("Output/Plots/Sites/Q-Q/PassaicRiverQ-QtPCB.pdf")
-  qqnorm(res.pass.tpcb,
+  qqnorm(res.pas.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
-  qqline(res.pass.tpcb)
+  qqline(res.pas.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.pass.tpcb)) # Lme doesn't work.
+shapiro.test(resid(lme.pas.tpcb)) # Lme doesn't work.
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
-  pass.pcb <- subset(pass, select = -c(SampleID:AroclorCongener))
+  pas.pcb <- subset(pas, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  pass.pcb <- subset(pass.pcb, select = -c(A1016:tPCB))
+  pas.pcb <- subset(pas.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
-  pass.pcb <- log10(pass.pcb)
+  pas.pcb <- log10(pas.pcb)
   # Replace -inf to NA
-  pass.pcb <- do.call(data.frame,
-                     lapply(pass.pcb,
+  pas.pcb <- do.call(data.frame,
+                     lapply(pas.pcb,
                             function(x) replace(x, is.infinite(x), NA)))
   # Remove individual PCB that have 30% or less NA values
-  pass.pcb.1 <- pass.pcb[,
-                       -which(colSums(is.na(pass.pcb))/nrow(pass.pcb) > 0.7)]
+  pas.pcb.1 <- pas.pcb[,
+                       -which(colSums(is.na(pas.pcb))/nrow(pas.pcb) > 0.7)]
   # Add site ID
-  SiteID <- factor(pass$SiteID)
+  SiteID <- factor(pas$SiteID)
   # Change date format
-  SampleDate <- as.Date(pass$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(pas$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  site.numb <- pass$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- pas$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(pass$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(pas$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to pass.pcb
-  pass.pcb.1 <- cbind(pass.pcb.1, SiteID, SampleDate, data.frame(time.day),
+  pas.pcb.1 <- cbind(pas.pcb.1, SiteID, SampleDate, data.frame(time.day),
                      site.numb, season.s)
   # Include flow data from USGS station Passaic River
-  sitepassN1 <- "01381900" # No temp
-  sitepassN2 <- "01379500" # No temp
-  sitepassN3 <- "01389005" # No flow
-  sitepassN4 <- "01389010" # No temp
-  sitepassN5 <- "01389500" # No temp
-  sitepassN6 <- "01389890" # No temp
+  sitepasN1 <- "01381900" # No temp
+  sitepasN2 <- "01379500" # No temp
+  sitepasN3 <- "01389005" # No flow
+  sitepasN4 <- "01389010" # No temp
+  sitepasN5 <- "01389500" # No temp
+  sitepasN6 <- "01389890" # No temp
   
   # Codes to retrieve data
   paramflow <- "00060" # discharge, ft3/s
   paramtemp <- "00010" # water temperature, C
   # Retrieve USGS data
-  flow.1 <- readNWISdv(sitepassN1, paramflow,
-                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
-  flow.2 <- readNWISdv(sitepassN2, paramflow,
-                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
-  flow.3 <- readNWISdv(sitepassN4, paramflow,
-                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
-  flow.4 <- readNWISdv(sitepassN5, paramflow,
-                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
-  flow.5 <- readNWISdv(sitepassN6, paramflow,
-                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
-  temp <- readNWISdv(sitepassN3, paramtemp,
-                     min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
+  flow.1 <- readNWISdv(sitepasN1, paramflow,
+                       min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
+  flow.2 <- readNWISdv(sitepasN2, paramflow,
+                       min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
+  flow.3 <- readNWISdv(sitepasN4, paramflow,
+                       min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
+  flow.4 <- readNWISdv(sitepasN5, paramflow,
+                       min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
+  flow.5 <- readNWISdv(sitepasN6, paramflow,
+                       min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
+  temp <- readNWISdv(sitepasN3, paramtemp,
+                     min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
   
   # Add USGS data to pass.tpcb.1, matching dates, conversion to m3/s
-  pass.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(pass.pcb.1$SampleDate,
+  pas.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(pas.pcb.1$SampleDate,
                                                       flow.1$Date)]
-  pass.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(pass.pcb.1$SampleDate,
+  pas.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(pas.pcb.1$SampleDate,
                                                       flow.2$Date)]
-  pass.pcb.1$flow.3 <- 0.03*flow.3$X_00060_00003[match(pass.pcb.1$SampleDate,
+  pas.pcb.1$flow.3 <- 0.03*flow.3$X_00060_00003[match(pas.pcb.1$SampleDate,
                                                       flow.3$Date)]
-  pass.pcb.1$flow.4 <- 0.03*flow.4$X_00060_00003[match(pass.pcb.1$SampleDate,
+  pas.pcb.1$flow.4 <- 0.03*flow.4$X_00060_00003[match(pas.pcb.1$SampleDate,
                                                       flow.4$Date)]
-  pass.pcb.1$flow.5 <- 0.03*flow.5$X_00060_00003[match(pass.pcb.1$SampleDate,
+  pas.pcb.1$flow.5 <- 0.03*flow.5$X_00060_00003[match(pas.pcb.1$SampleDate,
                                                       flow.5$Date)]
-  pass.pcb.1$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pass.pcb.1$SampleDate,
+  pas.pcb.1$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pas.pcb.1$SampleDate,
                                                                           temp$Date)]
   # Remove metadata
-  pass.pcb.2 <- subset(pass.pcb.1, select = -c(SiteID:temp))
+  pas.pcb.2 <- subset(pas.pcb.1, select = -c(SiteID:temp))
 }
 
 # LME for individual PCBs -------------------------------------------------
 # Get covariates
-time <- pass.pcb.1$time
-season <- pass.pcb.1$season
-site <- pass.pcb.1$site.numb
-flow <- pass.pcb.1$flow.3 # flow.3 yiels 6 PCB congeners
-tem <- pass.pcb.1$temp
+time <- pas.pcb.1$time
+season <- pas.pcb.1$season
+site <- pas.pcb.1$site.numb
+flow <- pas.pcb.1$flow.3 # flow.3 yiels 6 PCB congeners
+tem <- pas.pcb.1$temp
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(pass.pcb.2[1,]), ncol = 27)
+lme.pcb <- matrix(nrow = length(pas.pcb.2[1,]), ncol = 25)
 
 # Perform LME
-for (i in 1:length(pass.pcb.2[1,])) {
-  fit <- lmer(pass.pcb.2[,i] ~ 1 + time + flow + tem + season + (1|site),
+for (i in 1:length(pas.pcb.2[1,])) {
+  fit <- lmer(pas.pcb.2[,i] ~ 1 + time + flow + tem + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -352,27 +276,71 @@ for (i in 1:length(pass.pcb.2[1,])) {
   #lme.pcb[i,19] <- fixef(fit)[7] # season 3
   #lme.pcb[i,20] <- summary(fit)$coef[7,"Std. Error"] # season 3 error
   #lme.pcb[i,21] <- summary(fit)$coef[7,"Pr(>|t|)"] # season 3 p-value
-  lme.pcb[i,22] <- -log(2)/lme.pcb[i,4]/365 # t0.5
-  lme.pcb[i,23] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
-  lme.pcb[i,24] <- as.data.frame(VarCorr(fit))[1,'sdcor']
-  lme.pcb[i,25] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
-  lme.pcb[i,26] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
-  lme.pcb[i,27] <- shapiro.test(resid(fit))$p.value
+  lme.pcb[i,19] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,20] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,21] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,24] <- shapiro.test(resid(fit))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(fit)
+  # Calculate residuals and RMSE
+  residuals <- pas.pcb.2[, i] - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.pcb[i, 25] <- sqrt(mean(residuals[non_na_indices]^2))
+  
 }
 
 # Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+#lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+
+# Transform result to data.frame so factor 2 can be included
+lme.pcb <- as.data.frame(lme.pcb)
+
+# Add factor of 2
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(pas.pcb.2[,1]),
+                      ncol = length(pas.pcb.2[1,]))
+
+# Create a vector to store factor 2 for each congener
+factor2_vector <- numeric(length = length(pas.pcb.2[1,]))
+
+for (i in 1:length(pas.pcb.2[1,])) {
+  fit <- lmer(pas.pcb.2[,i] ~ 1 + time + flow + tem + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  
+  lme.fit.pcb[,i] <- fitted(fit)
+  
+  # Calculate factor2 for each congener
+  factor2 <- 10^(lme.fit.pcb[, i])/10^(pas.pcb.2[, i])
+  factor2_vector[i] <- sum(factor2 > 0.5 & factor2 < 2,
+                           na.rm = TRUE) / (sum(!is.na(factor2))) * 100
+}
+
+# Add factor 2 to lme.pcb data.frame
+lme.pcb$factor2 <- factor2_vector
+
+# Change number format of factor 2 to 3 significant figures
+lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
+
 # Add congener names
-congeners <- colnames(pass.pcb.2)
+congeners <- colnames(pas.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "flow", "flow.error", "flow.pv", "temp", "temp.error",
                        "temp.pv", "season1", "season1.error", "season1.pv",
-                       "season2", "season2.error", "season2, pv", "season3",
-                       "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "season2", "season2.error", "season2, pv", "t05",
+                       "t05.error", "RandonEffectSiteStdDev", "R2nR", "R2R",
+                       "Normality", "RMSE", "Factor2")
+
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
@@ -381,7 +349,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/PassaicRiver/PassaicLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/PassaicRiver/PassaicLmePCB.csv",
+          row.names = FALSE)
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from pass.pcb.2
@@ -524,7 +493,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Passaic River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/PassaicRiver/PassaicObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
