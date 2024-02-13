@@ -196,7 +196,8 @@ predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicte
 predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverObsPredtPCB.csv")
+          "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverObsPredtPCB.csv",
+          row.names = FALSE)
 
 # (2) Calculate factor of 2
 kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
@@ -223,7 +224,8 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
 
 # Export results
 write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooLmetPCB.csv")
+          file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooLmetPCB.csv",
+          row.names = FALSE)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
