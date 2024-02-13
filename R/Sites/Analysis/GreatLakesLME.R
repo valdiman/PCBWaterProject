@@ -288,7 +288,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv",
+          row.names = FALSE)
 
 # Estimate overall factor of 2 between observations and predictions
 # Generate predictions
@@ -426,7 +427,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Great Lakes"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
