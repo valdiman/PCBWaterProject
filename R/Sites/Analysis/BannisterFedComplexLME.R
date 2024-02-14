@@ -125,11 +125,8 @@ shapiro.test(resid(lme.bfc.tpcb)) # p-value = 0.4844
   lme.tpcb[19] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-
-# Estimate a factor of 2 between observations and predictions
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.bfc.tpcb <- as.data.frame(fitted(lme.bfc.tpcb))
 # Add column name
 colnames(fit.lme.values.bfc.tpcb) <- c("predicted")
@@ -147,7 +144,7 @@ write.csv(predic.obs,
 # Estimate a factor of 2 between observations and predictions
 bfc.tpcb$factor2 <- bfc.tpcb$tPCB/bfc.tpcb$predicted
 factor2.tpcb <- nrow(bfc.tpcb[bfc.tpcb$factor2 > 0.5 & bfc.tpcb$factor2 < 2,
-])/length(bfc.tpcb[,1])*100
+                              ])/length(bfc.tpcb[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -172,7 +169,6 @@ write.csv(lme.tpcb,
           row.names = FALSE)
 
 # Modeling plots
-
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(bfc.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
@@ -377,8 +373,7 @@ for (i in 1:length(bfc.pcb.3[1,])) {
 }
 
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -417,8 +412,7 @@ for (i in 2:length(df1)) {
          plot = p, width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -453,7 +447,7 @@ combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/combined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
+# (3) Plot all the pairs together
 # Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
