@@ -123,7 +123,7 @@ summary(lme.grl.tpcb)
 # Shapiro test
 shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work, p-value < 0.05
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   # Select only Lake Michigan data
@@ -166,7 +166,6 @@ shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work, p-value < 0.05
   grl.pcb.2 <- subset(grl.pcb.1, select = -c(SiteID:temp))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- grl.pcb.1$time
 wtemp <- grl.pcb.1$temp
@@ -212,9 +211,6 @@ for (i in 1:length(grl.pcb.2[1,])) {
   non_na_indices <- !is.na(residuals)
   lme.pcb[i, 22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
-
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
@@ -273,9 +269,9 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv",
           row.names = FALSE)
 
-# Estimate overall factor of 2 between observations and predictions
+# Obtain observations vs predictions
 # Generate predictions
-# Select congeners that are not showing normality to be remove from fox.pcb.2
+# Select congeners that are not showing normality to be remove from grl.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
 cols_to_remove <- which(names(grl.pcb.2) %in% df$names_to_remove)
@@ -297,14 +293,8 @@ for (i in 1:length(grl.pcb.3[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Factor of 2
-factor2 <- 10^(lme.fit.pcb)/10^(grl.pcb.3)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -343,8 +333,7 @@ for (i in 2:length(df1)) {
          width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -376,11 +365,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/GreatLakes/combined_plot.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/GreatLakes/LmeCombined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -409,7 +397,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Great Lakes"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmeObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
