@@ -44,7 +44,7 @@ install.packages("sfheaders")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
-# Select 21 lwahigan data ---------------------------------------------------
+# Select Lake Washington data ---------------------------------------------------
 lwa <- wdc[str_detect(wdc$LocationName, 'Lake Washington'),]
 
 # Data preparation --------------------------------------------------------
