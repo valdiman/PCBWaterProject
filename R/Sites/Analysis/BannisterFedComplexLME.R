@@ -138,9 +138,10 @@ bfc.tpcb$predicted <- 10^(fit.lme.values.bfc.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = bfc.tpcb$tPCB, predicted = bfc.tpcb$predicted)
 predic.obs <- data.frame(Location = bfc$LocationName[1], predic.obs)
+colnames(predic.obs) <- c("location", "observed", "predicted")
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredtPCB.csv",
+          "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmeObsPredtPCB.csv",
           row.names = FALSE)
 
 # Estimate a factor of 2 between observations and predictions
@@ -296,9 +297,6 @@ for (i in 1:length(bfc.pcb.2[1,])) {
   lme.pcb[i, 19] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
-
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
 
@@ -356,8 +354,7 @@ write.csv(lme.pcb,
           file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmePCB.csv",
           row.names = FALSE)
 
-# Individual PCB congener plots -------------------------------------------
-# Generate predictions
+# Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from bfc.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
@@ -378,11 +375,6 @@ for (i in 1:length(bfc.pcb.3[1,])) {
               na.action = na.exclude)
   lme.fit.pcb[,i] <- fitted(fit)
 }
-
-# Estimate the overall factor of 2 between observations and predictions
-factor2 <- 10^(bfc.pcb.3)/10^(lme.fit.pcb)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
 # Individual PCB congener plots -------------------------------------------
 # (1)
@@ -491,7 +483,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Bannister Fed Complex"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmeObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
