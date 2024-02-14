@@ -114,5 +114,5 @@ summary(lme.hou.tpcb)
   qqline(res.hou.tpcb)
 }
 # Shapiro test
-shapiro.test(resid(lme.hou.tpcb))
+shapiro.test(resid(lme.hou.tpcb)) # p-value < 0.05
 # Lme does not provide a good model for the data.
