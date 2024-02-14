@@ -97,7 +97,7 @@ summary(lme.mic.tpcb)
 shapiro.test(resid(lme.mic.tpcb))
 # lme doesn't work here. p-value = 5e-13
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
@@ -134,7 +134,6 @@ shapiro.test(resid(lme.mic.tpcb))
   mic.pcb.2 <- subset(mic.pcb.1, select = -c(SiteID:season.s))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- mic.pcb.1$time
 season <- mic.pcb.1$season
@@ -176,9 +175,6 @@ for (i in 1:length(mic.pcb.2[1,])) {
   non_na_indices <- !is.na(residuals)
   lme.pcb[i, 19] <- sqrt(mean(residuals[non_na_indices]^2))
 }
-
-# Change number format to 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
@@ -235,8 +231,7 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 # Export results
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/21Mich/21MichLmePCB.csv")
 
-# Individual PCB congener plots -------------------------------------------
-# Generate predictions
+# Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from mic.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
@@ -258,13 +253,8 @@ for (i in 1:length(mic.pcb.3[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Estimate the overall factor of 2 between observations and predictions
-factor2 <- 10^(mic.pcb.3)/10^(lme.fit.pcb)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
-# (1)
-# Plot 1:1 for all congeners
+# Individual PCB congener plots -------------------------------------------
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -303,8 +293,7 @@ for (i in 2:length(df1)) {
          width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -336,11 +325,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/21Mich/combined_plot.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/21Mich/LmeCombined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -369,7 +357,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "21 Mich"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/21Mich/21MichObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/21Mich/21MichLmeObsPredPCB.csv")
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
@@ -396,6 +384,6 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichObsPredPCBV02.png",
+ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichLmeObsPredPCBV02.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
