@@ -146,11 +146,8 @@ shapiro.test(resid(lme.che.tpcb)) # p-value = 0.0731
   lme.tpcb[25] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-
-# Estimate a factor of 2 between observations and predictions
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.che.tpcb <- as.data.frame(fitted(lme.che.tpcb))
 # Add column name
 colnames(fit.lme.values.che.tpcb) <- c("predicted")
@@ -159,15 +156,16 @@ che.tpcb$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = che.tpcb$tPCB, predicted = che.tpcb$predicted)
 predic.obs <- data.frame(Location = che$LocationName[1], predic.obs)
-# Save new data
+colnames(predic.obs) <- c("location", "observed", "predicted")
+# Save observations vs. predictions
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredtPCB.csv",
+          "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmeObsPredtPCB.csv",
           row.names = FALSE)
 
-# (2) Calculate factor of 2
+# Estimate a factor of 2 between observations and predictions
 che.tpcb$factor2 <- che.tpcb$tPCB/che.tpcb$predicted
 factor2.tpcb <- nrow(che.tpcb[che.tpcb$factor2 > 0.5 & che.tpcb$factor2 < 2,
-])/length(che.tpcb[,1])*100
+                              ])/length(che.tpcb[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -192,6 +190,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
 write.csv(lme.tpcb, file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmetPCB.csv",
           row.names = FALSE)
 
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(che.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
@@ -237,7 +236,7 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeObsPredtPCB.png",
   dev.off()
 }
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
@@ -326,9 +325,6 @@ for (i in 1:length(che.pcb.2[1,])) {
   lme.pcb[i, 25] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
-
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
 
@@ -386,8 +382,8 @@ write.csv(lme.pcb,
           file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv",
           row.names = FALSE)
 
-# Individual PCB congener plots -------------------------------------------
-# Generate predictions
+
+# Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from che.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
@@ -414,8 +410,8 @@ factor2 <- 10^(che.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
-# (1)
-# Plot 1:1 for all congeners
+# Individual PCB congener plots -------------------------------------------
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -454,8 +450,7 @@ for (i in 2:length(df1)) {
          plot = p, width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -487,11 +482,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/combined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/LmeCombined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -520,7 +514,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Chesapeake Bay"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmeObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
