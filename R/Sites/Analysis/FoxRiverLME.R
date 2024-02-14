@@ -161,10 +161,9 @@ shapiro.test(resid(lme.fox.tpcb)) # p-value = 0.04757
   lme.tpcb[25] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
 # Add column name
 colnames(fit.lme.values.fox.tpcb) <- c("predicted")
@@ -173,15 +172,16 @@ fox.tpcb.1$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = fox.tpcb.1$tPCB, predicted = fox.tpcb.1$predicted)
 predic.obs <- data.frame(Location = fox$LocationName[1], predic.obs)
-# Save new data
+colnames(predic.obs) <- c("location", "observed", "predicted")
+# Save observations vs. predictions
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredtPCB.csv",
+          "Output/Data/Sites/csv/FoxRiver/FoxRiverLmeObsPredtPCB.csv",
           row.names = FALSE)
 
-# (2) Calculate factor of 2
+# Estimate a factor of 2 between observations and predictions
 fox.tpcb.1$factor2 <- fox.tpcb.1$tPCB/fox.tpcb.1$predicted
 factor2.tpcb <- nrow(fox.tpcb.1[fox.tpcb.1$factor2 > 0.5 & fox.tpcb.1$factor2 < 2,
-])/length(fox.tpcb.1[,1])*100
+                                ])/length(fox.tpcb.1[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -206,6 +206,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
 write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCB.csv",
           row.names = FALSE)
 
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
@@ -233,7 +234,7 @@ tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
 # Print plot
 print(tPCBObsPred)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverLmeObsPredtPCB.png",
        plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
@@ -257,7 +258,7 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.png",
   dev.off()
   }
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   fox.pcb <- subset(fox, select = -c(SampleID:AroclorCongener))
@@ -314,7 +315,6 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.png",
   fox.pcb.3 <- subset(fox.pcb.2, select = -c(SiteID:temp))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- fox.pcb.2$time
 flow <- fox.pcb.2$flow
@@ -423,7 +423,7 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv",
           row.names = FALSE)
 
-# Generate predictions
+# Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from fox.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
@@ -445,14 +445,8 @@ for (i in 1:length(fox.pcb.4[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Factor of 2
-factor2 <- 10^(lme.fit.pcb)/10^(fox.pcb.4)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -491,8 +485,7 @@ for (i in 2:length(df1)) {
          width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -524,11 +517,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/combined_plot.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/LmeCombined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -557,7 +549,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Fox River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmeObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
