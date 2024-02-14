@@ -189,7 +189,7 @@ p <- ggplot(bfc.tpcb, aes(x = tPCB, y = predicted)) +
 print(p)
 
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
@@ -213,7 +213,7 @@ ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexObsPre
   dev.off()
 }
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
@@ -250,7 +250,6 @@ ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexObsPre
   bfc.pcb.2 <- subset(bfc.pcb.1, select = -c(SiteID:season.s))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- bfc.pcb.1$time
 season <- bfc.pcb.1$season
@@ -444,7 +443,7 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/combined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/LmeCombined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
 # (3) Plot all the pairs together
@@ -505,7 +504,7 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
          
