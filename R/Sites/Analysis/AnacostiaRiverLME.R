@@ -168,11 +168,8 @@ shapiro.test(resid(lme.anr.tpcb)) # p-value = 0.1738
   lme.tpcb[28] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-
-# Estimate a factor of 2 between observations and predictions
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.anr.tpcb <- as.data.frame(fitted(lme.anr.tpcb))
 # Add column name
 colnames(fit.lme.values.anr.tpcb) <- c("predicted")
@@ -181,15 +178,16 @@ anr.tpcb$predicted <- 10^(fit.lme.values.anr.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = anr.tpcb$tPCB, predicted = anr.tpcb$predicted)
 predic.obs <- data.frame(Location = anr$LocationName[1], predic.obs)
-# Save new data
+colnames(predic.obs) <- c("location", "observed", "predicted")
+# Save observations vs predictions
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverObsPredtPCB.csv",
+          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmeObsPredtPCB.csv",
           row.names = FALSE)
 
-# (2) Calculate factor of 2
+# Estimate a factor of 2 between observations and predictions
 anr.tpcb$factor2 <- anr.tpcb$tPCB/anr.tpcb$predicted
 factor2.tpcb <- nrow(anr.tpcb[anr.tpcb$factor2 > 0.5 & anr.tpcb$factor2 < 2,
-])/length(anr.tpcb[,1])*100
+                              ])/length(anr.tpcb[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -216,6 +214,7 @@ write.csv(lme.tpcb,
           file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmetPCB.csv",
           row.names = FALSE)
 
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(anr.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
