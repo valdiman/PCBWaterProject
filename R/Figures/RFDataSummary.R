@@ -67,43 +67,49 @@ install.packages("RColorBrewer")
 # see data
 print(combined_data)
 
-# Read generated data for individual PCB ----------------------------------
+# Export results
+write.csv(combined_data, file = "Output/Data/Sites/csv/AllRFPerformancetPCBV0.csv")
 
-# 21 Mich
+# Select locations with R2 > 0.4
+combined_data.2 <- combined_data[combined_data[, 2] > 0.4, ]
+
+# see data
+print(combined_data.2)
+
+# Export results
+write.csv(combined_data.2, file = "Output/Data/Sites/csv/AllRFPerformancetPCB.csv")
+
+# Read generated data for individual PCB ----------------------------------
 {
   # 21 Mich
   mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFPerformancePCB.csv")
-  
   # Bannister Federal Complex
   bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFPerformancePCB.csv")
-  
   # Chesapeake Bay data
   che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancePCB.csv")
-  
   # Fox River data
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFPerformancePCB.csv")
-  
   # Great Lakes (Lake Michigan)
   grl <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesRFPerformancePCB.csv")
-  
   # Hudson River
   hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFPerformancePCB.csv")
-  
   # Lake Washington
   lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFPerformancePCB.csv")
-  
   # New Bedford Harbor data
   nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHRFPerformancePCB.csv")
-
   # Passaic River
   pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPerformancePCB.csv")
-  
   # Portland Harbor
   por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancePCB.csv")
-  
   # Spokane River
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancePCB.csv")
   
+  # Combine the data frames
+  combined_data <- rbind(mic, bfc, che, fox, grl, hud, lwa, nbh, pas, por, spo)
 }
+
+# Export results
+write.csv(combined_data, file = "Output/Data/Sites/csv/AllRFPerformancePCBi.csv")
+
 
 
