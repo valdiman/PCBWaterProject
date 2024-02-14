@@ -1,5 +1,5 @@
 ## Water PCB concentrations data analysis per site
-## Blue River
+## Blue River or Bannister Fed Complex
 
 # Install packages
 install.packages("tidyverse")
@@ -136,7 +136,7 @@ bfc.tpcb$predicted <- 10^(fit.lme.values.bfc.tpcb$predicted)
 predic.obs <- data.frame(tPCB = bfc.tpcb$tPCB, predicted = bfc.tpcb$predicted)
 predic.obs <- data.frame(Location = bfc$LocationName[1], predic.obs)
 colnames(predic.obs) <- c("location", "observed", "predicted")
-# Save new data
+# Save observations vs. predictions
 write.csv(predic.obs,
           "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmeObsPredtPCB.csv",
           row.names = FALSE)
