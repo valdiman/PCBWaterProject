@@ -321,12 +321,28 @@ for (i in seq_along(pcb_numeric_columns)) {
     Location = rep("Portland Harbor", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
-    Predicted = predictions
+    Predicted = predictions,
+    R_squared = r_squared  # Add R_squared column
   )
   
   # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
+
+# Remove congeners w/R2 < 0
+rf_results <- rf_results %>%
+  filter(R_squared >= 0)
+
+# Add location name
+rf_results <- cbind(Location = rep("Portland Harbor", nrow(rf_results)),
+                    rf_results)
+
+# Remove rows in all_results where R_squared < 0
+all_results <- all_results %>%
+  filter(R_squared >= 0)
+
+# Remove the "R_squared" column from all_results
+all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,

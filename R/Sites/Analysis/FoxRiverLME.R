@@ -383,9 +383,6 @@ for (i in 1:length(fox.pcb.3[1,])) {
     lme.pcb[i, 25] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
-
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
 
