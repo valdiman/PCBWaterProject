@@ -14,15 +14,15 @@ install.packages("RColorBrewer")
 # Read generated data
 {
   # 21 Mich
-  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFObsPredPCBV02.csv")
+  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFObsPredPCB.csv")
   # Bannister Federal Complex
   bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFObsPredPCB.csv")
   # Chesapeake Bay data
-  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredPCBV01.csv")
+  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredPCB.csv")
   # Fox River data
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredPCB.csv")
   # Great Lakes
-  grl <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesRFObsPredPCBV02.csv")
+  grl <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesRFObsPredPCB.csv")
   # Hudson River
   hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFObsPredPCB.csv")
   # Lake Washington
@@ -32,9 +32,9 @@ install.packages("RColorBrewer")
   # Passaic River
   pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFObsPredPCB.csv")
   # Portland Harbord data
-  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredPCBV02.csv")
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFObsPredPCB.csv")
   # Spokane River data
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredPCBV02.csv")
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredPCB.csv")
   # Combine the data frames
   combined_data <- rbind(mic, bfc, che, fox, grl, hud, lwa, nbh, pas, por, spo)
 }
@@ -78,6 +78,5 @@ CombinePredObsPlot <- ggplot(combined_data,
 print(CombinePredObsPlot)
 
 # Save plot
-ggsave("Output/Figures/Sites/CombineRFObsPredPCBiV02.png",
+ggsave("Output/Figures/Sites/CombineRFObsPredPCBi.png",
        plot = CombinePredObsPlot, width = 18, height = 8, dpi = 500)
-
