@@ -161,7 +161,6 @@ shapiro.test(resid(lme.fox.tpcb)) # p-value = 0.04757
   lme.tpcb[25] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-
 # Obtain observations and predictions
 # Get predicted values tpcb
 fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
