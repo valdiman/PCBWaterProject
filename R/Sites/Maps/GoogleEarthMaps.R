@@ -63,7 +63,7 @@ st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
 # Here!
 
-# Select anrsatonic River data ---------------------------------------------------
+# Select Anacostia River data ---------------------------------------------------
 anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
 
 # Data preparation --------------------------------------------------------
