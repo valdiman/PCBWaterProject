@@ -405,11 +405,6 @@ for (i in 1:length(che.pcb.3[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Estimate the overall factor of 2 between observations and predictions
-factor2 <- 10^(che.pcb.3)/10^(lme.fit.pcb)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
 # Individual PCB congener plots -------------------------------------------
 # (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
