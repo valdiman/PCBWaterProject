@@ -17,8 +17,6 @@ install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages('patchwork')
 install.packages("scales")
-install.packages("sf")
-install.packages("sfheaders")
 
 # Load libraries
 {
@@ -35,8 +33,6 @@ install.packages("sfheaders")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(patchwork) # combine plots
-  library(sf) # Create file to be used in Google Earth
-  library(sfheaders) # Create file to be used in Google Earth
 }
 
 # Read data ---------------------------------------------------------------
@@ -66,20 +62,6 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
   colnames(fox.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
                           "tPCB", "time", "site.code", "season")
 }
-
-# Get coordinates per site to plot in Google Earth
-location <- fox.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
-# Average tPCB per site
-location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                      data = location, mean)
-# Create an sf data frame
-sf_location <- st_as_sf(location, coords = c("Longitude", "Latitude"))
-# Set the CRS to WGS 84 (EPSG:4326)
-sf_location <- st_set_crs(sf_location, 4326)
-# Define the full file path for the KML file
-kmlFilePath <- "Output/Data/Sites/GoogleEarth/FoxRiverLocations.kml"
-# Write the KML file to the specified directory
-st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
 # Remove site -------------------------------------------------------------
 # Remove site Lake Winnebago (background site)

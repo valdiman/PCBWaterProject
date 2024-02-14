@@ -17,8 +17,6 @@ install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages('patchwork')
 install.packages("scales")
-install.packages("sf")
-install.packages("sfheaders")
 
 # Load libraries
 {
@@ -35,8 +33,6 @@ install.packages("sfheaders")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(patchwork) # combine plots
-  library(sf) # Create file to be used in Google Earth
-  library(sfheaders) # Create file to be used in Google Earth
 }
 
 # Read data ---------------------------------------------------------------

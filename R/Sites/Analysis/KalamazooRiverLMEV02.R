@@ -20,8 +20,6 @@ install.packages("reshape")
 install.packages("tidyr")
 install.packages('patchwork')
 install.packages("scales")
-install.packages("sf")
-install.packages("sfheaders")
 
 # Load libraries
 {
@@ -39,8 +37,6 @@ install.packages("sfheaders")
   library(reshape)
   library(tidyr) # function gather
   library(patchwork) # combine plots
-  library(sf) # Create file to be used in Google Earth
-  library(sfheaders) # Create file to be used in Google Earth
 }
 
 # Read data ---------------------------------------------------------------

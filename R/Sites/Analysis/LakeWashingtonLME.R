@@ -17,8 +17,6 @@ install.packages("reshape")
 install.packages("tidyr")
 install.packages('patchwork')
 install.packages("scales")
-install.packages("sf")
-install.packages("sfheaders")
 
 # Load libraries
 {
@@ -36,8 +34,6 @@ install.packages("sfheaders")
   library(reshape)
   library(tidyr) # function gather
   library(patchwork) # combine plots
-  library(sf) # Create file to be used in Google Earth
-  library(sfheaders) # Create file to be used in Google Earth
 }
 
 # Read data ---------------------------------------------------------------
@@ -67,20 +63,6 @@ lwa <- wdc[str_detect(wdc$LocationName, 'Lake Washington'),]
   colnames(lwa.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
                           "tPCB", "time", "site.code", "season")
 }
-
-# Get coordinates per site to plot in Google Earth
-location <- lwa.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
-# Average tPCB per site
-location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                      data = location, mean)
-# Create an sf data frame
-sf_location <- st_as_sf(location, coords = c("Longitude", "Latitude"))
-# Set the CRS to WGS 84 (EPSG:4326)
-sf_location <- st_set_crs(sf_location, 4326)
-# Define the full file path for the KML file
-kmlFilePath <- "Output/Data/Sites/GoogleEarth/LakeWashingtonLocations.kml"
-# Write the KML file to the specified directory
-st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
