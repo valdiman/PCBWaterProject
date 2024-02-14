@@ -1,6 +1,7 @@
 # Code to get coordinates per site to plot in Google Earth
 
 # Install packages
+install.packages("tidyverse")
 install.packages("dplyr")
 install.packages("sf")
 install.packages("sfheaders")
@@ -8,6 +9,7 @@ install.packages("sfheaders")
 # Load libraries
 {
   library(dplyr) # performs %>%
+  library(stringr) # str_detect
   library(sf) # Create file to be used in Google Earth
   library(sfheaders) # Create file to be used in Google Earth
 }
@@ -18,15 +20,12 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Total PCB description ---------------------------------------------------
 # Data preparation
-{
-  site.numb <- wdc$SiteID %>% as.factor() %>% as.numeric
-  # Create data frame
-  tpcb <- cbind(factor(wdc$SiteID), wdc$Latitude, wdc$Longitude,
-                wdc$tPCB)
-  # Add column names
-  colnames(tpcb) <- c("SiteID", "Latitude", "Longitude", "tPCB")
-}
-
+tpcb <- cbind(wdc$SiteID, wdc$Latitude, wdc$Longitude, wdc$tPCB)
+tpcb <- as.data.frame(tpcb)
+# Transform characters to numeric values
+tpcb[, 2:4] <- lapply(tpcb[, 2:4], as.numeric)
+# Add column names
+colnames(tpcb) <- c("SiteID", "Latitude", "Longitude", "tPCB")
 # Average tPCB per site
 location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                       data = tpcb, mean)
@@ -43,16 +42,13 @@ st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
 mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
 
 # Data preparation --------------------------------------------------------
-{
-  # Create individual code for each site sampled
-  site.numb <- mic$SiteID %>% as.factor() %>% as.numeric
-  # Create data frame
-  mic.tpcb <- cbind(factor(mic$SiteID), mic$Latitude, mic$Longitude,
-                    as.matrix(mic$tPCB))
-  # Add column names
-  colnames(mic.tpcb) <- c("SiteID", "Latitude", "Longitude", "tPCB")
-}
-
+# Create data frame
+mic.tpcb <- cbind(mic$SiteID, mic$Latitude, mic$Longitude, mic$tPCB)
+mic.tpcb <- as.data.frame(mic.tpcb)
+# Transform characters to numeric values
+mic.tpcb[, 2:4] <- lapply(mic.tpcb[, 2:4], as.numeric)
+# Add column names
+colnames(mic.tpcb) <- c("SiteID", "Latitude", "Longitude", "tPCB")
 # Average tPCB per site
 location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                       data = mic.tpcb, mean)
@@ -64,6 +60,8 @@ sf_location <- st_set_crs(sf_location, 4326)
 kmlFilePath <- "Output/Data/Sites/GoogleEarth/21MichLocations.kml"
 # Write the KML file to the specified directory
 st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
+
+# Here!
 
 # Select anrsatonic River data ---------------------------------------------------
 anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
