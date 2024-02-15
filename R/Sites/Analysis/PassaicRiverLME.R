@@ -144,7 +144,7 @@ summary(lme.pas.tpcb)
 # Shapiro test
 shapiro.test(resid(lme.pas.tpcb)) # Lme doesn't work.
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
@@ -219,7 +219,6 @@ shapiro.test(resid(lme.pas.tpcb)) # Lme doesn't work.
   pas.pcb.2 <- subset(pas.pcb.1, select = -c(SiteID:temp))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- pas.pcb.1$time
 season <- pas.pcb.1$season
@@ -231,6 +230,7 @@ tem <- pas.pcb.1$temp
 lme.pcb <- matrix(nrow = length(pas.pcb.2[1,]), ncol = 25)
 
 # Perform LME
+# Need to remove season 3, not enough data.
 for (i in 1:length(pas.pcb.2[1,])) {
   fit <- lmer(pas.pcb.2[,i] ~ 1 + time + flow + tem + season + (1|site),
               REML = FALSE,
@@ -255,9 +255,6 @@ for (i in 1:length(pas.pcb.2[1,])) {
   lme.pcb[i,16] <- fixef(fit)[6] # season 2
   lme.pcb[i,17] <- summary(fit)$coef[6,"Std. Error"] # season 2 error
   lme.pcb[i,18] <- summary(fit)$coef[6,"Pr(>|t|)"] # season 2 p-value
-  #lme.pcb[i,19] <- fixef(fit)[7] # season 3
-  #lme.pcb[i,20] <- summary(fit)$coef[7,"Std. Error"] # season 3 error
-  #lme.pcb[i,21] <- summary(fit)$coef[7,"Pr(>|t|)"] # season 3 p-value
   lme.pcb[i,19] <- -log(2)/lme.pcb[i,4]/365 # t0.5
   lme.pcb[i,20] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
   lme.pcb[i,21] <- as.data.frame(VarCorr(fit))[1,'sdcor']
@@ -273,9 +270,6 @@ for (i in 1:length(pas.pcb.2[1,])) {
   lme.pcb[i, 25] <- sqrt(mean(residuals[non_na_indices]^2))
   
 }
-
-# Just 3 significant figures
-#lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
@@ -334,20 +328,20 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/PassaicRiver/PassaicLmePCB.csv",
           row.names = FALSE)
 
-# Generate predictions
+# Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from pass.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
-cols_to_remove <- which(names(pass.pcb.2) %in% df$names_to_remove)
+cols_to_remove <- which(names(pas.pcb.2) %in% df$names_to_remove)
 # Remove columns from che.pcb.2 with congeners that don't show normality
-pass.pcb.3 <- pass.pcb.2[, -cols_to_remove]
+pas.pcb.3 <- pas.pcb.2[, -cols_to_remove]
 
 # Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(pass.pcb.3[,1]),
-                      ncol = length(pass.pcb.3[1,]))
+lme.fit.pcb <- matrix(nrow = length(pas.pcb.3[,1]),
+                      ncol = length(pas.pcb.3[1,]))
 
-for (i in 1:length(pass.pcb.3[1,])) {
-  fit <- lmer(pass.pcb.3[,i] ~ 1 + time + season + (1|site),
+for (i in 1:length(pas.pcb.3[1,])) {
+  fit <- lmer(pas.pcb.3[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -356,27 +350,14 @@ for (i in 1:length(pass.pcb.3[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(pass.pcb.3)/10^(lme.fit.pcb)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
-# Convert the vector to a data frame
-factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
-
-# Export results
-write.csv(factor2.pcb,
-          file = "Output/Data/Sites/csv/PassaicRiver/PassaicFactor2PCB.csv")
-
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(pass.pcb.3)
+colnames(lme.fit.pcb) <- colnames(pas.pcb.3)
 # Add code number to first column
-df1 <- cbind(code = row.names(pass.pcb.3), pass.pcb.3)
+df1 <- cbind(code = row.names(pas.pcb.3), pas.pcb.3)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
 for (i in 2:length(df1)) {
@@ -409,8 +390,7 @@ for (i in 2:length(df1)) {
          plot = p, width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -442,11 +422,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/combined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/LmeCombined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -475,7 +454,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Passaic River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/PassaicRiver/PassaicObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicLmeObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
@@ -500,10 +479,12 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Passaic River",
                                    paste("6 PCB congeners (n = 77 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
          
