@@ -129,11 +129,8 @@ shapiro.test(resid(lme.lwa.tpcb)) # p-value = 0.2424
   lme.tpcb[22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-
-# Estimate a factor of 2 between observations and predictions
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.lwa.tpcb <- as.data.frame(fitted(lme.lwa.tpcb))
 # Add column name
 colnames(fit.lme.values.lwa.tpcb) <- c("predicted")
@@ -142,15 +139,16 @@ lwa.tpcb$predicted <- 10^(fit.lme.values.lwa.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = lwa.tpcb$tPCB, predicted = lwa.tpcb$predicted)
 predic.obs <- data.frame(Location = lwa$LocationName[1], predic.obs)
+colnames(predic.obs) <- c("location", "observed", "predicted")
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredtPCB.csv",
+          "Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmeObsPredtPCB.csv",
           row.names = FALSE)
 
-# (2) Calculate factor of 2
+# Estimate a factor of 2 between observations and predictions
 lwa.tpcb$factor2 <- lwa.tpcb$tPCB/lwa.tpcb$predicted
 factor2.tpcb <- nrow(lwa.tpcb[lwa.tpcb$factor2 > 0.5 & lwa.tpcb$factor2 < 2,
-])/length(lwa.tpcb[,1])*100
+                              ])/length(lwa.tpcb[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -175,6 +173,7 @@ write.csv(lme.tpcb,
           file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmetPCB.csv",
           row.names = FALSE)
 
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(lwa.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
@@ -193,10 +192,12 @@ p <- ggplot(lwa.tpcb, aes(x = tPCB, y = predicted)) +
   annotate('text', x = 270, y = 10^5,
            label = expression("Lake Washington (R"^2*"= 0.78)"),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
@@ -220,7 +221,7 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonObsPredtPCB.png"
   dev.off()
 }
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
@@ -257,7 +258,6 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonObsPredtPCB.png"
   lwa.pcb.2 <- subset(lwa.pcb.1, select = -c(SiteID:season.s))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- lwa.pcb.1$time
 season <- lwa.pcb.1$season
@@ -303,9 +303,6 @@ for (i in 1:length(lwa.pcb.2[1,])) {
   lme.pcb[i, 22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
-
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
 
@@ -342,6 +339,7 @@ lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
 # Add congener names
 congeners <- colnames(lwa.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
@@ -363,9 +361,10 @@ write.csv(lme.pcb,
           file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmePCB.csv",
           row.names = FALSE)
 
+# All congeners yielded normalities p-value > 0.05
+
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -404,8 +403,7 @@ for (i in 2:length(df1)) {
          width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -437,10 +435,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/lakeWashington/combined_plot.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/lakeWashington/LmeCombined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
+# (3) Plot all the pairs together
 # Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
@@ -470,7 +468,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Lake Washington"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmeObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
@@ -495,8 +493,10 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Lake Washington",
                                    paste("22 PCB congeners (n = 660 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/LakeWashington/lakeWashingtonObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
