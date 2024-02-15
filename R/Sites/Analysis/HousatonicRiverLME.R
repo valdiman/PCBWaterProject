@@ -94,6 +94,7 @@ time <- hou.tpcb$time
 flow <- hou.tpcb$flow.1
 site <- hou.tpcb$site.code
 season <- hou.tpcb$season
+
 lme.hou.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -103,16 +104,21 @@ lme.hou.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + season + (1|site),
 # See results
 summary(lme.hou.tpcb)
 
-# Look at residuals
-{
-  res.hou.tpcb <- resid(lme.hou.tpcb) # get list of residuals
-  # Create Q-Q plot for residuals
-  qqnorm(res.hou.tpcb,
-         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
-                                 "PCB)")))
-  # Add a straight diagonal line to the plot
-  qqline(res.hou.tpcb)
-}
 # Shapiro test
 shapiro.test(resid(lme.hou.tpcb)) # p-value < 0.05
+
 # Lme does not provide a good model for the data.
+
+# Perform Linear Mixed-Effects Model (lme) w/ quadratic flow.
+lme.hou.tpcb.2 <- lmer(log10(tpcb) ~ 1 + time + poly(flow, 2) + season +
+                       (1|site), REML = FALSE,
+                     control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                           check.nobs.vs.rankZ = "ignore",
+                                           check.nobs.vs.nRE="ignore"))
+
+# See results
+summary(lme.hou.tpcb.2)
+
+# Shapiro test
+shapiro.test(resid(lme.hou.tpcb.2)) # p-value < 0.05
+
