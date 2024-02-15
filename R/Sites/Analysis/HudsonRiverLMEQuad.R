@@ -327,5 +327,5 @@ lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
 lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
-# Results are simlar or worst than using a linear flow function. 
+# Results are similar or worst than using a linear flow function. 
 
