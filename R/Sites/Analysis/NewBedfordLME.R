@@ -143,10 +143,8 @@ shapiro.test(resid(lme.nbh.tpcb)) # p-value = 0.03, still report results from lm
   lme.tpcb[22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.nbh.tpcb <- as.data.frame(fitted(lme.nbh.tpcb))
 # Add column name
 colnames(fit.lme.values.nbh.tpcb) <- c("predicted")
@@ -155,15 +153,16 @@ nbh.tpcb$predicted <- 10^(fit.lme.values.nbh.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = nbh.tpcb$tPCB, predicted = nbh.tpcb$predicted)
 predic.obs <- data.frame(Location = nbh$LocationName[1], predic.obs)
+colnames(predic.obs) <- c("location", "observed", "predicted")
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredtPCB.csv",
+          "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmeObsPredtPCB.csv",
           row.names = FALSE)
 
-# (2) Calculate factor of 2
+# Estimate a factor of 2 between observations and predictions
 nbh.tpcb$factor2 <- nbh.tpcb$tPCB/nbh.tpcb$predicted
 factor2.tpcb <- nrow(nbh.tpcb[nbh.tpcb$factor2 > 0.5 & nbh.tpcb$factor2 < 2,
-])/length(nbh.tpcb[,1])*100
+                              ])/length(nbh.tpcb[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -188,6 +187,7 @@ write.csv(lme.tpcb,
           file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmetPCB.csv",
           row.names = FALSE)
 
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
@@ -214,8 +214,9 @@ tPCBObsPred <- ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
 
 # Print plot
 print(tPCBObsPred)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborLmeObsPredtPCB.png",
        plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
@@ -239,7 +240,7 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.
   dev.off()
 }
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   nbh.pcb <- subset(nbh, select = -c(SampleID:AroclorCongener))
@@ -276,7 +277,6 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.
   nbh.pcb.2 <- subset(nbh.pcb.1, select = -c(SiteID:season.s))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # There are not enough number of samples from the same season
 # to perform lme, thus season is removed from this analysis.
 # Get covariates
@@ -299,15 +299,6 @@ for (i in 1:length(nbh.pcb.2[1,])) {
   lme.pcb[i,4] <- fixef(fit)[2] # time
   lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
   lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
-  #lme.pcb[i,7] <- fixef(fit)[3] # season 1
-  #lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
-  #lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # season 1 p-value
-  #lme.pcb[i,10] <- fixef(fit)[4] # season 2
-  #lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
-  #lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  #lme.pcb[i,13] <- fixef(fit)[5] # season 3
-  #lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
-  #lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
   lme.pcb[i,7] <- -log(2)/lme.pcb[i,4]/365 # t0.5
   lme.pcb[i,8] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
   lme.pcb[i,9] <- as.data.frame(VarCorr(fit))[1,'sdcor']
@@ -322,9 +313,6 @@ for (i in 1:length(nbh.pcb.2[1,])) {
   non_na_indices <- !is.na(residuals)
   lme.pcb[i, 13] <- sqrt(mean(residuals[non_na_indices]^2))
 }
-
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
@@ -381,7 +369,7 @@ write.csv(lme.pcb,
           file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmePCB.csv",
           row.names = FALSE)
 
-# Generate predictions
+# Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from nbh.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
@@ -404,8 +392,7 @@ for (i in 1:length(nbh.pcb.3[1,])) {
 }
 
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -444,8 +431,7 @@ for (i in 2:length(df1)) {
          plot = p, width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -476,11 +462,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/combined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/LmeCombined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -509,7 +494,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "New Bedford Harbor"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHObsLmePredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
@@ -534,9 +519,12 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("New Bedford Harbor",
                                    paste("8 PCB congeners (n = 401 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
+
 
