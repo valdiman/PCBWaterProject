@@ -140,7 +140,7 @@ summary(lme.hud.tpcb)
 # Normality test
 shapiro.test(resid(lme.hud.tpcb))$p.value # It doesn't work.
 
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   # Remove metadata
@@ -220,10 +220,9 @@ shapiro.test(resid(lme.hud.tpcb))$p.value # It doesn't work.
   hud.pcb.4 <- subset(hud.pcb.2, select = -c(SiteID:temp))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- hud.pcb.2$time
-flow <- hud.pcb.2$flow.3 # For flow.3, use hud.pcb.4 in lme
+flow <- hud.pcb.2$flow.3 # For flow.3, use hud.pcb.4 in lme (see line 235), not here
 wtemp <- hud.pcb.2$temp
 season <- hud.pcb.2$season
 site <- hud.pcb.2$site.numb
@@ -270,9 +269,6 @@ for (i in 1:length(hud.pcb.4[1,])) {
   non_na_indices <- !is.na(residuals)
   lme.pcb[i, 25] <- sqrt(mean(residuals[non_na_indices]^2))
 }
-
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 
 # Transform result to data.frame so factor 2 can be included
 lme.pcb <- as.data.frame(lme.pcb)
@@ -332,15 +328,36 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverLmePCB.csv",
           row.names = FALSE)
 
+# Obtain observations vs predictions
+# Select congeners that are not showing normality to be remove from hud.pcb.4
+df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
+# Get column indices to remove
+cols_to_remove <- which(names(hud.pcb.4) %in% df$names_to_remove)
+# Remove columns from hud.pcb.4 with congeners that don't show normality
+hud.pcb.5 <- hud.pcb.4[, -cols_to_remove]
+
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(hud.pcb.5[,1]),
+                      ncol = length(hud.pcb.5[1,]))
+
+for (i in 1:length(hud.pcb.5[1,])) {
+  fit <- lmer(hud.pcb.5[,i] ~ 1 + time + flow + wtemp + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  lme.fit.pcb[,i] <- fitted(fit)
+}
+
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(hud.pcb.4)
+colnames(lme.fit.pcb) <- colnames(hud.pcb.5)
 # Add code number to first column
-df1 <- cbind(code = row.names(hud.pcb.4), hud.pcb.4)
+df1 <- cbind(code = row.names(hud.pcb.5), hud.pcb.5)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
 for (i in 2:length(df1)) {
@@ -373,8 +390,7 @@ for (i in 2:length(df1)) {
          width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -406,11 +422,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/combined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/LmeCombined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -439,7 +454,7 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Hudson River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverLmeObsPredPCB.csv",
           row.names = FALSE)
 
 # Plot all the pairs together
@@ -467,5 +482,5 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverObsPredPCB.png",
+ggsave(filename = "Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
