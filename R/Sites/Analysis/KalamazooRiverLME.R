@@ -163,11 +163,8 @@ shapiro.test(resid(lme.kal.tpcb)) # p-value = 0.1079
   lme.tpcb[22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-
-# Estimate a factor of 2 between observations and predictions
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.kal.tpcb <- as.data.frame(fitted(lme.kal.tpcb))
 # Add column name
 colnames(fit.lme.values.kal.tpcb) <- c("predicted")
@@ -176,15 +173,16 @@ kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicted)
 predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
+colnames(predic.obs) <- c("location", "observed", "predicted")
 # Save new data
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverObsPredtPCB.csv",
+          "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverLmeObsPredtPCB.csv",
           row.names = FALSE)
 
-# (2) Calculate factor of 2
+# Estimate a factor of 2 between observations and predictions
 kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
 factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
-])/length(kal.tpcb.2[,1])*100
+                                ])/length(kal.tpcb.2[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -209,6 +207,7 @@ write.csv(lme.tpcb,
           file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverLmetPCB.csv",
           row.names = FALSE)
 
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
@@ -228,10 +227,12 @@ p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
            label = expression(atop("Kalamazoo River (R"^2*"= 0.97)",
                                    paste("t"[1/2]*" = 3.3 ± 0.1 (yr)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
