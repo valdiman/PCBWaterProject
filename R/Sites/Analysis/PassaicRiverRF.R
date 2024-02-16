@@ -224,7 +224,7 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicRiverRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Individual PCB Analysis -------------------------------------------------
@@ -403,7 +403,7 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicRiverRFPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicRiverRFPCB.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
 
 
