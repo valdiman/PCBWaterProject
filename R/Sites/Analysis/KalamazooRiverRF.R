@@ -205,5 +205,5 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
