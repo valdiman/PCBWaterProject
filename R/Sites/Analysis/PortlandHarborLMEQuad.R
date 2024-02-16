@@ -488,7 +488,7 @@ for (i in 2:length(df1)) {
     annotate('text', x = 0.1, y = 10^3.5, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/PortlandHarbor/Quadratic", col_name, ".png"),
+  ggsave(paste0("Output/Plots/Sites/ObsPred/PortlandHarbor/Quadratic/", col_name, ".png"),
          plot = p, width = 6, height = 6, dpi = 500)
 }
 
@@ -524,7 +524,7 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/Quadratic/LmeCombined_plot.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/Quadratic/LmeQuadCombined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
 # (3) Create a list to store all the cleaned data frames
