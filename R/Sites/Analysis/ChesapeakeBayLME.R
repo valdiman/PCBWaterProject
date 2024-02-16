@@ -212,7 +212,7 @@ p <- ggplot(che.tpcb, aes(x = tPCB, y = predicted)) +
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
@@ -534,10 +534,12 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Chesapeake Bay",
                                    paste("21 PCB congeners (n = 1090 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
          
