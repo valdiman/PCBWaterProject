@@ -422,10 +422,12 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Great Lakes",
                                    paste("5 PCB congeners (n = 381 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/GreatLakes/GreatLakesLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 
