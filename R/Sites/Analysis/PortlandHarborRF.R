@@ -201,7 +201,7 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFtPCBV02.png",
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Individual PCB Analysis -------------------------------------------------
@@ -376,6 +376,6 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFPCBV02.png",
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborRFPCB.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
 
