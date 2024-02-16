@@ -108,57 +108,6 @@ spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
   spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR015")) # Hangman Creek
 }
 
-# (1) Histograms
-hist(spo.tpcb.1$tPCB)
-hist(log10(spo.tpcb.1$tPCB))
-
-# (2) Time trend plots
-SPOTimeV02 <- ggplot(spo.tpcb.1, aes(y = tPCB, x = format(date, '%Y-%m'))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  xlab("") +
-  scale_y_log10(
-    breaks = c(10, 100, 1000),  # Specify the desired breaks
-    labels = label_comma()(c(10, 100, 1000))  # Specify the desired labels
-  ) +
-  theme_classic() +
-  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
-  theme(
-    axis.text.y = element_text(face = "bold", size = 20),
-    axis.title.y = element_text(face = "bold", size = 18),
-    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
-    axis.title.x = element_text(face = "bold", size = 17),
-    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
-
-# Print plot
-print(SPOTimeV02)
-
-# Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/SpokaneTimeV02.png",
-       plot = SPOTimeV02, width = 6, height = 5, dpi = 500)
-
-# (3) Sites
-ggplot(spo.tpcb.1, aes(x = factor(SiteID), y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 6, y = 10^3, label = "Spokane River",
-           size = 3)
-
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
@@ -191,11 +140,11 @@ summary(lme.spo.tpcb)
 }
 
 # Shapiro-Wilk normatily test
-shapiro.test(resid(lme.spo.tpcb))
+shapiro.test(resid(lme.spo.tpcb)) # p-value = 0.1673
 
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 21)
+  lme.tpcb <- matrix(nrow = 1, ncol = 22)
   lme.tpcb[1] <- fixef(lme.spo.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.spo.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.spo.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -217,38 +166,62 @@ shapiro.test(resid(lme.spo.tpcb))
   lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2m']
   lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2c']
   lme.tpcb[21] <- shapiro.test(resid(lme.spo.tpcb))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(lme.spo.tpcb)
+  # Calculate residuals and RMSE
+  residuals <- log10(tpcb) - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.tpcb[22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                        "Intercept.pv", "time", "time.error", "time.pv",
-                        "flow", "flow.error", "flow.pv", "season2",
-                        "season2.error", "season2, pv", "season3",
-                        "season3.error", "season3.pv", "t05", "t05.error",
-                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
-
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmetPCB.csv")
-
-# Modeling plots
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.spo.tpcb <- as.data.frame(fitted(lme.spo.tpcb))
 # Add column name
 colnames(fit.lme.values.spo.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-spo.tpcb.1$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
+spo.tpcb.1$predicted <- 10^(fit.lme.values.spo.tpcb$predicted)
 # Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = spo.tpcb.1$tPCB, predicted = spo.tpcb.1$predicted.1)
+predic.obs <- data.frame(tPCB = spo.tpcb.1$tPCB, predicted = spo.tpcb.1$predicted)
 predic.obs <- data.frame(Location = spo$LocationName[1], predic.obs)
-# Save new data
+colnames(predic.obs) <- c("location", "observed", "predicted")
+# Save observations vs. predictions
 write.csv(predic.obs,
-          "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverObsPredtPCB.csv")
+          "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmeObsPredtPCB.csv",
+          row.names = FALSE)
 
+# Estimate a factor of 2 between observations and predictions
+spo.tpcb.1$factor2 <- spo.tpcb.1$tPCB/spo.tpcb.1$predicted
+factor2.tpcb <- nrow(spo.tpcb.1[spo.tpcb.1$factor2 > 0.5 & spo.tpcb.1$factor2 < 2,
+                              ])/length(spo.tpcb.1[,1])*100
+
+# Transform lme.tpcb to data.frame so factor 2 can be included
+lme.tpcb <- as.data.frame(lme.tpcb)
+
+# Add factor 2 to lme.pcb data.frame
+lme.tpcb$factor2 <- factor2.tpcb
+
+# Change number format of factor 2 to 3 significant figures
+lme.tpcb$factor2 <- formatC(signif(lme.tpcb$factor2, digits = 3))
+
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                        "Intercept.pv", "time", "time.error", "time.pv",
+                        "flow", "flow.error", "flow.pv", "season2",
+                        "season2.error", "season2.pv", "season3",
+                        "season3.error", "season3.pv", "t05", "t05.error",
+                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
+                        "RMSE", "Factor2")
+
+# Export results
+write.csv(lme.tpcb,
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmetPCB.csv",
+          row.names = FALSE)
+
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
-tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted.1)) +
+tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -271,7 +244,7 @@ tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted.1)) +
 print(tPCBObsPred)
 
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverLmeObsPredtPCB.png",
        plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
@@ -295,19 +268,7 @@ ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.png",
   dev.off()
   }
 
-# Estimate a factor of 2 between observations and predictions
-spo.tpcb.1$factor2 <- spo.tpcb.1$tPCB/spo.tpcb.1$predicted.1
-factor2.tpcb <- nrow(spo.tpcb.1[spo.tpcb.1$factor2 > 0.5 & spo.tpcb.1$factor2 < 2,
-                                ])/length(spo.tpcb.1[,1])*100
-
-# Convert the vector to a data frame
-factor2.tpcb <- data.frame(Factor_2 = factor2.tpcb)
-
-# Export results
-write.csv(factor2.tpcb,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverFactor2tPCB.csv")
-
-# Individual PCB Analysis -------------------------------------------------
+# LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
 {
   spo.pcb <- subset(spo, select = -c(SampleID:AroclorCongener))
@@ -378,7 +339,6 @@ write.csv(factor2.tpcb,
   spo.pcb.3 <- subset(spo.pcb.2, select = -c(SiteID:flow.4))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- spo.pcb.2$time
 flow <- spo.pcb.2$flow.4
@@ -386,7 +346,7 @@ season <- spo.pcb.2$season
 site <- spo.pcb.2$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(spo.pcb.3[1,]), ncol = 21)
+lme.pcb <- matrix(nrow = length(spo.pcb.3[1,]), ncol = 22)
 
 # Perform LME
 for (i in 1:length(spo.pcb.3[1,])) {
@@ -416,20 +376,61 @@ for (i in 1:length(spo.pcb.3[1,])) {
   lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
   lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
   lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(fit)
+  # Calculate residuals and RMSE
+  residuals <- spo.pcb.3[, i] - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.pcb[i, 22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+# Transform result to data.frame so factor 2 can be included
+lme.pcb <- as.data.frame(lme.pcb)
+
+# Add factor of 2
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(spo.pcb.3[,1]),
+                      ncol = length(spo.pcb.3[1,]))
+
+# Create a vector to store factor 2 for each congener
+factor2_vector <- numeric(length = length(spo.pcb.3[1,]))
+
+for (i in 1:length(spo.pcb.3[1,])) {
+  fit <- lmer(spo.pcb.3[,i] ~ 1 + time + flow + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  
+  lme.fit.pcb[,i] <- fitted(fit)
+  
+  # Calculate factor2 for each congener
+  factor2 <- 10^(lme.fit.pcb[, i])/10^(spo.pcb.3[, i])
+  factor2_vector[i] <- sum(factor2 > 0.5 & factor2 < 2,
+                           na.rm = TRUE) / (sum(!is.na(factor2))) * 100
+}
+
+# Add factor 2 to lme.pcb data.frame
+lme.pcb$factor2 <- factor2_vector
+
+# Change number format of factor 2 to 3 significant figures
+lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
+
 # Add congener names
 congeners <- colnames(spo.pcb.3)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "flow", "flow.error", "flow.pv", "season2",
                        "season2.error", "season2, pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
+                       "RMSE", "Factor2")
+
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
@@ -439,9 +440,10 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmePCB.csv")
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmePCB.csv",
+          row.names = FALSE)
 
-# Generate predictions
+# Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from spo.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
@@ -463,21 +465,8 @@ for (i in 1:length(spo.pcb.4[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(spo.pcb.4)/10^(lme.fit.pcb)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
-# Convert the vector to a data frame
-factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
-
-# Export results
-write.csv(factor2.pcb,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverFactor2PCB.csv")
-
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -516,8 +505,7 @@ for (i in 2:length(df1)) {
          width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -550,11 +538,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 7)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/combined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/LmeCombined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -583,7 +570,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Spokane River"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmeObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
@@ -607,9 +595,11 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Spokane River",
                                    paste("69 PCB congeners (n = 2967 pairs)"))),
            size = 4, fontface = 2)
+
 # Print plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
