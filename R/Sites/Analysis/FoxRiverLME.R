@@ -232,6 +232,7 @@ tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
 
 # Print plot
 print(tPCBObsPred)
+
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverLmeObsPredtPCB.png",
        plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
@@ -573,9 +574,11 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Fox River",
                                    paste("19 PCB congeners (n = 1258 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
