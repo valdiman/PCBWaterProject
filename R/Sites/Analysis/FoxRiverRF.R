@@ -206,7 +206,7 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Individual PCB Analysis -------------------------------------------------
@@ -385,5 +385,5 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFPCB.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
