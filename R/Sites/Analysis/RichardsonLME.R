@@ -185,6 +185,7 @@ p <- ggplot(rhr.tpcb, aes(x = tPCB, y = predicted)) +
 
 # See plot
 print(p)
+
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/Richardson/RichardsonLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
