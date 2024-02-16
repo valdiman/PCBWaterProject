@@ -549,7 +549,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Portland Harbor"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmeObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmeObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
