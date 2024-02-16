@@ -586,6 +586,6 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
 print(p)
 
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/POrtlandHarbor/Quadratic/PortlandHarborLmeQuadObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/Quadratic/PortlandHarborLmeQuadObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
