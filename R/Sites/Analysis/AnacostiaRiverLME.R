@@ -235,7 +235,7 @@ p <- ggplot(anr.tpcb, aes(x = tPCB, y = predicted)) +
 print(p)
 
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverObsPredLMEtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
