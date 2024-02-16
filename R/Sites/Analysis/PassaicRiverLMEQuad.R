@@ -397,7 +397,7 @@ for (i in 2:length(df1)) {
     annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/Quadratic/PassaicRiver/", col_name, ".png"),
+  ggsave(paste0("Output/Plots/Sites/ObsPred/PassaicRiver/Quadratic/", col_name, ".png"),
          plot = p, width = 6, height = 6, dpi = 500)
 }
 
