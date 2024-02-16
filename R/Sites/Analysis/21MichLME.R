@@ -229,7 +229,8 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/21Mich/21MichLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/21Mich/21MichLmePCB.csv",
+          row.names = FALSE)
 
 # Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from mic.pcb.2
@@ -357,7 +358,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "21 Mich"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/21Mich/21MichLmeObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/21Mich/21MichLmeObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
@@ -384,6 +386,6 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichLmeObsPredPCBV02.png",
+ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
