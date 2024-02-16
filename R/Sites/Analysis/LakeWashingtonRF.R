@@ -182,7 +182,7 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRF)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonRFtPCBV01.png",
+ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Individual PCB Analysis -------------------------------------------------
