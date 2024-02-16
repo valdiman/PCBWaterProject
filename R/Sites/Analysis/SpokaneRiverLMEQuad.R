@@ -547,7 +547,7 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 7)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/LmeCombined_plot.png", combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/LmeQuadCombined_plot.png", combined_plot,
        width = 15, height = 15, dpi = 500)
 
 # (3) Create a list to store all the cleaned data frames
