@@ -479,8 +479,10 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Hudson River",
                                    paste("2 PCB congeners (n = 195 pairs)"))),
            size = 3.3, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
 ggsave(filename = "Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
