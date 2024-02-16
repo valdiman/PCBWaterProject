@@ -124,10 +124,8 @@ shapiro.test(resid(lme.rhr.tpcb)) # p-value = 0.4767
   lme.tpcb[16] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-
-# (1) Get predicted values tpcb
+# Obtain observations and predictions
+# Get predicted values tpcb
 fit.lme.values.rhr.tpcb <- as.data.frame(fitted(lme.rhr.tpcb))
 # Add column name
 colnames(fit.lme.values.rhr.tpcb) <- c("predicted")
@@ -136,15 +134,16 @@ rhr.tpcb$predicted <- 10^(fit.lme.values.rhr.tpcb$predicted)
 # Create overall plot prediction vs. observations
 predic.obs <- data.frame(tPCB = rhr.tpcb$tPCB, predicted = rhr.tpcb$predicted)
 predic.obs <- data.frame(Location = rhr$LocationName[1], predic.obs)
+colnames(predic.obs) <- c("location", "observed", "predicted")
 # Save new data
 write.csv(predic.obs,
           "Output/Data/Sites/csv/Richardson/RichardsonLmeObsPredtPCB.csv",
           row.names = FALSE)
 
-# (2) Calculate factor of 2
+# Estimate a factor of 2 between observations and predictions
 rhr.tpcb$factor2 <- rhr.tpcb$tPCB/rhr.tpcb$predicted
 factor2.tpcb <- nrow(rhr.tpcb[rhr.tpcb$factor2 > 0.5 & rhr.tpcb$factor2 < 2,
-])/length(rhr.tpcb[,1])*100
+                              ])/length(rhr.tpcb[,1])*100
 
 # Transform lme.tpcb to data.frame so factor 2 can be included
 lme.tpcb <- as.data.frame(lme.tpcb)
@@ -167,6 +166,7 @@ write.csv(lme.tpcb,
           file = "Output/Data/Sites/csv/Richardson/RichardsonLmetPCB.csv",
           row.names = FALSE)
 
+# Modeling plots
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(rhr.tpcb, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "white") +
@@ -186,7 +186,7 @@ p <- ggplot(rhr.tpcb, aes(x = tPCB, y = predicted)) +
 # See plot
 print(p)
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/Richardson/RichardsonObsPredtPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/Richardson/RichardsonLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
