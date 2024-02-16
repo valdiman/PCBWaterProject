@@ -69,96 +69,6 @@ glt <- wdc[grepl("^Tributary", wdc$SiteName), ]
                           "tPCB", "time", "site.code", "season")
 }
 
-# Get coordinates per site to plot in Google Earth
-location <- glt.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
-# Average tPCB per site
-location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                      data = location, mean)
-# Create an sf data frame
-sf_location <- st_as_sf(location, coords = c("Longitude", "Latitude"))
-# Set the CRS to WGS 84 (EPSG:4326)
-sf_location <- st_set_crs(sf_location, 4326)
-# Define the full file path for the KML file
-kmlFilePath <- "Output/Data/Sites/GoogleEarth/TributariesLocations.kml"
-# Write the KML file to the specified directory
-st_write(sf_location, kmlFilePath, driver = "kml", append = FALSE)
-
-# General plots -------------------------------------------------------------------
-# (1) Histograms
-hist(glt.tpcb$tPCB)
-hist(log10(glt.tpcb$tPCB))
-
-# (2) Time trend plots
-GLTime <- ggplot(glt.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  xlab("") +
-  scale_y_log10(
-    breaks = c(1, 10, 100, 1000, 10000, 100000),  # Specify the desired breaks
-    labels = label_comma()(c(1, 10, 100, 1000, 10000, 100000))  # Specify the desired labels
-  ) +
-  theme_classic() +
-  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
-  theme(
-    axis.text.y = element_text(face = "bold", size = 20),
-    axis.title.y = element_text(face = "bold", size = 18),
-    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
-    axis.title.x = element_text(face = "bold", size = 17),
-    plot.margin = margin(0.1, 0, 0, 0, unit = "cm"))
-
-# Print plot
-print(GLTime)
-
-# Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/TributariesTime.png",
-       plot = GLTime, width = 8, height = 5, dpi = 500)
-
-# (3) Seasonality
-ggplot(glt.tpcb, aes(x = season, y = tPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 1, y = 20, label = "Great Lakes",
-           size = 3)
-
-# (4) Sites
-ggplot(glt.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "white") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 5, y = 20, label = "Great Lakes",
-           size = 3)
-
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
@@ -189,8 +99,7 @@ summary(lme.glt.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(resid(lme.glt.tpcb))
-# lme doesn't work here.
+shapiro.test(resid(lme.glt.tpcb)) # p-value < 0.05
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -236,7 +145,7 @@ season <- glt.pcb.1$season
 site <- glt.pcb.1$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(glt.pcb.2[1,]), ncol = 21)
+lme.pcb <- matrix(nrow = length(glt.pcb.2[1,]), ncol = 22)
 
 # Perform LME
 for (i in 1:length(glt.pcb.2[1,])) {
@@ -266,20 +175,60 @@ for (i in 1:length(glt.pcb.2[1,])) {
   lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
   lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
   lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+  # Calculate RMSE
+  # Predictions
+  predictions <- predict(fit)
+  # Calculate residuals and RMSE
+  residuals <- glt.pcb.2[, i] - predictions
+  non_na_indices <- !is.na(residuals)
+  lme.pcb[i, 22] <- sqrt(mean(residuals[non_na_indices]^2))
 }
 
-# Just 3 significant figures
-lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+# Transform result to data.frame so factor 2 can be included
+lme.pcb <- as.data.frame(lme.pcb)
+
+# Add factor of 2
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(glt.pcb.2[,1]),
+                      ncol = length(glt.pcb.2[1,]))
+
+# Create a vector to store factor 2 for each congener
+factor2_vector <- numeric(length = length(glt.pcb.2[1,]))
+
+for (i in 1:length(glt.pcb.2[1,])) {
+  fit <- lmer(glt.pcb.2[,i] ~ 1 + time + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  
+  lme.fit.pcb[,i] <- fitted(fit)
+  
+  # Calculate factor2 for each congener
+  factor2 <- 10^(lme.fit.pcb[, i])/10^(glt.pcb.2[, i])
+  factor2_vector[i] <- sum(factor2 > 0.5 & factor2 < 2,
+                           na.rm = TRUE) / (sum(!is.na(factor2))) * 100
+}
+
+# Add factor 2 to lme.pcb data.frame
+lme.pcb$factor2 <- factor2_vector
+
+# Change number format of factor 2 to 3 significant figures
+lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
+
 # Add congener names
 congeners <- colnames(glt.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "season1", "season1.error", "season1.pv",
                        "season2", "season2.error", "season2.pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
+                       "RMSE", "Factor2")
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
@@ -290,10 +239,11 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.045, ]
 
 # Export results
 write.csv(lme.pcb,
-          file = "Output/Data/Sites/csv/GreatLakes/TributariesLmePCB.csv")
+          file = "Output/Data/Sites/csv/GreatLakes/Tributaries/TributariesLmePCB.csv",
+          row.names = FALSE)
 
-# Generate predictions
-# Select congeners that are not showing normality to be remove from pass.pcb.2
+# Obtain observations vs predictions
+# Select congeners that are not showing normality to be remove from glt.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
 cols_to_remove <- which(names(glt.pcb.2) %in% df$names_to_remove)
@@ -314,21 +264,8 @@ for (i in 1:length(glt.pcb.3[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-# Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(glt.pcb.3)/10^(lme.fit.pcb)
-factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
-                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
-
-# Convert the vector to a data frame
-factor2.pcb <- data.frame(Factor_2 = factor2.pcb)
-
-# Export results
-write.csv(factor2.pcb,
-          file = "Output/Data/Sites/csv/GreatLakes/TributariesFactor2PCB.csv")
-
 # Individual PCB congener plots -------------------------------------------
-# (1)
-# Plot 1:1 for all congeners
+# (1) Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
@@ -363,12 +300,11 @@ for (i in 2:length(df1)) {
     annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/GreatLakes/", col_name, "tribu.png"), plot = p,
+  ggsave(paste0("Output/Plots/Sites/ObsPred/GreatLakes/Tributaries/", col_name, ".png"), plot = p,
          width = 6, height = 6, dpi = 500)
 }
 
-# (2)
-# All plots in one page
+# (2) All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
 
@@ -400,11 +336,10 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/GreatLakes/Tribcombined_plot.png", plot = combined_plot,
+ggsave("Output/Plots/Sites/ObsPred/GreatLakes/Tributaries/LmeCombined_plot.png", plot = combined_plot,
        width = 15, height = 15, dpi = 500)
 
-# (3)
-# Create a list to store all the cleaned data frames
+# (3) Create a list to store all the cleaned data frames
 cleaned_df_list <- list()
 # Loop over the columns of df1 and df2
 for (i in 2:length(df1)) {
@@ -433,7 +368,8 @@ for (i in 2:length(df1)) {
 # Add column LocationName
 combined_cleaned_df$LocationName <- "Triburaties (Lake Michigan)"
 write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/GreatLakes/TributariesObsPredPCB.csv")
+          file = "Output/Data/Sites/csv/GreatLakes/Tributaries/TributariesObsPredPCB.csv",
+          row.names = FALSE)
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
@@ -457,9 +393,11 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
            label = expression(atop("Tributaries Great Lakes",
                                    paste("2 PCB congeners (n = 339 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/GreatLakes/TributariesObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/GreatLakes/Tributaries/TributariesLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
