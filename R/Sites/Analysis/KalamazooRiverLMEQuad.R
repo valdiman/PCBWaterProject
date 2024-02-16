@@ -232,8 +232,9 @@ p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
 
 # See plot
 print(p)
+
 # Save plot
-ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverObsPredtPCBQuad.png",
+ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/Quadratic/KalamazooRiverLmeQuadObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
