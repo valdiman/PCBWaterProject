@@ -112,9 +112,9 @@ rf_model <- randomForest(log10(tPCB) ~ time + site.code + season +
 predictions <- predict(rf_model, newdata = test_data)
 
 # Evaluate Model Performance
-mse.1 <- mean((predictions - log10(test_data$tPCB))^2)
-rmse.1 <- sqrt(mse.1)
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+mse <- mean((predictions - log10(test_data$tPCB))^2)
+rmse <- sqrt(mse.1)
+r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
@@ -140,29 +140,29 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/21Mich/21MichRFPerformancetPCB.csv",
+          file = "Output/Data/Sites/csv/21Mich/21MichRFtPCB.csv",
           row.names = FALSE)
 
 # Feature Importance
-importance.1 <- importance(rf_model.1)
+importance <- importance(rf_model)
 # Plot features
-barplot(importance.1[, 1], names.arg = rownames(importance.1),
+barplot(importance[, 1], names.arg = rownames(importance),
         main = "Feature Importance", las = 2, cex.names = 0.7)
 
 # Create a data frame for plotting
-plot_data.1 <- data.frame(
+plot_data <- data.frame(
   Location = rep("21 Mich", nrow(test_data)),
   Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
+  Predicted = predictions
 )
 
 # Export results
-write.csv(plot_data.1,
+write.csv(plot_data,
           file = "Output/Data/Sites/csv/21Mich/21MichRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(1, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
@@ -312,7 +312,7 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/21Mich/21MichRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/21Mich/21MichRFPCB.csv",
           row.names = FALSE)
 
 # Export combined results
