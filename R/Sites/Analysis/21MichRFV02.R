@@ -18,7 +18,7 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
-install.packages("gbm")
+install.packages("gbm3")
 
 # Load libraries
 {
@@ -35,7 +35,7 @@ install.packages("gbm")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(gbm) # Random Forest functions
+  library(gbm3) # Random Forest functions
 }
 
 # Read data ---------------------------------------------------------------
@@ -76,7 +76,7 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   mic$DistanceToCentroid <- as.numeric(distances_km[, 1])
 }
 
-# Data preparation --------------------------------------------------------
+# tPCB data preparation ---------------------------------------------------
 {
   # Change date format
   mic$SampleDate <- as.Date(mic$SampleDate, format = "%m/%d/%y")
@@ -99,7 +99,7 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
                           "season", "DistanceToCentroid")
 }
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ------------------------------------------------
 # Set seed for reproducibility
 set.seed(123)
 
@@ -108,21 +108,22 @@ train_indices <- sample(1:nrow(mic.tpcb), 0.8 * nrow(mic.tpcb))
 train_data <- mic.tpcb[train_indices, ]
 test_data <- mic.tpcb[-train_indices, ]
 
-#train_data$time <- as.numeric(train_data$time)
-
 # Fit the GBM model
 gbm_model <- gbm(log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
                  data = train_data,
                  distribution = "gaussian",  # For regression tasks
                  n.trees = 4000,             # Number of trees
-                 interaction.depth = 2,      # Interaction depth
+                 interaction.depth = 5,      # Interaction depth
                  shrinkage = 0.001)           # Learning rate
 
 # Print summary of the model
 summary(gbm_model)
 
 # Make predictions
-predictions <- predict(gbm_model, newdata = test_data)
+predictions <- predict(
+  object = gbm_model,
+  newdata = test_data,
+  n.trees = 4000)
 
 # Evaluate model performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
@@ -200,7 +201,7 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFObsPredtPCBV02.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Individual PCB Analysis -------------------------------------------------
+# Random Forest Model individual PCBs -------------------------------------
 # Prepare data.frame
 {
   mic.pcb <- subset(mic, select = -c(SampleID:AroclorCongener))
@@ -239,18 +240,30 @@ ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFObsPredtPCBV02.png",
 # Perform imputation of missing values with the adjusted lowest observed value
 mic.pcb.1_imputed <- mic.pcb.1
 
-# Iterate over each column
+# Iterate over each column (try one of the options above)
 for (col in colnames(mic.pcb.1_imputed)) {
   # Check if the column is numeric
   if (is.numeric(mic.pcb.1_imputed[[col]])) {
     # Find the lowest observed value in the column
     lowest_value <- min(mic.pcb.1_imputed[[col]], na.rm = TRUE)
-    
-    # Calculate the adjusted lowest value
-    adjusted_lowest_value <- lowest_value / sqrt(2)
-    
+    # Calculate the adjusted
+    # Option 1: Lowest value
+    # adjusted_value <- lowest_value
+    # Option 2: Lowest value/sqrt(2)
+    adjusted_value <- lowest_value / sqrt(2)
+    # Option 3: Mean Imputation
+    # adjusted_value <- mean(mic.pcb.1_imputed[[col]], na.rm = TRUE)
+    # Option 4: Median Imputation
+    # adjusted_value <- median(mic.pcb.1_imputed[[col]], na.rm = TRUE)
+    # Option 5: Robust Scaling (using median and interquartile range)
+    # Calculate the adjusted values using robust scaling
+    # non_na_values <- mic.pcb.1_imputed[[col]][!is.na(mic.pcb.1_imputed[[col]])]
+    # median_value <- median(non_na_values)
+    # iqr_value <- IQR(non_na_values)
+    # Calculate adjusted values for non-NA values
+    # adjusted_values <- (non_na_values - median_value) / iqr_value
     # Replace missing values with the adjusted lowest value
-    mic.pcb.1_imputed[[col]][is.na(mic.pcb.1_imputed[[col]])] <- adjusted_lowest_value
+    mic.pcb.1_imputed[[col]][is.na(mic.pcb.1_imputed[[col]])] <- adjusted_value
   }
 }
 
@@ -294,11 +307,14 @@ for (i in seq_along(pcb_numeric_columns)) {
   fit <- gbm(train_data[, 1] ~ ., data = train_data[, -1], 
              distribution = "gaussian",  # For regression tasks
              n.trees = 4000,             # Number of trees
-             interaction.depth = 2,      # Interaction depth
+             interaction.depth = 5,      # Interaction depth
              shrinkage = 0.001)          # Learning rate
   
   # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
+  predictions <- predict(
+    object = fit,
+    newdata = test_data,
+    n.trees = 4000)
   
   # Calculate mean squared error (mse) for illustration
   mse <- mean((predictions - test_data[, 1])^2)
