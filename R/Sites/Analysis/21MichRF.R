@@ -76,7 +76,7 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   mic$DistanceToCentroid <- as.numeric(distances_km[, 1])
 }
 
-# Data preparation --------------------------------------------------------
+# tPCB data preparation ---------------------------------------------------
 {
   # Change date format
   mic$SampleDate <- as.Date(mic$SampleDate, format = "%m/%d/%y")
@@ -97,7 +97,7 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
                           "season", "DistanceToCentroid")
 }
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ------------------------------------------------
 # Train-Test Split
 set.seed(123)
 train_indices <- sample(1:nrow(mic.tpcb), 0.8 * nrow(mic.tpcb))
@@ -105,32 +105,32 @@ train_data <- mic.tpcb[train_indices, ]
 test_data <- mic.tpcb[-train_indices, ]
 
 # Fit the Model (1)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + season +
+rf_model <- randomForest(log10(tPCB) ~ time + site.code + season +
                              DistanceToCentroid, data = train_data)
 
 # Make Predictions
-predictions.1 <- predict(rf_model.1, newdata = test_data)
+predictions <- predict(rf_model, newdata = test_data)
 
 # Evaluate Model Performance
-mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
+mse.1 <- mean((predictions - log10(test_data$tPCB))^2)
 rmse.1 <- sqrt(mse.1)
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+compare_df <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+compare_df$factor2 <- compare_df$observed/compare_df$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df)*100
 
 # Create the data frame directly
 performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
-                             Value = c(rmse.1, r_squared.1,
-                                       factor2_percentage.1))
+                             Value = c(rmse, r_squared,
+                                       factor2_percentage))
 
 # Remove unnecessary columns
 performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
@@ -188,7 +188,7 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Individual PCB Analysis -------------------------------------------------
+# Random Forest Model individual PCBs -------------------------------------
 # Prepare data.frame
 {
   mic.pcb <- subset(mic, select = -c(SampleID:AroclorCongener))
