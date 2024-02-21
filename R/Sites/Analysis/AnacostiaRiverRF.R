@@ -128,34 +128,34 @@ train_indices <- sample(1:nrow(anr.tpcb), 0.8 * nrow(anr.tpcb))
 train_data <- anr.tpcb[train_indices, ]
 test_data <- anr.tpcb[-train_indices, ]
 
-# Fit the Model. Flow.3
-rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.1 + flow.2 +
+# Fit the Model. Use flow.2
+rf_model <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.2 +
                              temp.1 + DistanceToNorthernLocation,
                            data = train_data)
 
 # Make Predictions
-predictions.1 <- predict(rf_model.1, newdata = test_data)
+predictions <- predict(rf_model, newdata = test_data)
 
 # Evaluate Model Performance
-mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
-rmse.1 <- sqrt(mse.1)
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+mse <- mean((predictions - log10(test_data$tPCB))^2)
+rmse <- sqrt(mse)
+r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+compare_df <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+compare_df$factor2 <- compare_df$observed/compare_df$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df)*100
 
 # Create the data frame directly
 performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
-                             Value = c(rmse.1, r_squared.1,
-                                       factor2_percentage.1))
+                             Value = c(rmse, r_squared,
+                                       factor2_percentage))
 
 # Remove unnecessary columns
 performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
@@ -165,29 +165,29 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFPerformancetPCB.csv",
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFtPCB.csv",
           row.names = FALSE)
 
 # Feature Importance
-importance.1 <- importance(rf_model.1)
+importance <- importance(rf_model)
 # Plot features
-barplot(importance.1[, 1], names.arg = rownames(importance.1),
+barplot(importance[, 1], names.arg = rownames(importance),
         main = "Feature Importance", las = 2, cex.names = 0.7)
 
 # Create a data frame for plotting
-plot_data.1 <- data.frame(
+plot_data <- data.frame(
   Location = rep("Anacostia River", nrow(test_data)),
   Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
+  Predicted = predictions
 )
 
 # Export results
-write.csv(plot_data.1,
+write.csv(plot_data,
           file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(1, 10^5),
                 breaks = trans_breaks("log10", function(x) 10^x),
@@ -212,3 +212,118 @@ print(plotRF)
 # Save plot in folder
 ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
+
+# Random Forest using gbm3 ------------------------------------------------
+# Install package
+install.packages("gbm3")
+
+# Load libraries
+library(gbm3) # Random Forest functions
+
+# Format change for time
+anr.tpcb$time <- as.numeric(anr.tpcb$time)
+
+# Perform model
+# Set seed for reproducibility
+set.seed(123)
+
+# Train-test split
+train_indices <- sample(1:nrow(anr.tpcb), 0.8 * nrow(anr.tpcb))
+train_data <- anr.tpcb[train_indices, ]
+test_data <- anr.tpcb[-train_indices, ]
+
+# Fit the GBM model
+gbm_model <- gbm(log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1
+                 + DistanceToNorthernLocation,
+                 data = train_data,
+                 distribution = "gaussian",  # For regression tasks
+                 n.trees = 5000,             # Number of trees
+                 interaction.depth = 5,      # Interaction depth
+                 shrinkage = 0.5)           # Learning rate
+
+# Print summary of the model
+summary(gbm_model)
+
+# Make predictions
+predictions <- predict(
+  object = gbm_model,
+  newdata = test_data,
+  n.trees = 5000)
+
+# Evaluate model performance
+mse <- mean((predictions - log10(test_data$tPCB))^2)
+rmse <- sqrt(mse)
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared))
+
+# Estimate a factor of 2 between observations and predictions
+# Create a data frame with observed and predicted values
+comparison <- data.frame(observed = test_data$tPCB,
+                         predicted = 10^predictions)
+
+# Estimate a factor of 2 between observations and predictions
+comparison$factor2 <- comparison$observed/comparison$predicted
+
+# Calculate the percentage of observations within the factor of 2
+factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
+                                      , ])/nrow(comparison)*100
+
+# Create the data frame directly
+performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
+                             Value = c(rmse, r_squared,
+                                       factor2_percentage))
+# Print the modified data frame
+print(performance_RF)
+
+# Export results
+write.csv(performance_RF,
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFtPCBV02.csv",
+          row.names = FALSE)
+
+# Create a data frame for plotting Observations vs Predictions
+plot_data <- data.frame(
+  Location = rep("21 Mich", nrow(test_data)),
+  Observed = log10(test_data$tPCB),
+  Predicted = predictions
+)
+
+# Export results
+write.csv(plot_data,
+          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCBV02.csv",
+          row.names = FALSE)
+
+# Create the scatter plot
+plotRF <- ggplot(plot_data, aes(x = 10^(Observed), y = 10^(Predicted))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(1, 10^6),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(1, 10^6),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 2:1 line (factor of 2)
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl")
+
+# Print the plot
+print(plotRF)
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFObsPredtPCBV02.png",
+       plot = plotRF, width = 6, height = 5, dpi = 500)
+
+
