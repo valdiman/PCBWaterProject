@@ -3,7 +3,6 @@
 ## Random forest model
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -36,8 +35,7 @@ install.packages("gbm")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
-  library(gbm)
+  library(gbm) # Random Forest functions
 }
 
 # Read data ---------------------------------------------------------------
@@ -83,7 +81,8 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   # Change date format
   mic$SampleDate <- as.Date(mic$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(mic$SampleDate) - min(as.Date(mic$SampleDate)))
+  time.day <- as.numeric(difftime(as.Date(mic$SampleDate),
+                                  min(as.Date(mic$SampleDate)), units = "days"))
   # Create individual code for each site sampled
   site.numb <- mic$SiteID %>% as.factor() %>% as.numeric
   # Include season
@@ -94,6 +93,7 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   mic.tpcb <- cbind(factor(mic$SiteID), mic$SampleDate, as.matrix(mic$tPCB),
                     data.frame(time.day), site.numb, season.s,
                     mic$DistanceToCentroid)
+  
   # Add column names
   colnames(mic.tpcb) <- c("SiteID", "date", "tPCB", "time", "site.code",
                           "season", "DistanceToCentroid")
@@ -108,7 +108,7 @@ train_indices <- sample(1:nrow(mic.tpcb), 0.8 * nrow(mic.tpcb))
 train_data <- mic.tpcb[train_indices, ]
 test_data <- mic.tpcb[-train_indices, ]
 
-train_data$time <- as.numeric(train_data$time)
+#train_data$time <- as.numeric(train_data$time)
 
 # Fit the GBM model
 gbm_model <- gbm(log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
@@ -146,7 +146,8 @@ comparison <- data.frame(observed = test_data$tPCB,
 comparison$factor2 <- comparison$observed/comparison$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2, ])/nrow(comparison)*100
+factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
+                                      , ])/nrow(comparison)*100
 
 # Create the data frame directly
 performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
@@ -160,7 +161,7 @@ write.csv(performance_RF,
           file = "Output/Data/Sites/csv/21Mich/21MichRFtPCBV02.csv",
           row.names = FALSE)
 
-# Create a data frame for plotting
+# Create a data frame for plotting Observations vs Predictions
 plot_data <- data.frame(
   Location = rep("21 Mich", nrow(test_data)),
   Observed = log10(test_data$tPCB),
@@ -220,11 +221,12 @@ ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFObsPredtPCBV02.png",
   # Change date format
   SampleDate <- as.Date(mic$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  #time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  # Calculate sampling time
+  time.day <- as.numeric(difftime(as.Date(mic$SampleDate),
+                                  min(as.Date(mic$SampleDate)), units = "days"))
   # Add distance to the centroid
   centroid <- mic$DistanceToCentroid
-  # Change name time.day to time
-  colnames(time.day) <- "time"
   # Include season
   yq.s <- as.yearqtr(as.yearmon(mic$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -234,14 +236,32 @@ ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFObsPredtPCBV02.png",
                      site.numb, season.s, centroid)
 }
 
+# Perform imputation of missing values with the adjusted lowest observed value
+mic.pcb.1_imputed <- mic.pcb.1
+
+# Iterate over each column
+for (col in colnames(mic.pcb.1_imputed)) {
+  # Check if the column is numeric
+  if (is.numeric(mic.pcb.1_imputed[[col]])) {
+    # Find the lowest observed value in the column
+    lowest_value <- min(mic.pcb.1_imputed[[col]], na.rm = TRUE)
+    
+    # Calculate the adjusted lowest value
+    adjusted_lowest_value <- lowest_value / sqrt(2)
+    
+    # Replace missing values with the adjusted lowest value
+    mic.pcb.1_imputed[[col]][is.na(mic.pcb.1_imputed[[col]])] <- adjusted_lowest_value
+  }
+}
+
 # Set the seed for reproducibility
 set.seed(123)
 
 # Find the numeric columns (columns starting with "PCB")
-pcb_numeric_columns <- grep("^PCB", colnames(mic.pcb.1), value = TRUE)
+pcb_numeric_columns <- grep("^PCB", colnames(mic.pcb.1_imputed), value = TRUE)
 
 # Find the corresponding character columns
-char_columns <- setdiff(colnames(mic.pcb.1), pcb_numeric_columns)
+char_columns <- setdiff(colnames(mic.pcb.1_imputed), pcb_numeric_columns)
 
 # Initialize the results matrix
 rf_results <- data.frame(
@@ -257,11 +277,11 @@ all_results <- data.frame()
 # Iterate over each numeric column
 for (i in seq_along(pcb_numeric_columns)) {
   # Combine numeric and character data
-  combined_data <- cbind(mic.pcb.1[, pcb_numeric_columns[i],
-                                   drop = FALSE], mic.pcb.1[, char_columns])
+  combined_data <- cbind(mic.pcb.1_imputed[, pcb_numeric_columns[i], drop = FALSE],
+                         mic.pcb.1_imputed[, char_columns])
   
-  # Exclude rows with missing values
-  combined_data <- na.omit(combined_data)
+  # Convert combined_data to data frame
+  combined_data <- as.data.frame(combined_data)
   
   # Sample indices for training
   train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
@@ -270,10 +290,12 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using randomForest
-  
-  
-  # fit <- randomForest(train_data[, 1] ~ ., data = train_data)
+  # Modeling code using gbm
+  fit <- gbm(train_data[, 1] ~ ., data = train_data[, -1], 
+             distribution = "gaussian",  # For regression tasks
+             n.trees = 4000,             # Number of trees
+             interaction.depth = 2,      # Interaction depth
+             shrinkage = 0.001)          # Learning rate
   
   # Example: Make predictions on the test set
   predictions <- predict(fit, newdata = test_data)
@@ -299,7 +321,7 @@ for (i in seq_along(pcb_numeric_columns)) {
   col_results <- data.frame(
     Location = rep("21 Mich", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
-    Actual = test_data[, 1],
+    Observed = test_data[, 1],
     Predicted = predictions,
     R_squared = r_squared  # Add R_squared column
   )
@@ -334,7 +356,7 @@ write.csv(all_results,
           row.names = FALSE)
 
 # Plot
-plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
+plotRFPCBi <- ggplot(all_results, aes(x = 10^(Observed), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(0.01, 10^4),
                 breaks = trans_breaks("log10", function(x) 10^x),
