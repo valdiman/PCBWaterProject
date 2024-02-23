@@ -21,8 +21,9 @@ NC_data <- NC_data %>% arrange(sys_sample_code, sample_date)
 
 # Filter and keep only the columns you need
 NC_data <- NC_data %>%
-  select(sys_sample_code, sample_date, matrix_code, fraction, analytic_method,
-         y_coord, x_coord, target_unit, chemical_name, result_value, dilution_factor)
+  select(sys_sample_code, subfacility_code, sample_date, matrix_code, fraction,
+         analytic_method, y_coord, x_coord, target_unit, chemical_name,
+         result_value, dilution_factor)
 
 # Filter rows based on the analytic_method and fraction condition
 NC_data <- NC_data %>%
@@ -60,8 +61,8 @@ NC_data$Transformed_chemical_name <- sapply(NC_data$chemical_name,
 # Create a new data frame with transposed values
 transposed_data <- NC_data %>%
   pivot_wider(
-    id_cols = c(sys_sample_code, sample_date, matrix_code, fraction,
-                analytic_method, y_coord, x_coord, target_unit),
+    id_cols = c(sys_sample_code, subfacility_code, sample_date, matrix_code,
+                fraction, analytic_method, y_coord, x_coord, target_unit),
     names_from = Transformed_chemical_name,
     values_from = result_value
   )
@@ -95,7 +96,6 @@ combinations <- list(
   list("PCB40+41+64+71+72", c("PCB40+71", "PCB41", "PCB64", "PCB72")),
   list("PCB43+49+52+69+73", c("PCB43", "PCB49+69", "PCB52", "PCB73")),
   list("PCB45+51", c("PCB45", "PCB51")),
-  
   list("PCB48+59+62+75", c("PCB48", "PCB59+62+75")),
   list("PCB56+60", c("PCB56", "PCB60")),
   list("PCB61+66+70+74+76+93+95+98+100+102", c("PCB61+70+74+76", "PCB66",
@@ -138,7 +138,7 @@ for (combo in combinations) {
 
 # Define the desired order of columns
 desired_column_order <- c(
-  "sys_sample_code", "sample_date", "y_coord", "x_coord", "target_unit", "analytic_method",
+  "sys_sample_code", "subfacility_code", "sample_date", "y_coord", "x_coord", "target_unit", "analytic_method",
   "PCB1", "PCB2", "PCB3", "PCB4+10", "PCB5+8", "PCB6", "PCB7+9", "PCB11", "PCB12+13",
   "PCB14", "PCB15", "PCB16+32", "PCB17", "PCB18+30", "PCB19", "PCB20+21+28+31+33+50+53",
   "PCB22", "PCB23", "PCB24+27", "PCB25", "PCB26+29", "PCB34", "PCB35", "PCB36", "PCB37+42",
@@ -159,30 +159,68 @@ desired_column_order <- c(
 # Reorder the columns based on the desired order
 transposed_data <- transposed_data[desired_column_order]
 
-
-# here
-
 # Create a new column named "tPCB" that sums columns 7 to 110
-grouped_data <- grouped_data %>%
+transposed_data <- transposed_data %>%
   mutate(tPCB = rowSums(select(., starts_with("PCB")), na.rm = TRUE))
 
-# Replace 0s with NA for columns 7 to 110
-grouped_data <- grouped_data %>%
-  mutate_at(vars(starts_with("PCB")), ~ ifelse(. == 0, NA, .))
-
-# Change SAMPLE_NAME
-grouped_data <- grouped_data %>%
-  mutate(SAMPLE_NAME = substr(SAMPLE_NAME, 1, nchar(SAMPLE_NAME) - 3))
-
-# Remove SAMPLE_NAME with no name (NA)
-grouped_data <- grouped_data %>%
-  filter(!is.na(SAMPLE_NAME))
-
 # Change the name of columns to be consistent
-colnames(grouped_data)[colnames(grouped_data) == "SAMPLE_DATE"] <- "SampleDate"
-colnames(grouped_data)[colnames(grouped_data) == "Y_COORD"] <- "Latitude"
-colnames(grouped_data)[colnames(grouped_data) == "X_COORD"] <- "Longitude"
-colnames(grouped_data)[colnames(grouped_data) == "REPORT_RESULT_UNIT"] <- "Units"
+colnames(transposed_data)[colnames(transposed_data) == "sys_sample_code"] <- "SampleID"
+colnames(transposed_data)[colnames(transposed_data) == "subfacility_code"] <- "SiteName"
+colnames(transposed_data)[colnames(transposed_data) == "sample_date"] <- "SampleDate"
+colnames(transposed_data)[colnames(transposed_data) == "y_coord"] <- "Latitude"
+colnames(transposed_data)[colnames(transposed_data) == "x_coord"] <- "Longitude"
+colnames(transposed_data)[colnames(transposed_data) == "target_unit"] <- "Units"
+colnames(transposed_data)[colnames(transposed_data) == "analytic_method"] <- "EPAMethod"
+
+# Remove "-NYC" from SiteID
+transposed_data$SiteName <- gsub("-NYC", "", transposed_data$SiteName)
+
+transposed_data <- transposed_data %>%
+  mutate(SiteID = sprintf("WCPCB-NTC00%d", as.integer(factor(SiteName))))
+
+transposed_data <- transposed_data %>%
+  relocate(SiteID, .before = SampleDate)
+
+# Format SampleID
+# Extract last 8 characters from SampleID
+transposed_data$SampleID <- str_sub(transposed_data$SampleID, start = -8)
+
+# Combine SiteID and SampleID
+transposed_data$SampleID <- paste(transposed_data$SiteID,
+                                  transposed_data$SampleID, sep = "-")
+
+# Append a sequential number to SampleID
+transposed_data$SampleID <- ave(seq_along(transposed_data$SampleID),
+                                transposed_data$SampleID,
+                                FUN = function(x) paste(x, seq_along(x), sep = "."))
+
+# Here!
+
+
+transposed_data$SampleID <- str_sub(transposed_data$SampleID, start = -8)
+transposed_data$SampleID <- paste(transposed_data$SiteID,
+                                  transposed_data$SampleID, sep = "-")
+
+transposed_data$Original_SampleID <- transposed_data$SampleID
+transposed_data$SampleID <- ave(seq_along(transposed_data$SampleID),
+                                transposed_data$SampleID, FUN = seq_along)
+transposed_data$SampleID <- paste(transposed_data$Original_SampleID,
+                                  transposed_data$SampleID, sep = ".")
+
+# Names and values for the new columns
+new_col_names <- c("EPARegion", "StateSampled", "LocationName")
+new_col_values <- c("R2", "NY", "Newtown Creek")
+
+# Create a dataframe with new columns and values
+new_cols_df <- data.frame(t(new_col_values))
+colnames(new_cols_df) <- new_col_names
+
+# Assuming your data frame is named transposed_data
+transposed_data <- transposed_data %>%
+  mutate(across(all_of(new_col_names), ~ .)) %>%
+  select(SampleID, EPARegion, StateSampled, LocationName, everything())  # Place new columns after SampleID
+
+
 
 # Export results
 write.csv(grouped_data, file = "Data/NewtownCreek/ntc.csv")
