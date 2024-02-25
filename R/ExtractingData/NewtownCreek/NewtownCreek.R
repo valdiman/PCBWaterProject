@@ -4,6 +4,7 @@ install.packages("dplyr")
 install.packages("tidyr")
 install.packages("readr")
 install.packages("stringr")
+install.packages("sp")
 
 # Load libraries
 {
@@ -11,6 +12,7 @@ install.packages("stringr")
   library(tidyr)
   library(readr)
   library(stringr)
+  library(sp)
 }
 
 # Read the CSV file into a data frame
@@ -77,7 +79,7 @@ transposed_data$target_unit <- "pg/l"
 # Change NA to 0s
 transposed_data[is.na(transposed_data)] <- 0
 
-# Function to combine columns and remove original columns
+# Function to combine PCB columns and remove original columns
 combine_and_remove <- function(data, new_column, columns_to_combine) {
   data[[new_column]] <- rowSums(data[columns_to_combine], na.rm = TRUE)
   data <- data[, !colnames(data) %in% columns_to_combine]
@@ -175,8 +177,17 @@ colnames(transposed_data)[colnames(transposed_data) == "analytic_method"] <- "EP
 # Remove "-NYC" from SiteID
 transposed_data$SiteName <- gsub("-NYC", "", transposed_data$SiteName)
 
+# Add a digit to the SiteName
 transposed_data <- transposed_data %>%
-  mutate(SiteID = sprintf("WCPCB-NTC00%d", as.integer(factor(SiteName))))
+  group_by(SiteName) %>%
+  mutate(
+    SiteName = if(n_distinct(Latitude) == 1) paste0(SiteName, "_1") else paste0(SiteName, "_", row_number())
+  ) %>%
+  ungroup()
+
+# Create a SiteID column with three digits at the end
+transposed_data <- transposed_data %>%
+  mutate(SiteID = sprintf("WCPCB-NTC%03d", as.integer(factor(SiteName))))
 
 transposed_data <- transposed_data %>%
   relocate(SiteID, .before = SampleDate)
@@ -189,39 +200,86 @@ transposed_data$SampleID <- str_sub(transposed_data$SampleID, start = -8)
 transposed_data$SampleID <- paste(transposed_data$SiteID,
                                   transposed_data$SampleID, sep = "-")
 
-# Append a sequential number to SampleID
-transposed_data$SampleID <- ave(seq_along(transposed_data$SampleID),
-                                transposed_data$SampleID,
-                                FUN = function(x) paste(x, seq_along(x), sep = "."))
-
-# Here!
-
-
-transposed_data$SampleID <- str_sub(transposed_data$SampleID, start = -8)
-transposed_data$SampleID <- paste(transposed_data$SiteID,
-                                  transposed_data$SampleID, sep = "-")
-
-transposed_data$Original_SampleID <- transposed_data$SampleID
-transposed_data$SampleID <- ave(seq_along(transposed_data$SampleID),
-                                transposed_data$SampleID, FUN = seq_along)
-transposed_data$SampleID <- paste(transposed_data$Original_SampleID,
-                                  transposed_data$SampleID, sep = ".")
+transposed_data <- transposed_data %>%
+  group_by(SampleID) %>%
+  mutate(SampleID = ifelse(n() > 1, paste0(SampleID, ".", row_number()),
+                           paste0(SampleID, ".1"))) %>%
+  ungroup()
 
 # Names and values for the new columns
 new_col_names <- c("EPARegion", "StateSampled", "LocationName")
 new_col_values <- c("R2", "NY", "Newtown Creek")
 
-# Create a dataframe with new columns and values
-new_cols_df <- data.frame(t(new_col_values))
-colnames(new_cols_df) <- new_col_names
+# Create empty columns for the new columns
+for (col_name in new_col_names) {
+  transposed_data[[col_name]] <- NA_character_
+}
 
-# Assuming your data frame is named transposed_data
+# Insert new columns between SampleID and SiteName
 transposed_data <- transposed_data %>%
-  mutate(across(all_of(new_col_names), ~ .)) %>%
-  select(SampleID, EPARegion, StateSampled, LocationName, everything())  # Place new columns after SampleID
+  mutate(across(everything(), as.character)) %>%  # Convert all columns to character type
+  mutate(across(all_of(new_col_names), ~NA_character_)) %>%  # Create empty columns
+  relocate(SampleID, .after = "SampleID") %>%  # Move SampleID column to the beginning
+  relocate(all_of(new_col_names), .after = "SampleID")  # Move new columns after SampleID
+
+# Assign values to the new columns
+for (i in seq_along(new_col_names)) {
+  transposed_data[[new_col_names[i]]] <- new_col_values[i]
+}
+
+# Update the string in the "EPAMethod" column
+transposed_data <- transposed_data %>%
+  mutate(EPAMethod = ifelse(EPAMethod == "E1668A", "M1668", EPAMethod))
+
+t <- transposed_data
+
+# here
+
+# Names and values for the new columns
+new_col_names <- c("PhaseMeasured", "AroclorCongener")
+new_col_values <- c("SurfaceWater", "Congener")
+
+# Create empty columns for the new columns
+for (col_name in new_col_names) {
+  t[[col_name]] <- NA_character_
+}
+
+# Insert new columns between SampleID and SiteName
+t <- t %>%
+  mutate(across(everything(), as.character)) %>%  # Convert all columns to character type
+  mutate(across(all_of(new_col_names), ~NA_character_)) %>%  # Create empty columns
+  relocate(SampleID, .after = "SampleID") %>%  # Move SampleID column to the beginning
+  relocate(all_of(new_col_names), .after = "SampleID")  # Move new columns after SampleID
+
+# Assign values to the new columns
+for (i in seq_along(new_col_names)) {
+  transposed_data[[new_col_names[i]]] <- new_col_values[i]
+}
 
 
+
+# Change coordinate system
+# Define original and target CRS
+original_crs <- CRS("+proj=lcc +lat_1=41.03333333333333 +lat_2=40.66666666666666 +lat_0=40.16666666666666 +lon_0=-74.5 +x_0=300000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs")
+target_crs <- CRS("+proj=longlat +datum=WGS84")
+
+# Convert original coordinates to numeric
+transposed_data$Latitude <- as.numeric(transposed_data$Latitude)
+transposed_data$Longitude <- as.numeric(transposed_data$Longitude)
+
+# Convert original coordinates to a spatial object
+coordinates <- transposed_data[, c("Longitude", "Latitude")]
+
+# Create SpatialPoints object
+coordinates <- SpatialPoints(coordinates, proj4string = original_crs)
+
+# Transform coordinates to target CRS
+transformed_coordinates <- spTransform(coordinates, target_crs)
+
+# Extract transformed coordinates
+transposed_data$Latitude <- coordinates(transformed_coordinates)[, 2]
+transposed_data$Longitude <- coordinates(transformed_coordinates)[, 1]
 
 # Export results
-write.csv(grouped_data, file = "Data/NewtownCreek/ntc.csv")
+write.csv(transposed_data, file = "Data/NewtownCreek/ntcV01.csv")
 
