@@ -166,13 +166,15 @@ transposed_data <- transposed_data %>%
   mutate(tPCB = rowSums(select(., starts_with("PCB")), na.rm = TRUE))
 
 # Change the name of columns to be consistent
-colnames(transposed_data)[colnames(transposed_data) == "sys_sample_code"] <- "SampleID"
-colnames(transposed_data)[colnames(transposed_data) == "subfacility_code"] <- "SiteName"
-colnames(transposed_data)[colnames(transposed_data) == "sample_date"] <- "SampleDate"
-colnames(transposed_data)[colnames(transposed_data) == "y_coord"] <- "Latitude"
-colnames(transposed_data)[colnames(transposed_data) == "x_coord"] <- "Longitude"
-colnames(transposed_data)[colnames(transposed_data) == "target_unit"] <- "Units"
-colnames(transposed_data)[colnames(transposed_data) == "analytic_method"] <- "EPAMethod"
+{
+  colnames(transposed_data)[colnames(transposed_data) == "sys_sample_code"] <- "SampleID"
+  colnames(transposed_data)[colnames(transposed_data) == "subfacility_code"] <- "SiteName"
+  colnames(transposed_data)[colnames(transposed_data) == "sample_date"] <- "SampleDate"
+  colnames(transposed_data)[colnames(transposed_data) == "y_coord"] <- "Latitude"
+  colnames(transposed_data)[colnames(transposed_data) == "x_coord"] <- "Longitude"
+  colnames(transposed_data)[colnames(transposed_data) == "target_unit"] <- "Units"
+  colnames(transposed_data)[colnames(transposed_data) == "analytic_method"] <- "EPAMethod"
+  }
 
 # Remove "-NYC" from SiteID
 transposed_data$SiteName <- gsub("-NYC", "", transposed_data$SiteName)
@@ -227,36 +229,31 @@ for (i in seq_along(new_col_names)) {
   transposed_data[[new_col_names[i]]] <- new_col_values[i]
 }
 
-# Update the string in the "EPAMethod" column
-transposed_data <- transposed_data %>%
-  mutate(EPAMethod = ifelse(EPAMethod == "E1668A", "M1668", EPAMethod))
-
-t <- transposed_data
-
-# here
-
 # Names and values for the new columns
 new_col_names <- c("PhaseMeasured", "AroclorCongener")
 new_col_values <- c("SurfaceWater", "Congener")
 
+t <- transposed_data
+
 # Create empty columns for the new columns
 for (col_name in new_col_names) {
-  t[[col_name]] <- NA_character_
+  transposed_data[[col_name]] <- NA_character_
 }
 
-# Insert new columns between SampleID and SiteName
-t <- t %>%
+# Insert new columns in desired positions
+transposed_data <- transposed_data %>%
   mutate(across(everything(), as.character)) %>%  # Convert all columns to character type
   mutate(across(all_of(new_col_names), ~NA_character_)) %>%  # Create empty columns
   relocate(SampleID, .after = "SampleID") %>%  # Move SampleID column to the beginning
-  relocate(all_of(new_col_names), .after = "SampleID")  # Move new columns after SampleID
+  relocate(all_of(new_col_names), .before = "EPAMethod")  # Move new columns before EPAMethod
 
 # Assign values to the new columns
-for (i in seq_along(new_col_names)) {
-  transposed_data[[new_col_names[i]]] <- new_col_values[i]
-}
+transposed_data$PhaseMeasured <- new_col_values[1]
+transposed_data$AroclorCongener <- new_col_values[2]
 
-
+# Update the string in the "EPAMethod" column
+transposed_data <- transposed_data %>%
+  mutate(EPAMethod = ifelse(EPAMethod == "E1668A", "M1668", EPAMethod))
 
 # Change coordinate system
 # Define original and target CRS
