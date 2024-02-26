@@ -161,10 +161,6 @@ desired_column_order <- c(
 # Reorder the columns based on the desired order
 transposed_data <- transposed_data[desired_column_order]
 
-# Create a new column named "tPCB" that sums columns 7 to 110
-transposed_data <- transposed_data %>%
-  mutate(tPCB = rowSums(select(., starts_with("PCB")), na.rm = TRUE))
-
 # Change the name of columns to be consistent
 {
   colnames(transposed_data)[colnames(transposed_data) == "sys_sample_code"] <- "SampleID"
@@ -208,6 +204,7 @@ transposed_data <- transposed_data %>%
                            paste0(SampleID, ".1"))) %>%
   ungroup()
 
+# Add new columns with metadata
 # Names and values for the new columns
 new_col_names <- c("EPARegion", "StateSampled", "LocationName")
 new_col_values <- c("R2", "NY", "Newtown Creek")
@@ -229,27 +226,54 @@ for (i in seq_along(new_col_names)) {
   transposed_data[[new_col_names[i]]] <- new_col_values[i]
 }
 
-# Names and values for the new columns
-new_col_names <- c("PhaseMeasured", "AroclorCongener")
-new_col_values <- c("SurfaceWater", "Congener")
-
-t <- transposed_data
+# Name and value for the new column
+new_col_name <- c("PhaseMeasured")
+new_col_value <- c("SurfaceWater")
 
 # Create empty columns for the new columns
-for (col_name in new_col_names) {
+for (col_name in new_col_name) {
   transposed_data[[col_name]] <- NA_character_
 }
 
 # Insert new columns in desired positions
 transposed_data <- transposed_data %>%
   mutate(across(everything(), as.character)) %>%  # Convert all columns to character type
-  mutate(across(all_of(new_col_names), ~NA_character_)) %>%  # Create empty columns
+  mutate(across(all_of(new_col_name), ~NA_character_)) %>%  # Create empty columns
   relocate(SampleID, .after = "SampleID") %>%  # Move SampleID column to the beginning
-  relocate(all_of(new_col_names), .before = "EPAMethod")  # Move new columns before EPAMethod
+  relocate(all_of(new_col_name), .before = "EPAMethod")  # Move new columns before EPAMethod
 
 # Assign values to the new columns
-transposed_data$PhaseMeasured <- new_col_values[1]
-transposed_data$AroclorCongener <- new_col_values[2]
+transposed_data$PhaseMeasured <- new_col_value[1]
+
+# Name and value for the new column
+new_col_name <- c("AroclorCongener")
+new_col_value <- c("Congener")
+
+# Create empty columns for the new columns
+for (col_name in new_col_name) {
+  transposed_data[[col_name]] <- NA_character_
+}
+
+# Insert new columns in desired positions
+transposed_data <- transposed_data %>%
+  mutate(across(everything(), as.character)) %>%  # Convert all columns to character type
+  mutate(across(all_of(new_col_name), ~NA_character_)) %>%  # Create empty columns
+  relocate(SampleID, .after = "SampleID") %>%  # Move SampleID column to the beginning
+  relocate(all_of(new_col_name), .before = "PCB1")  # Move new columns before EPAMethod
+
+transposed_data$AroclorCongener <- new_col_value[1]
+
+# Name and value for the new column
+transposed_data[, c("A1016", "A1221", "A1232", "A1242", "A1248",
+                    "A1254", "A1260")] <- NA
+
+# Transfor PCBs into numerical values
+pcbs <- grep("^PCB", names(transposed_data), value = TRUE)
+transposed_data[pcbs] <- lapply(transposed_data[pcbs], as.numeric)
+
+# Create a new column named "tPCB" that sums columns 14 to 117
+transposed_data <- transposed_data %>%
+  mutate(tPCB = rowSums(select(., starts_with("PCB")), na.rm = TRUE))
 
 # Update the string in the "EPAMethod" column
 transposed_data <- transposed_data %>%
