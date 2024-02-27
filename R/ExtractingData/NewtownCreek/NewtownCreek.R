@@ -5,6 +5,7 @@ install.packages("tidyr")
 install.packages("readr")
 install.packages("stringr")
 install.packages("sp")
+install.packages("sf")
 
 # Load libraries
 {
@@ -13,6 +14,7 @@ install.packages("sp")
   library(readr)
   library(stringr)
   library(sp)
+  library(sf)
 }
 
 # Read the CSV file into a data frame
@@ -280,26 +282,24 @@ transposed_data <- transposed_data %>%
   mutate(EPAMethod = ifelse(EPAMethod == "E1668A", "M1668", EPAMethod))
 
 # Change coordinate system
-# Define original and target CRS
-original_crs <- CRS("+proj=lcc +lat_1=41.03333333333333 +lat_2=40.66666666666666 +lat_0=40.16666666666666 +lon_0=-74.5 +x_0=300000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs")
-target_crs <- CRS("+proj=longlat +datum=WGS84")
-
-# Convert original coordinates to numeric
+# Modify 'Latitude' and 'Longitude' columns to be numeric
 transposed_data$Latitude <- as.numeric(transposed_data$Latitude)
 transposed_data$Longitude <- as.numeric(transposed_data$Longitude)
 
-# Convert original coordinates to a spatial object
-coordinates <- transposed_data[, c("Longitude", "Latitude")]
+# Convert the data frame to an sf object
+# First, create a simple feature object from the data frame by specifying the coordinates
+transposed_sf <- st_as_sf(transposed_data, coords = c("Longitude", "Latitude"), crs = 2263) # Assuming your data is initially in WGS84
 
-# Create SpatialPoints object
-coordinates <- SpatialPoints(coordinates, proj4string = original_crs)
+# Transform the coordinates to the target CRS
+target_crs <- 4326 # EPSG code for WGS84
+transformed_sf <- st_transform(transposed_sf, crs = target_crs)
 
-# Transform coordinates to target CRS
-transformed_coordinates <- spTransform(coordinates, target_crs)
+# Transform coordinates back into a regular data frame
+transposed_data_transformed <- as.data.frame(transformed_sf)
 
-# Extract transformed coordinates
-transposed_data$Latitude <- coordinates(transformed_coordinates)[, 2]
-transposed_data$Longitude <- coordinates(transformed_coordinates)[, 1]
+# Extract them into separate columns:
+transposed_data$Longitude <- st_coordinates(transformed_sf)[, 1]
+transposed_data$Latitude <- st_coordinates(transformed_sf)[, 2]
 
 # Export results
 write.csv(transposed_data, file = "Data/NewtownCreek/ntcV01.csv")
