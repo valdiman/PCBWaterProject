@@ -71,32 +71,32 @@ train_data <- tpcb[train_indices, ]
 test_data <- tpcb[-train_indices, ]
 
 # Fit the Model (1)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + season,
+rf_model <- randomForest(log10(tPCB) ~ time + site.code + season,
                            data = train_data)
 
 # Make Predictions
-predictions.1 <- predict(rf_model.1, newdata = test_data)
+predictions <- predict(rf_model, newdata = test_data)
 
 # Evaluate Model Performance
-mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
-rmse.1 <- sqrt(mse.1)
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+mse <- mean((predictions - log10(test_data$tPCB))^2)
+rmse <- sqrt(mse)
+r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
 
-# Estimate a factor of 2 between observations and predictions
+# Estimate a factor of 2 between observations and predictions for the normal values
 # Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+compare_df <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+compare_df$factor2 <- compare_df$observed/compare_df$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df)*100
 
 # Create the data frame directly
 performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
-                             Value = c(rmse.1, r_squared.1,
-                                       factor2_percentage.1))
+                             Value = c(rmse, r_squared,
+                                       factor2_percentage))
 
 # Remove unnecessary columns
 performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
@@ -109,16 +109,16 @@ write.csv(performance_df,
           file = "Output/Data/Global/csv/RFPerformancetPCB.csv")
 
 # Feature Importance
-importance.1 <- importance(rf_model.1)
+importance <- importance(rf_model)
 # Plot features
-barplot(importance.1[, 1], names.arg = rownames(importance.1),
+barplot(importance[, 1], names.arg = rownames(importance),
         main = "Feature Importance", las = 2, cex.names = 0.7)
 
 # Create a data frame for plotting
 plot_data.1 <- data.frame(
   Location = rep("USA", nrow(test_data)),
   Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
+  Predicted = predictions
 )
 
 # Export results
@@ -129,10 +129,10 @@ write.csv(plot_data.1,
 # Create the scatter plot
 plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(1, 10^8),
+  scale_y_log10(limits = c(0.1, 10^8),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^8),
+  scale_x_log10(limits = c(0.1, 10^8),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
