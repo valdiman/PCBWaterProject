@@ -94,7 +94,7 @@ maploc <- ggplot() +
 print(maploc)
 
 # Save map in folder
-ggsave("Output/Maps/Global/maplocV05.pdf", plot = maploc,
+ggsave("Output/Maps/Global/maplocV01.pdf", plot = maploc,
        width = 12, height = 6, dpi = 300)
 
 # (2) Map + tPCB
@@ -132,7 +132,7 @@ maptPCB <- ggplot() +
 print(maptPCB)  # Print the plot
 
 # Save the plot as PDF
-ggsave("Output/Maps/Global/maptPCBV07.pdf", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBV01.pdf", plot = maptPCB,
        width = 14, height = 4)
 
 # Individual PCB Maps -----------------------------------------------------
@@ -177,7 +177,7 @@ mapPCB5.8 <- ggplot() +
 print(mapPCB5.8)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB5_8.pdf", plot = mapPCB5.8,
+ggsave("Output/Maps/Global/mapPCB5_8V01.pdf", plot = mapPCB5.8,
        width = 14, height = 4)
 
 # PCB11
@@ -222,7 +222,7 @@ mapPCB11 <- ggplot() +
 print(mapPCB11)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB11.pdf", plot = mapPCB11,
+ggsave("Output/Maps/Global/mapPCB11V01.pdf", plot = mapPCB11,
        width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB 20+21+28+31+33+50+53
@@ -268,7 +268,7 @@ mapPCB20 <- ggplot() +
 print(mapPCB20)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB20.pdf", plot = mapPCB20,
+ggsave("Output/Maps/Global/mapPCB20V01.pdf", plot = mapPCB20,
        width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB44+47+65
@@ -314,7 +314,7 @@ mapPCB44 <- ggplot() +
 print(mapPCB44)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB44.pdf", plot = mapPCB44,
+ggsave("Output/Maps/Global/mapPCB44V01.pdf", plot = mapPCB44,
        width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB67
@@ -360,7 +360,7 @@ mapPCB67 <- ggplot() +
 print(mapPCB67)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB67.pdf", plot = mapPCB67,
+ggsave("Output/Maps/Global/mapPCB67V01.pdf", plot = mapPCB67,
        width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB106 + 118
@@ -406,7 +406,7 @@ mapPCB106 <- ggplot() +
 print(mapPCB106)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB106.pdf", plot = mapPCB106,
+ggsave("Output/Maps/Global/mapPCB106V01.pdf", plot = mapPCB106,
        width = 14, height = 4)
 
 # Filter out rows with 0 values for PCB182+187
@@ -452,7 +452,7 @@ mapPCB182 <- ggplot() +
 print(mapPCB182)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/mapPCB182.pdf", plot = mapPCB182,
+ggsave("Output/Maps/Global/mapPCB182V01.pdf", plot = mapPCB182,
        width = 14, height = 4)
 
 # Specific locations ------------------------------------------------------
@@ -558,8 +558,8 @@ print(maptPCB)
 ggsave("Output/Maps/Global/maptPCBHHV02.pdf", plot = maptPCB,
        width = 14, height = 4)
 
-# Passaic River
-pas <- subset(wdc, LocationName %in% c("Passaic River"))
+# Passaic River & Newtown Creek
+pas <- subset(wdc, LocationName %in% c("Passaic River", "Newtown Creek"))
 
 pas.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                      data = pas, mean)
@@ -582,7 +582,7 @@ maptPCB <- ggplot() +
     begin = 1,  # Adjust the starting color (lower value)
     end = 0.001     # Adjust the ending color (higher value)
   ) +
-  coord_fixed(1.3, xlim = c(-74.3, -73.5), ylim = c(40.0, 40.97)) +  # Adjust these values accordingly
+  coord_fixed(1.3, xlim = c(-74.5, -73.5), ylim = c(40.5, 40.97)) +  # Adjust these values accordingly
   theme_minimal() +
   theme(
     axis.text = element_blank(),
