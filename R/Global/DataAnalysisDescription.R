@@ -139,7 +139,7 @@ plot.aroclor.congener <- ggplot(precomputed_percentages,
 print(plot.aroclor.congener)
 
 # Save plot in folder
-ggsave("Output/Plots/Global/AroclorCongenerV2.png", plot = plot.aroclor.congener,
+ggsave("Output/Plots/Global/AroclorCongener.png", plot = plot.aroclor.congener,
        width = 10, height = 3, dpi = 300)
 
 # Aroclor summary ---------------------------------------------------------
@@ -199,7 +199,7 @@ summary(wdc.cong.freq$PCB.frequency)
 
 # Frequency detection plot
 plot.cong.freq <- ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
-  geom_bar(stat = "identity", fill = "#66ccff", color = "black") +
+  geom_bar(stat = "identity", fill = "white", color = "black") +
   geom_vline(xintercept = 100*mean(wdc.cong.freq$PCB.frequency),
              color = "red") +
   ylab("") +
@@ -215,7 +215,7 @@ plot.cong.freq <- ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)
 print(plot.cong.freq)
 
 # Save map in folder
-ggsave("Output/Plots/Global/FreqPCBV02.png", plot = plot.cong.freq,
+ggsave("Output/Plots/Global/FreqPCB.png", plot = plot.cong.freq,
        width = 5, height = 10, dpi = 300)
 
 # Total PCB description ---------------------------------------------------
@@ -317,7 +317,7 @@ plot.box.tPCB <- ggplot(tpcb, aes(x = "", y = tPCB)) +
 print(plot.box.tPCB)
 
 # Save map in folder
-ggsave("Output/Plots/Global/tPCBBoxPlotV03.png", plot = plot.box.tPCB,
+ggsave("Output/Plots/Global/tPCBBoxPlot.png", plot = plot.box.tPCB,
        width = 5, height = 10, dpi = 300)
 
 # Calculate % samples above both EPA thresholds
@@ -358,7 +358,7 @@ tpcb.site <- ggplot(filtered_data, aes(x = factor(LocationName),
 print(tpcb.site)
 
 # Save plot in folder
-ggsave("Output/Plots/Global/tPCBSiteV02.png", plot = tpcb.site,
+ggsave("Output/Plots/Global/tPCBSite.png", plot = tpcb.site,
        width = 5, height = 10, dpi = 300)
 
 # (4) Box plot for individual PCBs
@@ -391,7 +391,7 @@ PCBi_boxplot <- ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
 print(PCBi_boxplot)
 
 # Save map in folder
-ggsave("Output/Plots/Global/PCBiBoxPlotV03.png", plot = PCBi_boxplot,
+ggsave("Output/Plots/Global/PCBiBoxPlot.png", plot = PCBi_boxplot,
        width = 10, height = 5, dpi = 300)
 
 # (5) Individual PCBs for selected locations
@@ -545,7 +545,7 @@ plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
 print(plot.time.tPCB)
 
 # Save plot in folder
-ggsave("Output/Plots/Global/tPCBTimeV03.png", plot = plot.time.tPCB,
+ggsave("Output/Plots/Global/tPCBTime.png", plot = plot.time.tPCB,
        width = 10, height = 3, dpi = 300)
 
 # (7) Individual PCB trend plots
