@@ -222,10 +222,8 @@ ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFObsPredtPCBV02.png",
   # Change date format
   SampleDate <- as.Date(mic$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  #time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
-  # Calculate sampling time
-  time.day <- as.numeric(difftime(as.Date(mic$SampleDate),
-                                  min(as.Date(mic$SampleDate)), units = "days"))
+  time.day <- as.numeric(difftime(SampleDate,
+                                  min(SampleDate), units = "days"))
   # Add distance to the centroid
   centroid <- mic$DistanceToCentroid
   # Include season
@@ -237,7 +235,7 @@ ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFObsPredtPCBV02.png",
                      site.numb, season.s, centroid)
 }
 
-# Perform imputation of missing values with the adjusted lowest observed value
+# Perform imputation of missing values (NA) with the adjusted value
 mic.pcb.1_imputed <- mic.pcb.1
 
 # Iterate over each column (try one of the options above)
@@ -354,7 +352,7 @@ rf_results <- rf_results %>%
 rf_results <- cbind(Location = rep("21 Mich", nrow(rf_results)),
                     rf_results)
 
-# Remove rows in all_results where R_squared < 0.4
+# Remove rows in all_results where R_squared < 0
 all_results <- all_results %>%
   filter(R_squared >= 0)
 
@@ -363,12 +361,12 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/21Mich/21MichRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/21Mich/21MichRFPCBV02.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Sites/csv/21Mich/21MichRFObsPredPCB.csv",
+          file = "Output/Data/Sites/csv/21Mich/21MichRFObsPredPCBV02.csv",
           row.names = FALSE)
 
 # Plot
@@ -393,7 +391,7 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Observed), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFPCBV02.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
 
 
