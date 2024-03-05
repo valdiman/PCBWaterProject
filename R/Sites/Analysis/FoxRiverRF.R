@@ -163,7 +163,7 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFPerformancetPCB.csv",
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFtPCB.csv",
           row.names = FALSE)
 
 # Feature Importance
@@ -355,7 +355,7 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/FoxRiver/FoxRiverRFPCB.csv",
           row.names = FALSE)
 
 # Export combined results
