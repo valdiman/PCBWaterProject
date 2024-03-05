@@ -113,13 +113,13 @@ predictions <- predict(rf_model, newdata = test_data)
 
 # Evaluate Model Performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
-rmse <- sqrt(mse.1)
+rmse <- sqrt(mse)
 r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
 compare_df <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions)
+                           predicted = 10^(predictions))
 
 # Estimate a factor of 2 between observations and predictions
 compare_df$factor2 <- compare_df$observed/compare_df$predicted
@@ -162,24 +162,21 @@ write.csv(plot_data,
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(1, 10^6),
+plotRF <- ggplot(plot_data, aes(x = Actual, y = Predicted)) +
+  geom_point(shape = 21, size = 2, fill = "white") +
+  scale_x_log10(limits = c(0.5, 20), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^6),
+  scale_y_log10(limits = c(0.5, 20),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
-              linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
-              linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.5) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.5) + # 1:2 line
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.5) +
+  xlab(expression(bold("Observed " *Sigma*"PCB (pg/L) [log10]"))) +
+  ylab(expression(bold("Predicted " *Sigma*"PCB (pg/L) [log10]"))) +
   theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
+  theme(aspect.ratio = 1)
 
 # Print the plot
 print(plotRF)
@@ -320,23 +317,22 @@ write.csv(all_results,
           file = "Output/Data/Sites/csv/21Mich/21MichRFObsPredPCB.csv",
           row.names = FALSE)
 
-# Plot
-plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(0.01, 10^4),
+# Plot (check this)
+plotRFPCBi <- ggplot(all_results, aes(x = abs(Actual), y = abs(Predicted))) +
+  geom_point(shape = 21, size = 2, fill = "white") +
+  scale_x_log10(limits = c(0.01, 20), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.01, 10^4),
+  scale_y_log10(limits = c(0.01, 20),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.5) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.5) + # 1:2 line
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.5) +
+  xlab(expression(bold("Observed PCBi (pg/L) [log10]"))) +
+  ylab(expression(bold("Predicted PCBi (pg/L) [log10]"))) +
   theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
+  theme(aspect.ratio = 1)
 
 # Print the plot
 print(plotRFPCBi)
