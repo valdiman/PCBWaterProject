@@ -153,7 +153,7 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancetPCB.csv",
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFtPCB.csv",
           row.names = FALSE)
 
 # Feature Importance
@@ -332,7 +332,7 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFPCB.csv",
           row.names = FALSE)
 
 # Export combined results
