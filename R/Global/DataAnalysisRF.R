@@ -63,7 +63,7 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
                       "season")
 }
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ------------------------------------------------
 # Train-Test Split
 set.seed(123)
 train_indices <- sample(1:nrow(tpcb), 0.8 * nrow(tpcb))
@@ -106,7 +106,7 @@ print(performance_df)
 
 # Export results
 write.csv(performance_df,
-          file = "Output/Data/Global/csv/RFPerformancetPCB.csv")
+          file = "Output/Data/Global/csv/RFtPCB.csv")
 
 # Feature Importance
 importance <- importance(rf_model)
@@ -153,7 +153,7 @@ print(plotRF)
 ggsave("Output/Plots/Global/RFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Congeners ---------------------------------------------------------------
+# Random Forest Model individual PCBs -------------------------------------
 {
   # Only consider congener data
   wdc.pcb <- subset(wdc, AroclorCongener == "Congener")
@@ -272,7 +272,7 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Global/csv/RFPerformancePCB.csv",
+          file = "Output/Data/Global/csv/RFPCB.csv",
           row.names = FALSE)
 
 # Export combined results
