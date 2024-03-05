@@ -216,7 +216,6 @@ ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichRFObsPredtPCBV02.png",
   # Remove individual PCB that have 30% or less NA values
   mic.pcb.1 <- mic.pcb[,
                        -which(colSums(is.na(mic.pcb))/nrow(mic.pcb) > 0.7)]
-  
   # Create individual code for each site sampled
   site.numb <- mic$SiteID %>% as.factor() %>% as.numeric
   # Change date format
