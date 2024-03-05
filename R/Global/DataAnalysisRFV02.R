@@ -64,7 +64,7 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
                       "season")
 }
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ----------------------------------------------
 # Train-Test Split
 set.seed(123)
 train_indices <- sample(1:nrow(tpcb), 0.8 * nrow(tpcb))
@@ -164,7 +164,7 @@ print(plotRF)
 ggsave("Output/Plots/Global/RFtPCBV02.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Congeners ---------------------------------------------------------------
+# Random Forest Model individual PCBs -------------------------------------
 {
   # Only consider congener data
   wdc.pcb <- subset(wdc, AroclorCongener == "Congener")
@@ -173,9 +173,8 @@ ggsave("Output/Plots/Global/RFtPCBV02.png",
   # Change date format
   SampleDate <- as.Date(wdc.pcb$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
-  # Change name time.day to time
-  colnames(time.day) <- "time"
+  time.day <- as.numeric(difftime(as.Date(SampleDate),
+                                  min(as.Date(SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(wdc.pcb$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -198,14 +197,44 @@ ggsave("Output/Plots/Global/RFtPCBV02.png",
                      season.s)
 }
 
+# Perform imputation of missing values (NA) with the adjusted value
+wdc.pcb.1_imputed <- wdc.pcb.1
+
+# Iterate over each column (try one of the options above)
+for (col in colnames(wdc.pcb.1_imputed)) {
+  # Check if the column is numeric
+  if (is.numeric(wdc.pcb.1_imputed[[col]])) {
+    # Find the lowest observed value in the column
+    lowest_value <- min(wdc.pcb.1_imputed[[col]], na.rm = TRUE)
+    # Calculate the adjusted
+    # Option 1: Lowest value
+    # adjusted_value <- lowest_value
+    # Option 2: Lowest value/sqrt(2)
+    adjusted_value <- lowest_value / sqrt(2)
+    # Option 3: Mean Imputation
+    # adjusted_value <- mean(wdc.pcb.1_imputed[[col]], na.rm = TRUE)
+    # Option 4: Median Imputation
+    # adjusted_value <- median(wdc.pcb.1_imputed[[col]], na.rm = TRUE)
+    # Option 5: Robust Scaling (using median and interquartile range)
+    # Calculate the adjusted values using robust scaling
+    # non_na_values <- wdc.pcb.1_imputed[[col]][!is.na(wdc.pcb.1_imputed[[col]])]
+    # median_value <- median(non_na_values)
+    # iqr_value <- IQR(non_na_values)
+    # Calculate adjusted values for non-NA values
+    # adjusted_values <- (non_na_values - median_value) / iqr_value
+    # Replace missing values with the adjusted lowest value
+    wdc.pcb.1_imputed[[col]][is.na(wdc.pcb.1_imputed[[col]])] <- adjusted_value
+  }
+}
+
 # Set the seed for reproducibility
 set.seed(123)
 
 # Find the numeric columns (columns starting with "PCB")
-pcb_numeric_columns <- grep("^PCB", colnames(wdc.pcb.1), value = TRUE)
+pcb_numeric_columns <- grep("^PCB", colnames(wdc.pcb.1_imputed), value = TRUE)
 
 # Find the corresponding character columns
-char_columns <- setdiff(colnames(wdc.pcb.1), pcb_numeric_columns)
+char_columns <- setdiff(colnames(wdc.pcb.1_imputed), pcb_numeric_columns)
 
 # Initialize the results matrix
 rf_results <- data.frame(
@@ -221,8 +250,8 @@ all_results <- data.frame()
 # Iterate over each numeric column
 for (i in seq_along(pcb_numeric_columns)) {
   # Combine numeric and character data
-  combined_data <- cbind(wdc.pcb.1[, pcb_numeric_columns[i],
-                                   drop = FALSE], wdc.pcb.1[, char_columns])
+  combined_data <- cbind(wdc.pcb.1_imputed[, pcb_numeric_columns[i], drop = FALSE],
+                         wdc.pcb.1_imputed[, char_columns])
   
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
@@ -235,25 +264,19 @@ for (i in seq_along(pcb_numeric_columns)) {
   test_data <- combined_data[-train_indices, ]
   
   # Modeling code using randomForest
-  fit <- randomForest(train_data[, 1] ~ ., data = train_data)
-  
   fit <- gbm(train_data[, 1] ~ ., data = train_data[, -1], 
              distribution = "gaussian",  # For regression tasks
-             n.trees = 4000,             # Number of trees
-             interaction.depth = 5,      # Interaction depth
-             shrinkage = 0.001)          # Learning rate
+             n.trees = 5000,             # Number of trees
+             interaction.depth = 10,      # Interaction depth
+             shrinkage = 0.001) 
   
-  
-  # Example: Make predictions on the test set
+  # Make predictions on the test set
   predictions <- predict(
     object = fit,
     newdata = test_data,
-    n.trees = 4000)
+    n.trees = 5000)
   
-  # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
-  
-  # Calculate mean squared error (mse) for illustration
+  # Calculate mean squared error (mse)
   mse <- mean((predictions - test_data[, 1])^2)
   
   # Calculate R-squared
@@ -296,12 +319,12 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Global/csv/RFPerformancePCB.csv",
+          file = "Output/Data/Global/csv/RFPCBV02.csv",
           row.names = FALSE)
 
 # Export combined results
 write.csv(all_results,
-          file = "Output/Data/Global/csv/RFObsPredPCB.csv",
+          file = "Output/Data/Global/csv/RFObsPredPCBV02.csv",
           row.names = FALSE)
 
 # Plot
@@ -326,7 +349,7 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
 print(plotRFPCBi)
 
 # Save plot in folder
-ggsave("Output/Plots/Global/RFPCB.png",
+ggsave("Output/Plots/Global/RFPCBV02.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
 
 
