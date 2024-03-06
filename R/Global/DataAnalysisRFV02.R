@@ -165,6 +165,9 @@ ggsave("Output/Plots/Global/RFtPCBV02.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
 # Random Forest Model individual PCBs -------------------------------------
+# Use here only for model exploration. Due to the results, this package is
+# not going to be used for individual congeners. Issue with non-detect values.
+
 {
   # Only consider congener data
   wdc.pcb <- subset(wdc, AroclorCongener == "Congener")
