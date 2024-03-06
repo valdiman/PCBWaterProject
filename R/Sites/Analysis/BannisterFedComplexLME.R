@@ -180,7 +180,7 @@ p <- ggplot(bfc.tpcb, aes(x = tPCB, y = predicted)) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
@@ -403,7 +403,7 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 10^2, y = 10^6, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
@@ -436,7 +436,7 @@ for (i in 2:length(df1)) {
              size = 2.5, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "white", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
+    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
@@ -496,7 +496,7 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   annotation_logticks(sides = "bl") +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 10^2, y = 10^5.7,
            label = expression(atop("Blue River",
                                    paste("8 PCB congeners (n = 89 pairs)"))),
