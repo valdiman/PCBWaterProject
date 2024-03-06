@@ -94,7 +94,7 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
                           "season", "DistanceToCentroid")
 }
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ------------------------------------------------
 # Train-Test Split
 set.seed(123)
 train_indices <- sample(1:nrow(bfc.tpcb), 0.8 * nrow(bfc.tpcb))
@@ -140,12 +140,6 @@ write.csv(performance_df,
           file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFtPCB.csv",
           row.names = FALSE)
 
-# Feature Importance
-importance <- importance(rf_model)
-# Plot features
-barplot(importance[, 1], names.arg = rownames(importance),
-        main = "Feature Importance", las = 2, cex.names = 0.7)
-
 # Create a data frame for plotting
 plot_data <- data.frame(
   Location = rep("Bannister Fed Complex", nrow(test_data)),
@@ -170,9 +164,9 @@ plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -185,7 +179,7 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Individual PCB Analysis -------------------------------------------------
+# Random Forest Model individual PCBs -------------------------------------
 # Prepare data.frame
 {
   bfc.pcb <- subset(bfc, select = -c(SampleID:AroclorCongener))
@@ -270,8 +264,8 @@ for (i in seq_along(pcb_numeric_columns)) {
   
   # Calculate factor2_percentage within the loop
   compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
+    observed = 10^(test_data[, 1]),
+    predicted = 10^(predictions)
   )
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
@@ -329,8 +323,8 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) + # 1:1 line
-  geom_abline(intercept = -1, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = 1, slope = 1, col = "blue", linewidth = 0.7) +   # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +   # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
