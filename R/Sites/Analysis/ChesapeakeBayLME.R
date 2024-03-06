@@ -209,8 +209,10 @@ p <- ggplot(che.tpcb, aes(x = tPCB, y = predicted)) +
   annotate('text', x = 75, y = 10^5,
            label = expression("Chesapeake Bay (R"^2*"= 0.48)"),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeLmeObsPredtPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
@@ -275,7 +277,6 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeLmeObsPredtPCB.png",
   che.pcb.2 <- subset(che.pcb.1, select = -c(SiteID:wtemp))
 }
 
-# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- che.pcb.1$time
 wtemp <- che.pcb.1$wtemp
@@ -437,7 +438,7 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
