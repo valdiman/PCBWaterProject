@@ -138,9 +138,8 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
-              linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -233,18 +232,18 @@ for (i in seq_along(pcb_numeric_columns)) {
   mse <- mean((predictions - test_data[, 1])^2)
   
   # Calculate R-squared
-  r_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
+  R_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
   
-  # Calculate factor2_percentage within the loop
+  # Calculate factor2_percentage within the loop with normal scale
   compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
+    observed = 10^(test_data[, 1]),
+    predicted = 10^(predictions)
   )
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
   # Store the results in the matrix
-  rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
+  rf_results[i, 2:4] <- c(mse, R_squared, factor2_percentage)
   
   # Create a data frame for each column's results
   col_results <- data.frame(
@@ -252,7 +251,7 @@ for (i in seq_along(pcb_numeric_columns)) {
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
     Predicted = predictions,
-    R_squared = r_squared  # Add R_squared column
+    R_squared = R_squared  # Add R_squared
   )
   
   # Bind the data frame to the overall results
@@ -292,11 +291,24 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
   ylab(expression(bold("Predicted concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
+
+# To check values inside the 2:1 and 2:1 lines
+# Build the plot
+plot_data <- ggplot_build(plotRFPCBi)$data[[1]]
+# Count points inside the 2 lines
+points_inside_lines <- sum(plot_data$y >= plot_data$x - log10(2) & plot_data$y <= plot_data$x + log10(2))
+# Print the count
+print(points_inside_lines)
+
+# Count points outside the 2 lines
+points_outside_lines <- sum(plot_data$y < plot_data$x - log10(2) | plot_data$y > plot_data$x + log10(2))
+# Print the count
+print(points_outside_lines)
 
 # Print the plot
 print(plotRFPCBi)
@@ -304,6 +316,4 @@ print(plotRFPCBi)
 # Save plot in folder
 ggsave("Output/Plots/Global/RFPCB.png",
        plot = plotRFPCBi, width = 6, height = 5, dpi = 500)
-
-
 
