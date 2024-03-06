@@ -286,7 +286,7 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
@@ -319,7 +319,7 @@ for (i in 2:length(df1)) {
              size = 2.5, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
@@ -378,7 +378,7 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   annotation_logticks(sides = "bl") +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 1, y = 10^3.7,
            label = expression(atop("21 Mich",
                                    paste("7 PCB congeners (n = 214 pairs)"))),
