@@ -143,13 +143,7 @@ write.csv(performance_df,
           file = "Output/Data/Sites/csv/21Mich/21MichRFtPCB.csv",
           row.names = FALSE)
 
-# Feature Importance
-importance <- importance(rf_model)
-# Plot features
-barplot(importance[, 1], names.arg = rownames(importance),
-        main = "Feature Importance", las = 2, cex.names = 0.7)
-
-# Create a data frame for plotting
+# Create a data frame for plotting and exporting data
 plot_data <- data.frame(
   Location = rep("21 Mich", nrow(test_data)),
   Actual = log10(test_data$tPCB),
@@ -162,21 +156,23 @@ write.csv(plot_data,
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data, aes(x = Actual, y = Predicted)) +
-  geom_point(shape = 21, size = 2, fill = "white") +
-  scale_x_log10(limits = c(0.5, 20), 
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(1, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(limits = c(0.5, 20),
+  scale_x_log10(limits = c(1, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.5) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.5) + # 1:2 line
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.5) +
-  xlab(expression(bold("Observed " *Sigma*"PCB (pg/L) [log10]"))) +
-  ylab(expression(bold("Predicted " *Sigma*"PCB (pg/L) [log10]"))) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue",
+              linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
-  theme(aspect.ratio = 1)
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl")
 
 # Print the plot
 print(plotRF)
@@ -270,8 +266,8 @@ for (i in seq_along(pcb_numeric_columns)) {
   
   # Calculate factor2_percentage within the loop
   compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
+    observed = 10^(test_data[, 1]),
+    predicted = 10^(predictions)
   )
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
@@ -317,22 +313,23 @@ write.csv(all_results,
           file = "Output/Data/Sites/csv/21Mich/21MichRFObsPredPCB.csv",
           row.names = FALSE)
 
-# Plot (check this)
-plotRFPCBi <- ggplot(all_results, aes(x = abs(Actual), y = abs(Predicted))) +
-  geom_point(shape = 21, size = 2, fill = "white") +
-  scale_x_log10(limits = c(0.01, 20), 
+# Plot
+plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(0.1, 10^4),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(limits = c(0.01, 20),
+  scale_x_log10(limits = c(0.1, 10^4),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.5) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.5) + # 1:2 line
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.5) +
-  xlab(expression(bold("Observed PCBi (pg/L) [log10]"))) +
-  ylab(expression(bold("Predicted PCBi (pg/L) [log10]"))) +
+  xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+  ylab(expression(bold("Predicted concentration PCBi (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
-  theme(aspect.ratio = 1)
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl")
 
 # Print the plot
 print(plotRFPCBi)
