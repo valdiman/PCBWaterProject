@@ -109,7 +109,7 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
   che.tpcb <- na.omit(che.tpcb)
 }
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ------------------------------------------------
 # Train-Test Split
 set.seed(123)
 train_indices <- sample(1:nrow(che.tpcb), 0.8 * nrow(che.tpcb))
@@ -117,33 +117,33 @@ train_data <- che.tpcb[train_indices, ]
 test_data <- che.tpcb[-train_indices, ]
 
 # Fit the Model (1)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + season + temp +
+rf_model <- randomForest(log10(tPCB) ~ time + site.code + season + temp +
                              DistanceToCentroid,
                            data = train_data)
 
 # Make Predictions
-predictions.1 <- predict(rf_model.1, newdata = test_data)
+predictions <- predict(rf_model, newdata = test_data)
 
 # Evaluate Model Performance
-mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
-rmse.1 <- sqrt(mse.1)
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+mse <- mean((predictions - log10(test_data$tPCB))^2)
+rmse <- sqrt(mse)
+r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+compare_df <- data.frame(observed = test_data$tPCB,
+                           predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+compare_df$factor2 <- compare_df$observed/compare_df$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df)*100
 
 # Create the data frame directly
 performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
-                             Value = c(rmse.1, r_squared.1,
-                                       factor2_percentage.1))
+                             Value = c(rmse, r_squared,
+                                       factor2_percentage))
 
 # Remove unnecessary columns
 performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
@@ -156,39 +156,33 @@ write.csv(performance_df,
           file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFtPCB.csv",
           row.names = FALSE)
 
-# Feature Importance
-importance.1 <- randomForest::importance(rf_model.1)
-# Plot features
-barplot(importance.1[, 1], names.arg = rownames(importance.1),
-        main = "Feature Importance", las = 2, cex.names = 0.7)
-
 # Create a data frame for plotting
-plot_data.1 <- data.frame(
+plot_data <- data.frame(
   Location = rep("Chesapeake Bay", nrow(test_data)),
   Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
+  Predicted = predictions
 )
 
 # Export results
-write.csv(plot_data.1,
+write.csv(plot_data,
           file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^5),
+  scale_y_log10(limits = c(100, 10^5),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^5),
+  scale_x_log10(limits = c(100, 10^5),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -201,7 +195,7 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Individual PCB Analysis -------------------------------------------------
+# Random Forest Model individual PCBs -------------------------------------
 # Prepare data.frame
 {
   che.pcb <- subset(che, select = -c(SampleID:AroclorCongener))
@@ -293,8 +287,8 @@ for (i in seq_along(pcb_numeric_columns)) {
   
   # Calculate factor2_percentage within the loop
   compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
+    observed = 10^(test_data[, 1]),
+    predicted = 10^(predictions)
   )
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
@@ -352,8 +346,8 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
