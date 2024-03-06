@@ -286,7 +286,7 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
@@ -319,7 +319,7 @@ for (i in 2:length(df1)) {
              size = 2.5, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
+    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
@@ -364,10 +364,10 @@ write.csv(combined_cleaned_df,
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(0.01, 10^4), 
+  scale_y_log10(limits = c(0.1, 10^4), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.01, 10^4), 
+  scale_x_log10(limits = c(0.1, 10^4), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
@@ -378,13 +378,15 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   annotation_logticks(sides = "bl") +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 1, y = 10^3.7,
            label = expression(atop("21 Mich",
                                    paste("7 PCB congeners (n = 214 pairs)"))),
            size = 4, fontface = 2)
+
 # See plot
 print(p)
+
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/21Mich/21MichLmeObsPredPCB.png",
        plot = p, width = 8, height = 8, dpi = 500)
