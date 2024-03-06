@@ -120,7 +120,7 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
                                                          temp.1$Date)]
 }
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ------------------------------------------------
 # Using all the data, spo.tpcb
 # Train-Test Split
 set.seed(123)
@@ -168,12 +168,6 @@ write.csv(performance_df,
           file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFtPCB.csv",
           row.names = FALSE)
 
-# Feature Importance
-importance <- importance(rf_model)
-# Plot features
-barplot(importance[, 1], names.arg = rownames(importance),
-        main = "Feature Importance", las = 2, cex.names = 0.7)
-
 # Create a data frame for plotting
 plot_data <- data.frame(
   Location = rep("Anacostia River", nrow(test_data)),
@@ -198,9 +192,9 @@ plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -213,7 +207,8 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Random Forest using gbm3 ------------------------------------------------
+
+# Random Forest for tPCB using gbm3 ---------------------------------------
 # Install package
 install.packages("gbm3")
 
@@ -289,7 +284,7 @@ write.csv(performance_RF,
 
 # Create a data frame for plotting Observations vs Predictions
 plot_data <- data.frame(
-  Location = rep("21 Mich", nrow(test_data)),
+  Location = rep("Anacostia River", nrow(test_data)),
   Observed = log10(test_data$tPCB),
   Predicted = predictions
 )
@@ -302,18 +297,18 @@ write.csv(plot_data,
 # Create the scatter plot
 plotRF <- ggplot(plot_data, aes(x = 10^(Observed), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(1, 10^6),
+  scale_y_log10(limits = c(1, 10^5),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^6),
+  scale_x_log10(limits = c(1, 10^5),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = -log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
