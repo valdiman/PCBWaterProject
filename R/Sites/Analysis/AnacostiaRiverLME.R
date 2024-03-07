@@ -50,8 +50,6 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
   anr$SampleDate <- as.Date(anr$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(anr$SampleDate) - min(as.Date(anr$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- anr$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(anr$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -59,10 +57,10 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
   # Create data frame
   anr.tpcb <- cbind(factor(anr$SiteID), anr$SampleDate,
                     anr$Latitude, anr$Longitude, as.matrix(anr$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(anr.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Include USGS flow and temperature data --------------------------------------------------
@@ -101,7 +99,7 @@ time <- anr.tpcb$time
 flow.1 <- anr.tpcb$flow.1 # use this one
 # flow.2 <- anr.tpcb$flow.2
 wtemp <- anr.tpcb$temp.1
-site <- anr.tpcb$site.code
+site <- anr.tpcb$SiteID
 season <- anr.tpcb$season
 
 # tPCB vs. time + flow + season + site
