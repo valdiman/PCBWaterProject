@@ -19,6 +19,7 @@ install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
 install.packages("gbm3")
+install.packages("caret")
 
 # Load libraries
 {
@@ -36,6 +37,7 @@ install.packages("gbm3")
   library(sf) # Create file to be used in Google Earth
   library(units)
   library(gbm3) # Random Forest functions
+  library(caret) # Random Forest optimization
 }
 
 # Read data ---------------------------------------------------------------
@@ -80,19 +82,16 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
   # Calculate sampling time
   time.day <- as.numeric(difftime(as.Date(bfc$SampleDate),
                                   min(as.Date(bfc$SampleDate)), units = "days"))
-  # Create individual code for each site sampled
-  site.numb <- bfc$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(bfc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   bfc.tpcb <- cbind(factor(bfc$SiteID), bfc$SampleDate, as.matrix(bfc$tPCB),
-                    data.frame(time.day), site.numb, season.s,
-                    bfc$DistanceToCentroid)
+                    data.frame(time.day), season.s, bfc$DistanceToCentroid)
   # Add column names
-  colnames(bfc.tpcb) <- c("SiteID", "date", "tPCB", "time", "site.code",
-                          "season", "DistanceToCentroid")
+  colnames(bfc.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToCentroid")
 }
 
 # Random Forest Model tPCB ------------------------------------------------
@@ -102,31 +101,55 @@ train_indices <- sample(1:nrow(bfc.tpcb), 0.8 * nrow(bfc.tpcb))
 train_data <- bfc.tpcb[train_indices, ]
 test_data <- bfc.tpcb[-train_indices, ]
 
-# Fit the GBM Model
-gbm_model <- gbm(log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
-                 data = train_data,
-                 distribution = "gaussian",  # For regression tasks
-                 n.trees = 4000,             # Number of trees
-                 interaction.depth = 10,      # Interaction depth
-                 shrinkage = 0.003)           # Learning rate
+# Define hyperparameter grid for tuning
+param_grid <- expand.grid(
+  n.trees = c(1000, 3000, 4000, 5000),
+  interaction.depth = c(5, 10, 15),
+  shrinkage = c(0.001, 0.003, 0.005),
+  n.minobsinnode = c(10, 20, 30)  # Add this parameter
+)
 
-# Print summary of the model
-summary(gbm_model)
+# Perform grid search with cross-validation
+ctrl <- trainControl(method = "cv", number = 5)
+gbm_model <- train(
+  log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
+  data = train_data,
+  method = "gbm",
+  distribution = "gaussian",
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
 
-# Make predictions
-predictions <- predict(
-  object = gbm_model,
-  newdata = test_data,
-  n.trees = 4000)
+# Get the best hyperparameters
+best_n_trees <- gbm_model$bestTune$n.trees
+best_depth <- gbm_model$bestTune$interaction.depth
+best_shrinkage <- gbm_model$bestTune$shrinkage
+
+# Fit the GBM model with the best hyperparameters
+final_gbm_model <- gbm(
+  log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
+  data = train_data,
+  distribution = "gaussian",
+  n.trees = best_n_trees,
+  interaction.depth = best_depth,
+  shrinkage = best_shrinkage
+)
+
+# Make predictions on test data
+predictions <- predict(object = final_gbm_model, newdata = test_data,
+                       n.trees = best_n_trees)
 
 # Evaluate model performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
 rmse <- sqrt(mse)
-
-# Calculate R-squared
 ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
 ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
 r_squared <- 1 - (ss_res / ss_tot)
+
+# Print results
+cat("Best n.trees:", best_n_trees, "\n")
+cat("Best interaction depth:", best_depth, "\n")
+cat("Best shrinkage:", best_shrinkage, "\n")
 
 # Print RMSE and R-squared
 print(paste("RMSE:", rmse))
@@ -182,7 +205,7 @@ plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
