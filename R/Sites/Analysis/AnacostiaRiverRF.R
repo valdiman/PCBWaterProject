@@ -83,8 +83,6 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
   anr$SampleDate <- as.Date(anr$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(anr$SampleDate) - min(as.Date(anr$SampleDate)))
-  # Create individual code for each site sampled
-  #site.numb <- anr$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(anr$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -209,11 +207,17 @@ ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFtPCB.png",
 
 
 # Random Forest for tPCB using gbm3 ---------------------------------------
-# Install package
-install.packages("gbm3")
+# Install extra package
+{
+  install.packages("gbm3")
+  install.packages("caret")
+}
 
-# Load libraries
-library(gbm3) # Random Forest functions
+# Load extra libraries
+{
+  library(gbm3) # Random Forest functions
+  library(caret) # Random Forest optimization
+}
 
 # Format change for time
 anr.tpcb$time <- as.numeric(anr.tpcb$time)
@@ -227,32 +231,56 @@ train_indices <- sample(1:nrow(anr.tpcb), 0.8 * nrow(anr.tpcb))
 train_data <- anr.tpcb[train_indices, ]
 test_data <- anr.tpcb[-train_indices, ]
 
-# Fit the GBM model
-gbm_model <- gbm(log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1
-                 + DistanceToNorthernLocation,
-                 data = train_data,
-                 distribution = "gaussian",  # For regression tasks
-                 n.trees = 5000,             # Number of trees
-                 interaction.depth = 5,      # Interaction depth
-                 shrinkage = 0.5)           # Learning rate
+# Define hyperparameter grid for tuning
+param_grid <- expand.grid(
+  n.trees = c(500, 1000, 3000, 5000),
+  interaction.depth = c(5, 10, 15),
+  shrinkage = c(0.01, 0.1, 0.5),
+  n.minobsinnode = c(10, 20, 30)  # Add this parameter
+)
 
-# Print summary of the model
-summary(gbm_model)
+# Perform grid search with cross-validation
+# DistanceToCentroid removed due to initial trials
+ctrl <- trainControl(method = "cv", number = 5)
+gbm_model <- train(
+  log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1 +
+    DistanceToNorthernLocation, data = train_data,
+  method = "gbm",
+  distribution = "gaussian",
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
 
-# Make predictions
-predictions <- predict(
-  object = gbm_model,
-  newdata = test_data,
-  n.trees = 5000)
+# Get the best hyperparameters
+best_n_trees <- gbm_model$bestTune$n.trees
+best_depth <- gbm_model$bestTune$interaction.depth
+best_shrinkage <- gbm_model$bestTune$shrinkage
+
+# Fit the GBM model with the best hyperparameters
+final_gbm_model <- gbm(
+  log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1 +
+    DistanceToNorthernLocation, data = train_data,
+  distribution = "gaussian",
+  n.trees = best_n_trees,
+  interaction.depth = best_depth,
+  shrinkage = best_shrinkage
+)
+
+# Make predictions on test data
+predictions <- predict(object = final_gbm_model, newdata = test_data,
+                       n.trees = best_n_trees)
 
 # Evaluate model performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
 rmse <- sqrt(mse)
-
-# Calculate R-squared
 ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
 ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
 r_squared <- 1 - (ss_res / ss_tot)
+
+# Print results
+cat("Best n.trees:", best_n_trees, "\n")
+cat("Best interaction depth:", best_depth, "\n")
+cat("Best shrinkage:", best_shrinkage, "\n")
 
 # Print RMSE and R-squared
 print(paste("RMSE:", rmse))
@@ -308,7 +336,7 @@ plotRF <- ggplot(plot_data, aes(x = 10^(Observed), y = 10^(Predicted))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
