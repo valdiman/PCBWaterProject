@@ -49,8 +49,6 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   mic$SampleDate <- as.Date(mic$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(mic$SampleDate) - min(as.Date(mic$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- mic$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(mic$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -58,10 +56,10 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   # Create data frame
   mic.tpcb <- cbind(factor(mic$SiteID), mic$SampleDate,
                     mic$Latitude, mic$Longitude, as.matrix(mic$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(mic.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # tPCB Regressions --------------------------------------------------------
@@ -69,7 +67,7 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
 # Get variables
 tpcb <- mic.tpcb$tPCB
 time <- mic.tpcb$time
-site <- mic.tpcb$site.code
+site <- mic.tpcb$SiteID
 season <- mic.tpcb$season
 # tPCB vs. time + season + site
 lme.mic.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
