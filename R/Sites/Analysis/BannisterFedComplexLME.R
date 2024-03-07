@@ -49,8 +49,6 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
   bfc$SampleDate <- as.Date(bfc$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(bfc$SampleDate) - min(as.Date(bfc$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- bfc$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(bfc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -58,10 +56,10 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
   # Create data frame
   bfc.tpcb <- cbind(factor(bfc$SiteID), bfc$SampleDate,
                     bfc$Latitude, bfc$Longitude, as.matrix(bfc$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(bfc.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # tPCB Regressions --------------------------------------------------------
@@ -69,7 +67,7 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
 # Get variables
 tpcb <- bfc.tpcb$tPCB
 time <- bfc.tpcb$time
-site <- bfc.tpcb$site.code
+site <- bfc.tpcb$SiteID
 season <- bfc.tpcb$season
 lme.bfc.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
                      REML = FALSE,
@@ -180,7 +178,7 @@ p <- ggplot(bfc.tpcb, aes(x = tPCB, y = predicted)) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
@@ -237,15 +235,13 @@ ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexLmeObs
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- bfc$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(bfc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to bfc.pcb.1
   bfc.pcb.1 <- cbind(bfc.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Remove metadata
   bfc.pcb.2 <- subset(bfc.pcb.1, select = -c(SiteID:season.s))
 }
@@ -253,7 +249,7 @@ ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexLmeObs
 # Get covariates
 time <- bfc.pcb.1$time
 season <- bfc.pcb.1$season
-site <- bfc.pcb.1$site.numb
+site <- bfc.pcb.1$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(bfc.pcb.2[1,]), ncol = 19)
@@ -403,7 +399,7 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 10^2, y = 10^6, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
@@ -436,7 +432,7 @@ for (i in 2:length(df1)) {
              size = 2.5, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "white", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
@@ -496,7 +492,7 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   annotation_logticks(sides = "bl") +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 10^2, y = 10^5.7,
            label = expression(atop("Blue River",
                                    paste("8 PCB congeners (n = 89 pairs)"))),
