@@ -43,8 +43,6 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
   SampleDate <- as.Date(wdc$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- wdc$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(wdc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -52,17 +50,17 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
   # Create data frame
   tpcb <- cbind(factor(wdc$SiteID), SampleDate,
                 wdc$Latitude, wdc$Longitude, wdc$tPCB,
-                data.frame(time.day), site.numb, season.s)
+                data.frame(time.day), season.s)
   # Add column names
   colnames(tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                      "tPCB", "time", "site.code", "season")
+                      "tPCB", "time", "season")
 }
 
 # Total PCB Regressions ---------------------------------------------------
 # Get variables
 tPCB <- tpcb$tPCB
 time <- tpcb$time
-site <- tpcb$site.code
+site <- tpcb$SiteID
 season <- tpcb$season
 # (1) Perform linear regression (lr)
 # tPCB vs. time
@@ -193,9 +191,9 @@ tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   annotation_logticks(sides = "bl")
@@ -204,7 +202,7 @@ tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
 print(tPCBObsPred)
 
 # Save plot in folder
-ggsave("Output/Plots/Global/tPCBObsPredV04.png", plot = tPCBObsPred,
+ggsave("Output/Plots/Global/tPCBObsPred.png", plot = tPCBObsPred,
        width = 8, height = 6, dpi = 300)
 
 # Plot residuals vs. predictions
@@ -230,17 +228,16 @@ ggsave("Output/Plots/Global/tPCBObsPredV04.png", plot = tPCBObsPred,
 # Individual PCB Regressions ----------------------------------------------
 # PCB5.8
 pcb5.8 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB5.8,
-               data.frame(time.day), site.numb, season.s)
+               data.frame(time.day), season.s)
 # Add column names
-colnames(pcb5.8) <- c("SiteID", "date", "PCB5.8", "time",
-                     "site.code", "season")
+colnames(pcb5.8) <- c("SiteID", "date", "PCB5.8", "time", "season")
 # Remove 0s and NA values
 pcb5.8 <- pcb5.8[complete.cases(pcb5.8$PCB5.8) & pcb5.8$PCB5.8 != 0, ]
 
 # Get variables
 PCBi <- pcb5.8$PCB5.8
 time <- pcb5.8$time
-site <- pcb5.8$site.code
+site <- pcb5.8$SiteID
 season <- pcb5.8$season
 
 # (1) Perform linear regression (lr)
@@ -274,17 +271,16 @@ shapiro.test(resid(lme.pcb5.8)) # p-value <<< 0.5
 
 # PCB11
 pcb11 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB11,
-               data.frame(time.day), site.numb, season.s)
+               data.frame(time.day), season.s)
 # Add column names
-colnames(pcb11) <- c("SiteID", "date", "PCB11", "time",
-                     "site.code", "season")
+colnames(pcb11) <- c("SiteID", "date", "PCB11", "time", "season")
 # Remove 0s and NA values
 pcb11 <- pcb11[complete.cases(pcb11$PCB11) & pcb11$PCB11 != 0, ]
 
 # Get variables
 PCBi <- pcb11$PCB11
 time <- pcb11$time
-site <- pcb11$site.code
+site <- pcb11$SiteID
 season <- pcb11$season
 
 # (1) Perform linear regression (lr)
@@ -318,17 +314,16 @@ shapiro.test(resid(lme.pcb11)) # p-value <<< 0.5
 
 # PCB18.30
 pcb18.30 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB18.30,
-               data.frame(time.day), site.numb, season.s)
+               data.frame(time.day), season.s)
 # Add column names
-colnames(pcb18.30) <- c("SiteID", "date", "PCB18.30", "time",
-                     "site.code", "season")
+colnames(pcb18.30) <- c("SiteID", "date", "PCB18.30", "time", "season")
 # Remove 0s and NA values
 pcb18.30 <- pcb18.30[complete.cases(pcb18.30$PCB18.30) & pcb18.30$PCB18.30 != 0, ]
 
 # Get variables
 PCBi <- pcb18.30$PCB18.30
 time <- pcb18.30$time
-site <- pcb18.30$site.code
+site <- pcb18.30$SiteID
 season <- pcb18.30$season
 
 # (1) Perform linear regression (lr)
@@ -362,17 +357,16 @@ shapiro.test(resid(lme.pcb18.30)) # p-value <<< 0.5
 
 # PCB20.21.28.31.33.50.53
 pcb20 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB20.21.28.31.33.50.53,
-               data.frame(time.day), site.numb, season.s)
+               data.frame(time.day), season.s)
 # Add column names
-colnames(pcb20) <- c("SiteID", "date", "PCB20", "time",
-                     "site.code", "season")
+colnames(pcb20) <- c("SiteID", "date", "PCB20", "time", "season")
 # Remove 0s and NA values
 pcb20 <- pcb20[complete.cases(pcb20$PCB20) & pcb20$PCB20 != 0, ]
 
 # Get variables
 PCBi <- pcb20$PCB20
 time <- pcb20$time
-site <- pcb20$site.code
+site <- pcb20$SiteID
 season <- pcb20$season
 
 # (1) Perform linear regression (lr)
@@ -406,17 +400,16 @@ shapiro.test(resid(lme.pcb20)) # p-value <<< 0.5
 
 # PCB44+47+65
 pcb44 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB44.47.65,
-               data.frame(time.day), site.numb, season.s)
+               data.frame(time.day), season.s)
 # Add column names
-colnames(pcb44) <- c("SiteID", "date", "PCB44", "time",
-                     "site.code", "season")
+colnames(pcb44) <- c("SiteID", "date", "PCB44", "time", "season")
 # Remove 0s and NA values
 pcb44 <- pcb44[complete.cases(pcb44$PCB44) & pcb44$PCB44 != 0, ]
 
 # Get variables
 PCBi <- pcb44$PCB44
 time <- pcb44$time
-site <- pcb44$site.code
+site <- pcb44$SiteID
 season <- pcb44$season
 
 # (1) Perform linear regression (lr)
@@ -450,17 +443,16 @@ shapiro.test(resid(lme.pcb44)) # p-value <<< 0.5
 
 # PCB 67
 pcb67 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB67,
-               data.frame(time.day), site.numb, season.s)
+               data.frame(time.day), season.s)
 # Add column names
-colnames(pcb67) <- c("SiteID", "date", "PCB67", "time",
-                     "site.code", "season")
+colnames(pcb67) <- c("SiteID", "date", "PCB67", "time", "season")
 # Remove 0s and NA values
 pcb67 <- pcb67[complete.cases(pcb67$PCB67) & pcb67$PCB67 != 0, ]
 
 # Get variables
 PCBi <- pcb67$PCB67
 time <- pcb67$time
-site <- pcb67$site.code
+site <- pcb67$SiteID
 season <- pcb67$season
 
 # (1) Perform linear regression (lr)
@@ -494,17 +486,16 @@ shapiro.test(resid(lme.pcb67)) # p-value <<< 0.5
 
 # PCB 106+118
 pcb106.118 <- cbind(factor(wdc$SiteID), SampleDate, wdc$PCB106.118,
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
 # Add column names
-colnames(pcb106.118) <- c("SiteID", "date", "PCB106.118", "time",
-                          "site.code", "season")
+colnames(pcb106.118) <- c("SiteID", "date", "PCB106.118", "time", "season")
 # Remove 0s and NA values
 pcb106.118 <- pcb106.118[complete.cases(pcb106.118$PCB106.118) & pcb106.118$PCB106.118 != 0, ]
 
 # Get variables
 PCBi <- pcb106.118$PCB106.118
 time <- pcb106.118$time
-site <- pcb106.118$site.code
+site <- pcb106.118$SiteID
 season <- pcb106.118$season
 
 # (1) Perform linear regression (lr)
