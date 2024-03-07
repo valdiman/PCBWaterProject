@@ -121,15 +121,13 @@ shapiro.test(resid(lme.mic.tpcb))
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- mic$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(mic$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to fox.pcb.1
   mic.pcb.1 <- cbind(mic.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Remove metadata
   mic.pcb.2 <- subset(mic.pcb.1, select = -c(SiteID:season.s))
 }
@@ -137,7 +135,7 @@ shapiro.test(resid(lme.mic.tpcb))
 # Get covariates
 time <- mic.pcb.1$time
 season <- mic.pcb.1$season
-site <- mic.pcb.1$site.numb
+site <- mic.pcb.1$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(mic.pcb.2[1,]), ncol = 19)
