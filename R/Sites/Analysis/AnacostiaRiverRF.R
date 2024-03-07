@@ -240,7 +240,6 @@ param_grid <- expand.grid(
 )
 
 # Perform grid search with cross-validation
-# DistanceToCentroid removed due to initial trials
 ctrl <- trainControl(method = "cv", number = 5)
 gbm_model <- train(
   log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1 +
