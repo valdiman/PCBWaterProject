@@ -62,8 +62,6 @@ nbh <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
   nbh$SampleDate <- as.Date(nbh$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(nbh$SampleDate) - min(as.Date(nbh$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- nbh$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(nbh$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -71,10 +69,10 @@ nbh <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
   # Create data frame
   nbh.tpcb <- cbind(factor(nbh$SiteID), nbh$SampleDate,
                     nbh$Latitude, nbh$Longitude, as.matrix(nbh$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(nbh.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # tPCB Regressions --------------------------------------------------------
@@ -82,7 +80,7 @@ nbh <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
 # Get variables
 tpcb <- nbh.tpcb$tPCB
 time <- nbh.tpcb$time
-site <- nbh.tpcb$site.code
+site <- nbh.tpcb$SiteID
 season <- nbh.tpcb$season
 # tPCB vs. time + season + site
 lme.nbh.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
@@ -200,9 +198,9 @@ tPCBObsPred <- ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -263,8 +261,6 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborLmeObsPredtP
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- nbh$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(nbh$SampleDate, "%m/%d/%Y") + 1/12)
   # Include season
@@ -272,7 +268,7 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborLmeObsPredtP
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to nbh.pcb.1
   nbh.pcb.1 <- cbind(nbh.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Remove metadata
   nbh.pcb.2 <- subset(nbh.pcb.1, select = -c(SiteID:season.s))
 }
@@ -281,7 +277,7 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborLmeObsPredtP
 # to perform lme, thus season is removed from this analysis.
 # Get covariates
 time <- nbh.pcb.1$time
-site <- nbh.pcb.1$site.numb
+site <- nbh.pcb.1$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 13)

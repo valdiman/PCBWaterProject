@@ -52,8 +52,6 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
   hou$SampleDate <- as.Date(hou$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(hou$SampleDate) - min(as.Date(hou$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- hou$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hou$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -61,10 +59,10 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
   # Create data frame
   hou.tpcb <- cbind(factor(hou$SiteID), hou$SampleDate,
                     hou$Latitude, hou$Longitude, as.matrix(hou$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(hou.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Include USGS flow data --------------------------------------------------
@@ -92,7 +90,7 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
 tpcb <- hou.tpcb$tPCB
 time <- hou.tpcb$time
 flow <- hou.tpcb$flow.1
-site <- hou.tpcb$site.code
+site <- hou.tpcb$SiteID
 season <- hou.tpcb$season
 
 lme.hou.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + season + (1|site),

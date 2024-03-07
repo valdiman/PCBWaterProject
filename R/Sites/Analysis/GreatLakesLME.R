@@ -53,8 +53,6 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
   grl$SampleDate <- as.Date(grl$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(grl$SampleDate) - min(as.Date(grl$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- grl$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(grl$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -62,10 +60,10 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
   # Create data frame
   grl.tpcb <- cbind(factor(grl$SiteID), grl$SampleDate,
                     grl$Latitude, grl$Longitude, as.matrix(grl$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(grl.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Add water temperature data ----------------------------------------------
@@ -87,7 +85,7 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
 tpcb <- grl.tpcb$tPCB
 time <- grl.tpcb$time
 wtemp <- grl.tpcb$temp
-site <- grl.tpcb$site.code
+site <- grl.tpcb$SiteID
 season <- grl.tpcb$season
 lme.grl.tpcb <- lmer(log10(tpcb) ~ 1 + time + wtemp + season + (1|site),
                      REML = FALSE,
@@ -109,7 +107,7 @@ grl.tpcb.1 <- subset(grl.tpcb, grepl("LMM", SiteID))
 tpcb <- grl.tpcb.1$tPCB
 time <- grl.tpcb.1$time
 wtemp <- grl.tpcb.1$temp
-site <- grl.tpcb.1$site.code
+site <- grl.tpcb.1$SiteID
 season <- grl.tpcb.1$season
 lme.grl.tpcb <- lmer(log10(tpcb) ~ 1 + time + wtemp + season + (1|site),
                      REML = FALSE,
@@ -149,15 +147,13 @@ shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work, p-value < 0.05
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- grl.pcb.0$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(grl.pcb.0$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to grl.pcb.1
   grl.pcb.1 <- cbind(grl.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Add water temperature to grl.tpcb
   grl.pcb.1$temp <- wtp$WTMP_K[match(grl.pcb.1$SampleDate, wtp$Date)]
   # Remove samples with temp = NA
@@ -170,7 +166,7 @@ shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work, p-value < 0.05
 time <- grl.pcb.1$time
 wtemp <- grl.pcb.1$temp
 season <- grl.pcb.1$season
-site <- grl.pcb.1$site.numb
+site <- grl.pcb.1$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(grl.pcb.2[1,]), ncol = 22)

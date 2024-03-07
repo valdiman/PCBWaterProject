@@ -48,8 +48,6 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
   fox$SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(fox$SampleDate) - min(as.Date(fox$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- fox$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -57,10 +55,10 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
   # Create data frame
   fox.tpcb <- cbind(factor(fox$SiteID), fox$SampleDate,
                     fox$Latitude, fox$Longitude, as.matrix(fox$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(fox.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Remove site -------------------------------------------------------------
@@ -95,7 +93,7 @@ fox.tpcb.1 <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
 # Get variables
 tpcb <- fox.tpcb.1$tPCB
 time <- fox.tpcb.1$time
-site <- fox.tpcb.1$site.code
+site <- fox.tpcb.1$SiteID
 season <- fox.tpcb.1$season
 flow <- fox.tpcb.1$flow
 wtemp <- fox.tpcb.1$temp
@@ -282,15 +280,13 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverLmeObsPredtPCB.png",
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- fox$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to fox.pcb.1
   fox.pcb.1 <- cbind(fox.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Remove site Lake Winnebago (background site)
   fox.pcb.1 <- subset(fox.pcb.1, SiteID != c("WCPCB-FOX001"))
   # Include flow data from USGS station Fox River
@@ -320,7 +316,7 @@ time <- fox.pcb.2$time
 flow <- fox.pcb.2$flow
 wtemp <- fox.pcb.2$temp
 season <- fox.pcb.2$season
-site <- fox.pcb.2$site.numb
+site <- fox.pcb.2$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 25)

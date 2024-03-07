@@ -54,8 +54,6 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   hud$SampleDate <- as.Date(hud$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(hud$SampleDate) - min(as.Date(hud$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -63,10 +61,10 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   # Create data frame
   hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate,
                     hud$Latitude, hud$Longitude, as.matrix(hud$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(hud.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Remove site -------------------------------------------------------------
@@ -122,7 +120,7 @@ hud.tpcb.1 <- subset(hud.tpcb.1, SiteID != c("WCPCB-HUD010"))
 # Get variables
 tpcb <- hud.tpcb.2$tPCB
 time <- hud.tpcb.2$time
-site <- hud.tpcb.2$site.code
+site <- hud.tpcb.2$SiteID
 season <- hud.tpcb.2$season
 flow <- hud.tpcb.2$flow.2 # flow.2
 wtemp <- hud.tpcb.2$temp
@@ -164,15 +162,13 @@ shapiro.test(resid(lme.hud.tpcb.2))$p.value # It doesn't work.
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to hud.pcb.1
   hud.pcb.1 <- cbind(hud.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Remove site Bakers Falls. Upstream source
   # North Bakers Falls = WCPCB-HUD006 and
   # South Bakers Falls = WCPCB-HUD006.
@@ -225,7 +221,7 @@ time <- hud.pcb.2$time
 flow <- hud.pcb.2$flow.3 # For flow.3, use hud.pcb.4 in lme (see line 235), not here
 wtemp <- hud.pcb.2$temp
 season <- hud.pcb.2$season
-site <- hud.pcb.2$site.numb
+site <- hud.pcb.2$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(hud.pcb.4[1,]), ncol = 28)

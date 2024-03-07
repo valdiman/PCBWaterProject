@@ -49,8 +49,6 @@ lwa <- wdc[str_detect(wdc$LocationName, 'Lake Washington'),]
   lwa$SampleDate <- as.Date(lwa$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(lwa$SampleDate) - min(as.Date(lwa$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- lwa$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(lwa$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -58,10 +56,10 @@ lwa <- wdc[str_detect(wdc$LocationName, 'Lake Washington'),]
   # Create data frame
   lwa.tpcb <- cbind(factor(lwa$SiteID), lwa$SampleDate,
                     lwa$Latitude, lwa$Longitude, as.matrix(lwa$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(lwa.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # tPCB Regressions --------------------------------------------------------
@@ -69,7 +67,7 @@ lwa <- wdc[str_detect(wdc$LocationName, 'Lake Washington'),]
 # Get variables
 tpcb <- lwa.tpcb$tPCB
 time <- lwa.tpcb$time
-site <- lwa.tpcb$site.code
+site <- lwa.tpcb$SiteID
 season <- lwa.tpcb$season
 # tPCB vs. time + season + site
 lme.lwa.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
@@ -245,15 +243,13 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonLmeObsPredtPCB.p
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- lwa$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(lwa$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to fox.pcb.1
   lwa.pcb.1 <- cbind(lwa.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Remove metadata
   lwa.pcb.2 <- subset(lwa.pcb.1, select = -c(SiteID:season.s))
 }
@@ -261,7 +257,7 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonLmeObsPredtPCB.p
 # Get covariates
 time <- lwa.pcb.1$time
 season <- lwa.pcb.1$season
-site <- lwa.pcb.1$site.numb
+site <- lwa.pcb.1$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(lwa.pcb.2[1,]), ncol = 22)

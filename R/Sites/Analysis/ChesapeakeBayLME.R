@@ -49,8 +49,6 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
   che$SampleDate <- as.Date(che$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(che$SampleDate) - min(as.Date(che$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- che$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(che$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -58,10 +56,10 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
   # Create data frame
   che.tpcb <- cbind(factor(che$SiteID), che$SampleDate,
                     che$Latitude, che$Longitude, as.matrix(che$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(che.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Add water temperature data ----------------------------------------------
@@ -83,7 +81,7 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
 tpcb <- che.tpcb$tPCB
 time <- che.tpcb$time
 wtemp <- che.tpcb$temp
-site <- che.tpcb$site.code
+site <- che.tpcb$SiteID
 season <- che.tpcb$season
 # tPCB vs. time + season + flow + temp + site
 lme.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + wtemp + season + (1|site),
@@ -262,15 +260,13 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeLmeObsPredtPCB.png",
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- che$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(che$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to fox.pcb.1
   che.pcb.1 <- cbind(che.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Add water temperature to grl.pcb.1
   che.pcb.1$wtemp <- wtp$WTMP_K[match(che.pcb.1$SampleDate, wtp$Date)]
   # Remove metadata
@@ -281,7 +277,7 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeLmeObsPredtPCB.png",
 time <- che.pcb.1$time
 wtemp <- che.pcb.1$wtemp
 season <- che.pcb.1$season
-site <- che.pcb.1$site.numb
+site <- che.pcb.1$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(che.pcb.2[1,]), ncol = 25)
@@ -383,7 +379,6 @@ write.csv(lme.pcb,
           file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv",
           row.names = FALSE)
 
-
 # Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from che.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
@@ -438,7 +433,7 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot

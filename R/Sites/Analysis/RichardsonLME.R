@@ -50,8 +50,6 @@ rhr <- wdc[str_detect(wdc$LocationName, 'Richardson Hill Road Landfill'),]
   rhr$SampleDate <- as.Date(rhr$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(rhr$SampleDate) - min(as.Date(rhr$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- rhr$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(rhr$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -59,10 +57,10 @@ rhr <- wdc[str_detect(wdc$LocationName, 'Richardson Hill Road Landfill'),]
   # Create data frame
   rhr.tpcb <- cbind(factor(rhr$SiteID), rhr$SampleDate,
                     rhr$Latitude, rhr$Longitude, as.matrix(rhr$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(rhr.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # tPCB Regressions --------------------------------------------------------
@@ -70,7 +68,7 @@ rhr <- wdc[str_detect(wdc$LocationName, 'Richardson Hill Road Landfill'),]
 # Get variables
 tpcb <- rhr.tpcb$tPCB
 time <- rhr.tpcb$time
-site <- rhr.tpcb$site.code
+site <- rhr.tpcb$SiteID
 season <- rhr.tpcb$season
 # tPCB vs. time + season + flow + temp + site
 lme.rhr.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),

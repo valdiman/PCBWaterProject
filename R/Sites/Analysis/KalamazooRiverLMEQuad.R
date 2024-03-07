@@ -55,8 +55,6 @@ kal <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
   kal$SampleDate <- as.Date(kal$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(kal$SampleDate) - min(as.Date(kal$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- kal$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(kal$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -64,10 +62,10 @@ kal <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
   # Create data frame
   kal.tpcb <- cbind(factor(kal$SiteID), kal$SampleDate,
                     kal$Latitude, kal$Longitude, as.matrix(kal$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(kal.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Remove site -------------------------------------------------------------
@@ -102,7 +100,7 @@ kal.tpcb.1 <- subset(kal.tpcb, SiteID != c("WCPCB-KAL023"))
 # Use kal.tpcb.2
 tpcb <- kal.tpcb.2$tPCB
 time <- kal.tpcb.2$time
-site <- kal.tpcb.2$site.code
+site <- kal.tpcb.2$SiteID
 season <- kal.tpcb.2$season
 flow <- kal.tpcb.2$flow.1
 
@@ -224,8 +222,8 @@ p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.3, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.3, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")

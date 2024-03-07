@@ -49,8 +49,6 @@ pas <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
   pas$SampleDate <- as.Date(pas$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(pas$SampleDate) - min(as.Date(pas$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- pas$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(pas$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -58,10 +56,10 @@ pas <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
   # Create data frame
   pas.tpcb <- cbind(factor(pas$SiteID), pas$SampleDate,
                     pas$Latitude, pas$Longitude, as.matrix(pas$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(pas.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Include USGS flow and temperature data --------------------------------------------------
@@ -115,7 +113,7 @@ pas.tpcb.1 <- subset(pas.tpcb, SiteID != c("WCPCB-PASS022"))
 # Get variables
 tpcb <- pas.tpcb$tPCB
 time <- pas.tpcb$time
-site <- pas.tpcb$site.code
+site <- pas.tpcb$SiteID
 season <- pas.tpcb$season
 flow <- pas.tpcb$flow.5
 tem <- pas.tpcb$temp
@@ -170,15 +168,13 @@ shapiro.test(resid(lme.pas.tpcb)) # Lme doesn't work.
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- pas.pcb$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(pas.pcb$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to pass.pcb
   pas.pcb.2 <- cbind(pas.pcb.2, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Include flow data from USGS station Passaic River
   sitepasN1 <- "01381900" # No temp
   sitepasN2 <- "01379500" # No temp
@@ -228,7 +224,7 @@ shapiro.test(resid(lme.pas.tpcb)) # Lme doesn't work.
 # Get covariates
 time <- pas.pcb.4$time
 season <- pas.pcb.4$season
-site <- pas.pcb.4$site.numb
+site <- pas.pcb.4$SiteID
 flow <- pas.pcb.4$flow.3 # flow.3 yiels 6 PCB congeners
 tem <- pas.pcb.4$temp
 

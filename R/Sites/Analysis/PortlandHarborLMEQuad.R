@@ -50,8 +50,6 @@ por <- wdc[str_detect(wdc$LocationName, 'Portland Harbor'),]
   por$SampleDate <- as.Date(por$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(por$SampleDate) - min(as.Date(por$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- por$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(por$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -59,10 +57,10 @@ por <- wdc[str_detect(wdc$LocationName, 'Portland Harbor'),]
   # Create data frame
   por.tpcb <- cbind(factor(por$SiteID), por$SampleDate,
                     por$Latitude, por$Longitude, as.matrix(por$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(por.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Include USGS flow data --------------------------------------------------
@@ -93,7 +91,7 @@ por <- wdc[str_detect(wdc$LocationName, 'Portland Harbor'),]
 # Get variables
 tpcb <- por.tpcb.2$tPCB
 time <- por.tpcb.2$time
-site <- por.tpcb.2$site.code
+site <- por.tpcb.2$SiteID
 season <- por.tpcb.2$season
 flow <- por.tpcb.2$flow.1 # use 1
 tem <- por.tpcb.2$temp
@@ -282,15 +280,13 @@ ggsave(filename = "Output/Plots/Sites/ObsPred/PortlandHarbor/Quadratic/PortlandH
   time.day <- data.frame(as.Date(por$SampleDate) - min(as.Date(por$SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- por$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(por$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to por.pcb.1
   por.pcb.1 <- cbind(por.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Include flow data from USGS station Portland Harbor
   sitePorN1 <- "14211720" # WILLAMETTE RIVER AT PORTLAND, OR
   sitePorN2 <- "14211820" # COLUMBIA SLOUGH AT PORTLAND, OR No!
@@ -322,7 +318,7 @@ time <- por.pcb.2$time
 flow <- por.pcb.2$flow.1
 temp <- por.pcb.2$temp
 season <- por.pcb.2$season
-site <- por.pcb.2$site.numb
+site <- por.pcb.2$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(por.pcb.3[1,]), ncol = 28)

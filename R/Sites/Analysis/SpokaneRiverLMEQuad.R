@@ -50,8 +50,6 @@ spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
   spo$SampleDate <- as.Date(spo$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
   time.day <- data.frame(as.Date(spo$SampleDate) - min(as.Date(spo$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- spo$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(spo$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -59,10 +57,10 @@ spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
   # Create data frame
   spo.tpcb <- cbind(factor(spo$SiteID), spo$SampleDate,
                     spo$Latitude, spo$Longitude, as.matrix(spo$tPCB),
-                    data.frame(time.day), site.numb, season.s)
+                    data.frame(time.day), season.s)
   # Add column names
   colnames(spo.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "site.code", "season")
+                          "tPCB", "time", "season")
 }
 
 # Include USGS flow data --------------------------------------------------
@@ -115,7 +113,7 @@ spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
 tpcb <- spo.tpcb.1$tPCB
 time <- spo.tpcb.1$time
 flow <- spo.tpcb.1$flow.4 # use flow 4
-site <- spo.tpcb.1$site.code
+site <- spo.tpcb.1$SiteID
 season <- spo.tpcb.1$season
 # tPCB vs. time + season + flow + temp + site
 lme.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + poly(flow, 2) + season + (1|site),
@@ -295,15 +293,13 @@ ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadObs
   time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Change name time.day to time
   colnames(time.day) <- "time"
-  # Create individual code for each site sampled
-  site.numb <- spo$SiteID %>% as.factor() %>% as.numeric
   # Include season
   yq.s <- as.yearqtr(as.yearmon(spo$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to spo.pcb.1
   spo.pcb.1 <- cbind(spo.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     site.numb, season.s)
+                     season.s)
   # Include flow data from USGS station
   siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
   siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
@@ -348,7 +344,7 @@ ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadObs
 time <- spo.pcb.2$time
 flow <- spo.pcb.2$flow.4
 season <- spo.pcb.2$season
-site <- spo.pcb.2$site.numb
+site <- spo.pcb.2$SiteID
 
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(spo.pcb.3[1,]), ncol = 25)
