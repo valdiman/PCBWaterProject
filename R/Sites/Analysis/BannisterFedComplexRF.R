@@ -3,7 +3,6 @@
 ## Random forest model
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -19,6 +18,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -35,7 +36,8 @@ install.packages("sfheaders")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
@@ -78,20 +80,18 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
   # Change date format
   bfc$SampleDate <- as.Date(bfc$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(bfc$SampleDate) - min(as.Date(bfc$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- bfc$SiteID %>% as.factor() %>% as.numeric
+  time.day <- as.numeric(difftime(as.Date(bfc$SampleDate),
+                                  min(as.Date(bfc$SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(bfc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  bfc.tpcb <- cbind(factor(bfc$SiteID), bfc$SampleDate, as.matrix(bfc$tPCB),
-                    data.frame(time.day), site.numb, season.s,
-                    bfc$DistanceToCentroid)
+  bfc.tpcb <- cbind(factor(bfc$SiteID), as.matrix(bfc$tPCB),
+                    data.frame(time.day), season.s, bfc$DistanceToCentroid)
   # Add column names
-  colnames(bfc.tpcb) <- c("SiteID", "date", "tPCB", "time", "site.code",
-                          "season", "DistanceToCentroid")
+  colnames(bfc.tpcb) <- c("SiteID", "tPCB", "time", "season",
+                          "DistanceToCentroid")
 }
 
 # Random Forest Model tPCB ------------------------------------------------
@@ -101,17 +101,53 @@ train_indices <- sample(1:nrow(bfc.tpcb), 0.8 * nrow(bfc.tpcb))
 train_data <- bfc.tpcb[train_indices, ]
 test_data <- bfc.tpcb[-train_indices, ]
 
-# Fit the Model
-rf_model <- randomForest(log10(tPCB) ~ time + site.code + season +
-                             DistanceToCentroid, data = train_data)
+# Define hyperparameter grid
+param_grid <- expand.grid(
+  mtry = seq(1, ncol(train_data) - 1),  # Adjust mtry values based on your data
+  splitrule = c("gini", "extratrees"),
+  min.node.size = c(5, 10, 20)
+)
 
-# Make Predictions
-predictions <- predict(rf_model, newdata = test_data)
+# Prepare training control
+ctrl <- trainControl(method = "cv", number = 5, search = "grid")
 
-# Evaluate Model Performance
+# Perform grid search with cross-validation using ranger
+rf_model <- train(
+  log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
+  data = train_data,
+  method = "ranger",
+  importance = 'permutation',
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the best mtry
+best_mtry <- rf_model$bestTune$mtry
+
+final_rf_model <- ranger(
+  formula = log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
+  data = train_data,
+  num.trees = 3000, # need to manualy modify this parameter
+  mtry = best_mtry,
+  importance = 'permutation',
+  seed = 123
+)
+
+# Get predictions on the test data
+predictions <- predict(final_rf_model, data = test_data)$predictions
+
+# Evaluate model performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
 rmse <- sqrt(mse)
-r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
@@ -194,23 +230,19 @@ ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexRFtPCB
   # Remove individual PCB that have 30% or less NA values
   bfc.pcb.1 <- bfc.pcb[,
                        -which(colSums(is.na(bfc.pcb))/nrow(bfc.pcb) > 0.7)]
-  
-  # Create individual code for each site sampled
-  site.numb <- factor(bfc$SiteID %>% as.factor() %>% as.numeric)
   # Change date format
   SampleDate <- as.Date(bfc$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  time.day <- as.numeric(difftime(as.Date(SampleDate),
+                                  min(as.Date(SampleDate)), units = "days"))
   # Add distance to the centroid
   centroid <- bfc$DistanceToCentroid
-  # Change name time.day to time
-  colnames(time.day) <- "time"
   # Include season
   yq.s <- as.yearqtr(as.yearmon(bfc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to bfc.pcb.1
-  bfc.pcb.1 <- cbind(bfc.pcb.1, data.frame(time.day), site.numb,
+  bfc.pcb.1 <- cbind(bfc.pcb.1, as.factor(bfc$SiteID), data.frame(time.day),
                      season.s, centroid)
 }
 
@@ -235,10 +267,10 @@ rf_results <- data.frame(
 all_results <- data.frame()
 
 # Iterate over each numeric column
-for (i in seq_along(pcb_numeric_columns)) {
+for (i in seq_along(rf_results$Congener)) {
   # Combine numeric and character data
-  combined_data <- cbind(bfc.pcb.1[, pcb_numeric_columns[i],
-                                   drop = FALSE], bfc.pcb.1[, char_columns])
+  combined_data <- cbind(bfc.pcb.1[, pcb_numeric_columns[i], drop = FALSE],
+                         bfc.pcb.1[, char_columns])
   
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
@@ -250,32 +282,40 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using randomForest
-  fit <- randomForest(train_data[, 1] ~ ., data = train_data)
+  # Modeling code using ranger
+  rf_model <- ranger(
+    y = train_data[, 1],  # Response variable (first column)
+    x = train_data[, -1], # Predictor variables (all columns except the first)
+    num.trees = 3000,    # Adjust num.trees as needed
+    importance = 'permutation',
+    seed = 123
+  )
   
-  # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
+  # Get predictions on the test set
+  predictions <- predict(rf_model, data = test_data)$predictions
   
-  # Calculate mean squared error (mse) for illustration
+  # Calculate mean squared error (mse)
   mse <- mean((predictions - test_data[, 1])^2)
   
   # Calculate R-squared
-  r_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
+  ss_res <- sum((test_data[, 1] - predictions)^2)
+  ss_tot <- sum((test_data[, 1] - mean(test_data[, 1]))^2)
+  r_squared <- 1 - (ss_res / ss_tot)
   
   # Calculate factor2_percentage within the loop
   compare_df <- data.frame(
-    observed = 10^(test_data[, 1]),
-    predicted = 10^(predictions)
+    observed = test_data[, 1],
+    predicted = predictions
   )
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
   # Store the results in the matrix
-  rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
+  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
   
   # Create a data frame for each column's results
   col_results <- data.frame(
-    Location = rep("Bannister Fed Complex", length(test_data[, 1])),
+    Location = rep("DEQ Mich", length(test_data[, 1])),
     Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
     Actual = test_data[, 1],
     Predicted = predictions,
@@ -324,7 +364,7 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) + # 1:1 line
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -log10(2), slope = 1, col = "blue", linewidth = 0.7) +   # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +   # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
