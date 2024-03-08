@@ -20,7 +20,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
-install.packages("gbm3")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -37,7 +38,8 @@ install.packages("gbm3")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(gbm3) # Random Forest functions
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
