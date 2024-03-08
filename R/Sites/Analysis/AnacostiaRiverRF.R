@@ -4,7 +4,6 @@
 ## Random forest model
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -20,6 +19,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -36,7 +37,8 @@ install.packages("sfheaders")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
@@ -82,7 +84,8 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
   # Change date format
   anr$SampleDate <- as.Date(anr$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(anr$SampleDate) - min(as.Date(anr$SampleDate)))
+  time.day <- as.numeric(difftime(as.Date(anr$SampleDate),
+                                  min(as.Date(anr$SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(anr$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -119,25 +122,65 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
 }
 
 # Random Forest Model tPCB ------------------------------------------------
-# Using all the data, spo.tpcb
+# Remove columns not used here
+anr.tpcb <- select(anr.tpcb, -c(date, flow.1))
+
 # Train-Test Split
 set.seed(123)
 train_indices <- sample(1:nrow(anr.tpcb), 0.8 * nrow(anr.tpcb))
 train_data <- anr.tpcb[train_indices, ]
 test_data <- anr.tpcb[-train_indices, ]
 
-# Fit the Model. Use flow.2
-rf_model <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.2 +
-                             temp.1 + DistanceToNorthernLocation,
-                           data = train_data)
+# Define hyperparameter grid
+param_grid <- expand.grid(
+  mtry = seq(1, ncol(train_data) - 1),  # Adjust mtry values based on your data
+  splitrule = c("gini", "extratrees"),
+  min.node.size = c(5, 10, 20)
+)
 
-# Make Predictions
-predictions <- predict(rf_model, newdata = test_data)
+# Prepare training control
+ctrl <- trainControl(method = "cv", number = 5, search = "grid")
 
-# Evaluate Model Performance
+# Perform grid search with cross-validation using ranger
+# Use flow.2
+rf_model <- train(
+  log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1 +
+    DistanceToNorthernLocation,
+  data = train_data,
+  method = "ranger",
+  importance = 'permutation',
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the best mtry
+best_mtry <- rf_model$bestTune$mtry
+
+final_rf_model <- ranger(
+  formula = log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1 +
+    DistanceToNorthernLocation,
+  data = train_data,
+  num.trees = 1000, # need to manualy modify this parameter
+  mtry = best_mtry,
+  importance = 'permutation',
+  seed = 123
+)
+
+# Get predictions on the test data
+predictions <- predict(final_rf_model, data = test_data)$predictions
+
+# Evaluate model performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
 rmse <- sqrt(mse)
-r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
@@ -204,148 +247,4 @@ print(plotRF)
 # Save plot in folder
 ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
-
-
-# Random Forest for tPCB using gbm3 ---------------------------------------
-# Install extra package
-{
-  install.packages("gbm3")
-  install.packages("caret")
-}
-
-# Load extra libraries
-{
-  library(gbm3) # Random Forest functions
-  library(caret) # Random Forest optimization
-}
-
-# Format change for time
-anr.tpcb$time <- as.numeric(anr.tpcb$time)
-
-# Perform model
-# Set seed for reproducibility
-set.seed(123)
-
-# Train-test split
-train_indices <- sample(1:nrow(anr.tpcb), 0.8 * nrow(anr.tpcb))
-train_data <- anr.tpcb[train_indices, ]
-test_data <- anr.tpcb[-train_indices, ]
-
-# Define hyperparameter grid for tuning
-param_grid <- expand.grid(
-  n.trees = c(500, 1000, 3000, 5000),
-  interaction.depth = c(5, 10, 15),
-  shrinkage = c(0.01, 0.1, 0.5),
-  n.minobsinnode = c(10, 20, 30)  # Add this parameter
-)
-
-# Perform grid search with cross-validation
-ctrl <- trainControl(method = "cv", number = 5)
-gbm_model <- train(
-  log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1 +
-    DistanceToNorthernLocation, data = train_data,
-  method = "gbm",
-  distribution = "gaussian",
-  tuneGrid = param_grid,
-  trControl = ctrl
-)
-
-# Get the best hyperparameters
-best_n_trees <- gbm_model$bestTune$n.trees
-best_depth <- gbm_model$bestTune$interaction.depth
-best_shrinkage <- gbm_model$bestTune$shrinkage
-
-# Fit the GBM model with the best hyperparameters
-final_gbm_model <- gbm(
-  log10(tPCB) ~ time + SiteID + season + flow.2 + temp.1 +
-    DistanceToNorthernLocation, data = train_data,
-  distribution = "gaussian",
-  n.trees = best_n_trees,
-  interaction.depth = best_depth,
-  shrinkage = best_shrinkage
-)
-
-# Make predictions on test data
-predictions <- predict(object = final_gbm_model, newdata = test_data,
-                       n.trees = best_n_trees)
-
-# Evaluate model performance
-mse <- mean((predictions - log10(test_data$tPCB))^2)
-rmse <- sqrt(mse)
-ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
-ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
-r_squared <- 1 - (ss_res / ss_tot)
-
-# Print results
-cat("Best n.trees:", best_n_trees, "\n")
-cat("Best interaction depth:", best_depth, "\n")
-cat("Best shrinkage:", best_shrinkage, "\n")
-
-# Print RMSE and R-squared
-print(paste("RMSE:", rmse))
-print(paste("R-squared:", r_squared))
-
-# Estimate a factor of 2 between observations and predictions
-# Create a data frame with observed and predicted values
-comparison <- data.frame(observed = test_data$tPCB,
-                         predicted = 10^predictions)
-
-# Estimate a factor of 2 between observations and predictions
-comparison$factor2 <- comparison$observed/comparison$predicted
-
-# Calculate the percentage of observations within the factor of 2
-factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
-                                      , ])/nrow(comparison)*100
-
-# Create the data frame directly
-performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
-                             Value = c(rmse, r_squared,
-                                       factor2_percentage))
-# Print the modified data frame
-print(performance_RF)
-
-# Export results
-write.csv(performance_RF,
-          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFtPCBV02.csv",
-          row.names = FALSE)
-
-# Create a data frame for plotting Observations vs Predictions
-plot_data <- data.frame(
-  Location = rep("Anacostia River", nrow(test_data)),
-  Observed = log10(test_data$tPCB),
-  Predicted = predictions
-)
-
-# Export results
-write.csv(plot_data,
-          file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCBV02.csv",
-          row.names = FALSE)
-
-# Create the scatter plot
-plotRF <- ggplot(plot_data, aes(x = 10^(Observed), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(1, 10^5),
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^5),
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue",
-              linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
-              linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# Print the plot
-print(plotRF)
-
-# Save plot in folder
-ggsave("Output/Plots/Sites/ObsPred/AnacostiaRiver/AnacostiaRiverRFObsPredtPCBV02.png",
-       plot = plotRF, width = 6, height = 5, dpi = 500)
-
 
