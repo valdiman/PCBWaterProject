@@ -2,7 +2,6 @@
 ## Data were obtained from EPA and contractors from PCB Superfund
 ## sites in USA. Using log10 of the sum of PCB.
 ## Random forest model
-## Optimization is not used here due to very long run times.
 
 # Install packages
 install.packages("tidyverse")
