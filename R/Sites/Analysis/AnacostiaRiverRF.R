@@ -193,6 +193,9 @@ compare_df$factor2 <- compare_df$observed/compare_df$predicted
 # Calculate the percentage of observations within the factor of 2
 factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df)*100
 
+# Print Factor2
+print(paste("Factor2:", factor2_percentage))
+
 # Create the data frame directly
 performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
                              Value = c(rmse, r_squared,
@@ -200,9 +203,6 @@ performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
 
 # Remove unnecessary columns
 performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
-
-# Print the modified data frame
-print(performance_df)
 
 # Export results
 write.csv(performance_df,
