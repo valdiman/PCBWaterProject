@@ -2,7 +2,6 @@
 ## Chesapeake Bay & Delaware Canal
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -18,6 +17,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -34,7 +35,8 @@ install.packages("sfheaders")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
@@ -80,20 +82,18 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
   # Change date format
   che$SampleDate <- as.Date(che$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(che$SampleDate) - min(as.Date(che$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- che$SiteID %>% as.factor() %>% as.numeric
+  time.day <- as.numeric(difftime(as.Date(che$SampleDate),
+                                  min(as.Date(che$SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(che$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   che.tpcb <- cbind(factor(che$SiteID), che$SampleDate, as.matrix(che$tPCB),
-                    data.frame(time.day), site.numb, season.s,
-                    che$DistanceToCentroid)
+                    data.frame(time.day), season.s, che$DistanceToCentroid)
   # Add column names
-  colnames(che.tpcb) <- c("SiteID", "date", "tPCB", "time", "site.code",
-                          "season", "DistanceToCentroid")
+  colnames(che.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToCentroid")
 }
 
 # Add water temperature data ----------------------------------------------
@@ -109,6 +109,9 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
   che.tpcb <- na.omit(che.tpcb)
 }
 
+# Remove date column
+che.tpcb <- select(che.tpcb, -c(date))
+
 # Random Forest Model tPCB ------------------------------------------------
 # Train-Test Split
 set.seed(123)
@@ -116,18 +119,53 @@ train_indices <- sample(1:nrow(che.tpcb), 0.8 * nrow(che.tpcb))
 train_data <- che.tpcb[train_indices, ]
 test_data <- che.tpcb[-train_indices, ]
 
-# Fit the Model (1)
-rf_model <- randomForest(log10(tPCB) ~ time + site.code + season + temp +
-                             DistanceToCentroid,
-                           data = train_data)
+# Define hyperparameter grid
+param_grid <- expand.grid(
+  mtry = seq(1, ncol(train_data) - 1),  # Adjust mtry values based on your data
+  splitrule = c("gini", "extratrees"),
+  min.node.size = c(5, 10, 20)
+)
 
-# Make Predictions
-predictions <- predict(rf_model, newdata = test_data)
+# Prepare training control
+ctrl <- trainControl(method = "cv", number = 5, search = "grid")
 
-# Evaluate Model Performance
+# Perform grid search with cross-validation using ranger
+rf_model <- train(
+  log10(tPCB) ~ time + SiteID + season + temp + DistanceToCentroid,
+  data = train_data,
+  method = "ranger",
+  importance = 'permutation',
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the best mtry
+best_mtry <- rf_model$bestTune$mtry
+
+final_rf_model <- ranger(
+  formula = log10(tPCB) ~ time + SiteID + season + temp +
+    DistanceToCentroid, data = train_data,
+  num.trees = 5000, # need to manualy modify this parameter
+  mtry = best_mtry,
+  importance = 'permutation',
+  seed = 123
+)
+
+# Get predictions on the test data
+predictions <- predict(final_rf_model, data = test_data)$predictions
+
+# Evaluate model performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
 rmse <- sqrt(mse)
-r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
@@ -210,24 +248,20 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFtPCB.png",
   # Remove individual PCB that have 30% or less NA values
   che.pcb.1 <- che.pcb[,
                        -which(colSums(is.na(che.pcb))/nrow(che.pcb) > 0.7)]
-  
-  # Create individual code for each site sampled
-  site.numb <- factor(che$SiteID %>% as.factor() %>% as.numeric)
   # Change date format
   SampleDate <- as.Date(che$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  time.day <- as.numeric(difftime(as.Date(SampleDate),
+                                  min(as.Date(SampleDate)), units = "days"))
   # Add distance to the centroid
   centroid <- che$DistanceToCentroid
-  # Change name time.day to time
-  colnames(time.day) <- "time"
   # Include season
   yq.s <- as.yearqtr(as.yearmon(che$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to grl.pcb.1
-  che.pcb.1 <- cbind(che.pcb.1, SampleDate, data.frame(time.day),
-                     site.numb, season.s, centroid)
+  che.pcb.1 <- cbind(che.pcb.1, as.factor(che$SiteID), SampleDate,
+                     data.frame(time.day), season.s, centroid)
   # Add water temperature to grl.pcb.1
   che.pcb.1$temp <- wtp$WTMP_K[match(che.pcb.1$SampleDate,
                                                wtp$Date)]
@@ -236,6 +270,8 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFtPCB.png",
   # Remove metadata not use in the random forest
   che.pcb.2 <- che.pcb.2[, !(names(che.pcb.2) %in% c("SampleDate"))]
 }
+
+# Trying to work on this.
 
 # Set the seed for reproducibility
 set.seed(123)
@@ -273,28 +309,37 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using randomForest
-  fit <- randomForest(train_data[, 1] ~ ., data = train_data)
+  # Modeling code using ranger
+  rf_model <- ranger(
+    y = train_data[, 1],  # Response variable (first column)
+    x = train_data[, -1], # Predictor variables (all columns except the first)
+    num.trees = 5000,    # Adjust num.trees as needed
+    mtry = 5,
+    importance = 'permutation',
+    seed = 123
+  )  
   
-  # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
+  # Get predictions on the test set
+  predictions <- predict(rf_model, data = test_data)$predictions
   
-  # Calculate mean squared error (mse) for illustration
+  # Calculate mean squared error (mse)
   mse <- mean((predictions - test_data[, 1])^2)
   
   # Calculate R-squared
-  r_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
+  ss_res <- sum((test_data[, 1] - predictions)^2)
+  ss_tot <- sum((test_data[, 1] - mean(test_data[, 1]))^2)
+  r_squared <- 1 - (ss_res / ss_tot)
   
   # Calculate factor2_percentage within the loop
   compare_df <- data.frame(
-    observed = 10^(test_data[, 1]),
-    predicted = 10^(predictions)
+    observed = test_data[, 1],
+    predicted = predictions
   )
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
   # Store the results in the matrix
-  rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
+  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
   
   # Create a data frame for each column's results
   col_results <- data.frame(
