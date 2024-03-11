@@ -131,12 +131,13 @@ comparison$factor2 <- comparison$observed/comparison$predicted
 factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
                                       , ])/nrow(comparison)*100
 
+# Print Factor2
+print(paste("Factor2:", factor2_percentage))
+
 # Create the data frame directly
 performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
                              Value = c(rmse, r_squared,
                                        factor2_percentage))
-# Print the modified data frame
-print(performance_RF)
 
 # Export results
 write.csv(performance_RF,
@@ -213,7 +214,7 @@ ggsave("Output/Plots/Global/RFtPCB.png",
                      season.s)
 }
 
-# Set the seed for reproducibility
+# Set seed for reproducibility
 set.seed(123)
 
 # Find the numeric columns (columns starting with "PCB")
@@ -234,13 +235,19 @@ rf_results <- data.frame(
 all_results <- data.frame()
 
 # Iterate over each numeric column
-for (i in seq_along(rf_results$Congener)) {
+for (i in seq_along(pcb_numeric_columns)) {
   # Combine numeric and character data
-  combined_data <- cbind(wdc.pcb.1[, pcb_numeric_columns[i], drop = FALSE],
-                         wdc.pcb.1[, char_columns])
+  combined_data <- cbind(wdc.pcb.1[, pcb_numeric_columns[i], drop = FALSE], wdc.pcb.1[, char_columns])
   
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
+  
+  # Define hyperparameter grid
+  param_grid <- expand.grid(
+    mtry = seq(2, ncol(combined_data) - 1, by = 1),
+    splitrule = c("variance", "extratrees"),
+    min.node.size = c(5, 10, 15)
+  )
   
   # Sample indices for training
   train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
@@ -249,47 +256,43 @@ for (i in seq_along(rf_results$Congener)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using ranger
-  rf_model <- ranger(
-    y = train_data[, 1],  # Response variable (first column)
-    x = train_data[, -1], # Predictor variables (all columns except the first)
-    num.trees = 5000,    # Adjust num.trees as needed
-    importance = 'permutation',
-    seed = 123
+  # Prepare training control
+  ctrl <- trainControl(method = "cv", number = 5, search = "grid")
+  
+  # Modeling with hyperparameter optimization
+  rf_model <- train(
+    x = train_data[, -1], 
+    y = train_data[, 1],
+    method = "ranger",
+    trControl = ctrl,
+    tuneGrid = param_grid,
+    num_trees = 5000 # manually specifying num.trees
   )
+  
+  # Get the best model parameters
+  best_model <- rf_model$finalModel
   
   # Get predictions on the test set
-  predictions <- predict(rf_model, data = test_data)$predictions
+  predictions <- predict(best_model, data = test_data[, -1])$predictions
   
-  # Calculate mean squared error (mse)
+  # Evaluation metrics
   mse <- mean((predictions - test_data[, 1])^2)
-  
-  # Calculate R-squared
-  ss_res <- sum((test_data[, 1] - predictions)^2)
-  ss_tot <- sum((test_data[, 1] - mean(test_data[, 1]))^2)
-  r_squared <- 1 - (ss_res / ss_tot)
-  
-  # Calculate factor2_percentage within the loop
-  compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
-  )
+  r_squared <- 1 - sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2)
+  compare_df <- data.frame(observed = test_data[, 1], predicted = predictions)
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
-  # Store the results in the matrix
+  # Store the results
   rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
   
-  # Create a data frame for each column's results
+  # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("USA", length(test_data[, 1])),
-    Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
+    Location = rep("USA", nrow(test_data)),
+    Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
     Actual = test_data[, 1],
     Predicted = predictions,
-    R_squared = r_squared  # Add R_squared column
+    R_squared = r_squared
   )
-  
-  # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
 
