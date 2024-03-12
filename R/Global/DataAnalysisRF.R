@@ -14,7 +14,6 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
-install.packages('patchwork')
 install.packages("scales")
 install.packages("sf")
 install.packages("units")
@@ -34,7 +33,6 @@ install.packages('caret')
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(tidyr) # function gather
-  library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
   library(ranger) # Random Forest functions
@@ -223,17 +221,6 @@ pcb_numeric_columns <- grep("^PCB", colnames(wdc.pcb.1), value = TRUE)
 # Find the corresponding character columns
 char_columns <- setdiff(colnames(wdc.pcb.1), pcb_numeric_columns)
 
-# Initialize the results matrix
-rf_results <- data.frame(
-  Congener = pcb_numeric_columns,
-  RMSE = rep(NA, length(pcb_numeric_columns)),
-  R_squared = rep(NA, length(pcb_numeric_columns)),
-  Factor2_Percentage = rep(NA, length(pcb_numeric_columns))
-)
-
-# Create an empty data frame to store all predicted and actual data
-all_results <- data.frame()
-
 # Iterate over each numeric column
 for (i in seq_along(pcb_numeric_columns)) {
   # Combine numeric and character data
@@ -242,13 +229,6 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
   
-  # Define hyperparameter grid
-  param_grid <- expand.grid(
-    mtry = seq(2, ncol(combined_data) - 1, by = 1),
-    splitrule = c("variance", "extratrees"),
-    min.node.size = c(5, 10, 15)
-  )
-  
   # Sample indices for training
   train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
   
@@ -256,40 +236,34 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Prepare training control
-  ctrl <- trainControl(method = "cv", number = 5, search = "grid")
-  
-  # Modeling with hyperparameter optimization
-  rf_model <- train(
-    x = train_data[, -1], 
-    y = train_data[, 1],
-    method = "ranger",
-    trControl = ctrl,
-    tuneGrid = param_grid,
-    num_trees = 5000 # manually specifying num.trees
+  # Train the ranger model with specified hyperparameters
+  ranger_model <- ranger(
+    dependent.variable.name = pcb_numeric_columns[i],
+    data = train_data,
+    num.trees = 5000,
+    mtry = 3,
+    min.node.size = 5,
+    seed = 123
   )
   
-  # Get the best model parameters
-  best_model <- rf_model$finalModel
+  # Predict on the test set
+  predictions <- predict(ranger_model, data = test_data)$predictions
   
-  # Get predictions on the test set
-  predictions <- predict(best_model, data = test_data[, -1])$predictions
-  
-  # Evaluation metrics
-  mse <- mean((predictions - test_data[, 1])^2)
-  r_squared <- 1 - sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2)
-  compare_df <- data.frame(observed = test_data[, 1], predicted = predictions)
+  # Calculate evaluation metrics
+  mse <- mean((predictions - test_data[, pcb_numeric_columns[i]])^2)
+  r_squared <- 1 - sum((test_data[, pcb_numeric_columns[i]] - predictions)^2) / sum((test_data[, pcb_numeric_columns[i]] - mean(test_data[, pcb_numeric_columns[i]]))^2)
+  compare_df <- data.frame(observed = test_data[, pcb_numeric_columns[i]], predicted = predictions)
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
   # Store the results
-  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
+  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)  
   
   # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("USA", nrow(test_data)),
+    Location = rep("Lake Washington", nrow(test_data)),
     Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
-    Actual = test_data[, 1],
+    Actual = test_data[, pcb_numeric_columns[i]],
     Predicted = predictions,
     R_squared = r_squared
   )
@@ -329,8 +303,8 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
   ylab(expression(bold("Predicted concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
