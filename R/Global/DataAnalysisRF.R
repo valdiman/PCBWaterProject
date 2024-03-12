@@ -221,6 +221,17 @@ pcb_numeric_columns <- grep("^PCB", colnames(wdc.pcb.1), value = TRUE)
 # Find the corresponding character columns
 char_columns <- setdiff(colnames(wdc.pcb.1), pcb_numeric_columns)
 
+# Initialize the results matrix
+rf_results <- data.frame(
+  Congener = pcb_numeric_columns,
+  RMSE = rep(NA, length(pcb_numeric_columns)),
+  R_squared = rep(NA, length(pcb_numeric_columns)),
+  Factor2_Percentage = rep(NA, length(pcb_numeric_columns))
+)
+
+# Create an empty data frame to store all predicted and actual data
+all_results <- data.frame()
+
 # Iterate over each numeric column
 for (i in seq_along(pcb_numeric_columns)) {
   # Combine numeric and character data
@@ -261,7 +272,7 @@ for (i in seq_along(pcb_numeric_columns)) {
   
   # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("Lake Washington", nrow(test_data)),
+    Location = rep("USA", nrow(test_data)),
     Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
     Actual = test_data[, pcb_numeric_columns[i]],
     Predicted = predictions,
