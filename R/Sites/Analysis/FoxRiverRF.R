@@ -3,7 +3,6 @@
 ## Random forest model
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -14,11 +13,12 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
-install.packages('patchwork')
 install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -32,10 +32,10 @@ install.packages("sfheaders")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(tidyr) # function gather
-  library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
@@ -79,9 +79,10 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
 # Data preparation --------------------------------------------------------
 {
   # Change date format
-  fox$SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(fox$SampleDate) - min(as.Date(fox$SampleDate)))
+  time.day <- as.numeric(as.Date(SampleDate),
+                         min(as.Date(SampleDate), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -121,45 +122,84 @@ fox.tpcb <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
 }
 
 # Random Forest Model tPCB ------------------------------------------------
+# Remove columns not used here
+fox.tpcb <- select(fox.tpcb, -c(date))
+
 # Train-Test Split
 set.seed(123)
 train_indices <- sample(1:nrow(fox.tpcb), 0.8 * nrow(fox.tpcb))
 train_data <- fox.tpcb[train_indices, ]
 test_data <- fox.tpcb[-train_indices, ]
 
-# Fit the Model (1)
-rf_model <- randomForest(log10(tPCB) ~ time + SiteID + season + flow
-                           + temp + DistanceToEasternLocation, data = train_data)
+# Define hyperparameter grid
+param_grid <- expand.grid(
+  mtry = seq(1, ncol(train_data) - 1),  # Adjust mtry values based on your data
+  splitrule = c("gini", "extratrees"),
+  min.node.size = c(5, 10, 20)
+)
 
-# Make Predictions
-predictions <- predict(rf_model, newdata = test_data)
+# Prepare training control
+ctrl <- trainControl(method = "cv", number = 5, search = "grid")
 
-# Evaluate Model Performance
+# Perform grid search with cross-validation using ranger
+rf_model <- train(
+  log10(tPCB) ~ time + SiteID + season + flow + temp +
+    DistanceToEasternLocation,
+  data = train_data,
+  method = "ranger",
+  importance = 'permutation',
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the best mtry
+best_mtry <- rf_model$bestTune$mtry
+
+final_rf_model <- ranger(
+  formula = log10(tPCB) ~ time + SiteID + season + flow + temp +
+    DistanceToEasternLocation,
+  data = train_data,
+  num.trees = 4500, # need to manualy modify this parameter
+  mtry = best_mtry,
+  importance = 'permutation',
+  seed = 123
+)
+
+# Get predictions on the test data
+predictions <- predict(final_rf_model, data = test_data)$predictions
+
+# Evaluate model performance
 mse <- mean((predictions - log10(test_data$tPCB))^2)
 rmse <- sqrt(mse)
-r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
-compare_df <- data.frame(observed = test_data$tPCB,
+comparison <- data.frame(observed = test_data$tPCB,
                            predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df$factor2 <- compare_df$observed/compare_df$predicted
+comparison$factor2 <- comparison$observed/comparison$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage <- nrow(compare_df[compare_df$factor2 > 0.5 & compare_df$factor2 < 2, ])/nrow(compare_df)*100
+factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
+                                      , ])/nrow(comparison)*100
+
+# Print Factor2
+print(paste("Factor2:", factor2_percentage))
 
 # Create the data frame directly
 performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
                              Value = c(rmse, r_squared,
                                        factor2_percentage))
-
-# Remove unnecessary columns
-performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
-
-# Print the modified data frame
-print(performance_df)
 
 # Export results
 write.csv(performance_df,
@@ -219,15 +259,11 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCB.png",
   # Remove individual PCB that have 30% or less NA values
   fox.pcb.1 <- fox.pcb[,
                        -which(colSums(is.na(fox.pcb))/nrow(fox.pcb) > 0.7)]
-  
-  # Add site ID
-  SiteID <- factor(fox$SiteID)
   # Change date format
   SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
-  # Change name time.day to time
-  colnames(time.day) <- "time"
+  time.day <- as.numeric(difftime(as.Date(SampleDate),
+                                  min(as.Date(SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -235,10 +271,10 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverRFtPCB.png",
   # Add distance to eastern location
   eastern <- fox$DistanceToEasternLocation
   # Add date and time to fox.pcb.1
-  fox.pcb.1 <- cbind(fox.pcb.1, SampleDate, data.frame(time.day), SiteID,
-                     season.s, eastern)
+  fox.pcb.1 <- cbind(fox.pcb.1, SampleDate, as.factor(fox$SiteID),
+                     data.frame(time.day), season.s, eastern)
   # Remove site Lake Winnebago (background site)
-  fox.pcb.1 <- subset(fox.pcb.1, SiteID != c("WCPCB-FOX001"))
+  fox.pcb.1 <- subset(fox.pcb.1, as.factor(fox$SiteID) != c("WCPCB-FOX001"))
   # Include flow data from USGS station Fox River
   sitefoxN1 <- "04084445" # flow @ OX RIVER AT APPLETON, WI
   sitefoxN2 <- "040851385" # water temperature @ FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI
@@ -290,6 +326,13 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
   
+  # Define hyperparameter grid
+  param_grid <- expand.grid(
+    mtry = seq(2, ncol(combined_data) - 1, by = 1),
+    splitrule = c("variance", "extratrees"),
+    min.node.size = c(5, 10, 15)
+  )
+  
   # Sample indices for training
   train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
   
@@ -297,39 +340,43 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using randomForest
-  fit <- randomForest(train_data[, 1] ~ ., data = train_data)
+  # Prepare training control
+  ctrl <- trainControl(method = "cv", number = 5, search = "grid")
   
-  # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
-  
-  # Calculate mean squared error (mse) for illustration
-  mse <- mean((predictions - test_data[, 1])^2)
-  
-  # Calculate R-squared
-  r_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
-  
-  # Calculate factor2_percentage within the loop
-  compare_df <- data.frame(
-    observed = 10^(test_data[, 1]),
-    predicted = 10^(predictions)
+  # Modeling with hyperparameter optimization
+  rf_model <- train(
+    x = train_data[, -1], 
+    y = train_data[, 1],
+    method = "ranger",
+    trControl = ctrl,
+    tuneGrid = param_grid,
+    num_trees = 5000 # manually specifying num.trees
   )
+  
+  # Get the best model parameters
+  best_model <- rf_model$finalModel
+  
+  # Get predictions on the test set
+  predictions <- predict(best_model, data = test_data[, -1])$predictions
+  
+  # Evaluation metrics
+  mse <- mean((predictions - test_data[, 1])^2)
+  r_squared <- 1 - sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2)
+  compare_df <- data.frame(observed = test_data[, 1], predicted = predictions)
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
-  # Store the results in the matrix
-  rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
+  # Store the results
+  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
   
-  # Create a data frame for each column's results
+  # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("Fox River", length(test_data[, 1])),
-    Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
+    Location = rep("Fox River", nrow(test_data)),
+    Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
     Actual = test_data[, 1],
     Predicted = predictions,
-    R_squared = r_squared  # Add R_squared column
+    R_squared = r_squared
   )
-  
-  # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
 
