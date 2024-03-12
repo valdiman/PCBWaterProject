@@ -337,8 +337,8 @@ for (i in seq_along(pcb_numeric_columns)) {
   ranger_model <- ranger(
     dependent.variable.name = pcb_numeric_columns[i],
     data = train_data,
-    num.trees = 5000,
-    mtry = 3,
+    num.trees = 1000,
+    mtry = 4,
     min.node.size = 5,
     seed = 123
   )
