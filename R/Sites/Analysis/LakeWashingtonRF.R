@@ -3,7 +3,6 @@
 ## Random forest model
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -19,6 +18,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -35,7 +36,8 @@ install.packages("sfheaders")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
@@ -78,88 +80,116 @@ lwa <- wdc[str_detect(wdc$LocationName, 'Lake Washington'),]
   # Change date format
   lwa$SampleDate <- as.Date(lwa$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(lwa$SampleDate) - min(as.Date(lwa$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- lwa$SiteID %>% as.factor() %>% as.numeric
+  time.day <- as.numeric(difftime(as.Date(lwa$SampleDate),
+                                  min(as.Date(lwa$SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(lwa$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   lwa.tpcb <- cbind(factor(lwa$SiteID), lwa$SampleDate, as.matrix(lwa$tPCB),
-                    data.frame(time.day), site.numb, season.s,
-                    lwa$DistanceToCentroid)
+                    data.frame(time.day), season.s, lwa$DistanceToCentroid)
   # Add column names
-  colnames(lwa.tpcb) <- c("SiteID", "date", "tPCB", "time", "site.code",
-                          "season", "DistanceToCentroid")
+  colnames(lwa.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                          "DistanceToCentroid")
 }
 
-# Random Forest Model -----------------------------------------------------
-# Train-Test Split
+# Random Forest Model tPCB ------------------------------------------------
+# Set seed for reproducibility
 set.seed(123)
+
+# Train-Test Split
 train_indices <- sample(1:nrow(lwa.tpcb), 0.8 * nrow(lwa.tpcb))
 train_data <- lwa.tpcb[train_indices, ]
 test_data <- lwa.tpcb[-train_indices, ]
 
-# Fit the Model (1)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + season +
-                             DistanceToCentroid, data = train_data)
+# Define hyperparameter grid
+param_grid <- expand.grid(
+  mtry = seq(1, ncol(train_data) - 1),  # Adjust mtry values based on your data
+  splitrule = c("gini", "extratrees"),
+  min.node.size = c(5, 10, 20)
+)
 
-# Make Predictions
-predictions.1 <- predict(rf_model.1, newdata = test_data)
+# Prepare training control
+ctrl <- trainControl(method = "cv", number = 5, search = "grid")
 
-# Evaluate Model Performance
-mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
-rmse.1 <- sqrt(mse.1)
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+# Perform grid search with cross-validation using ranger
+rf_model <- train(
+  log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
+  data = train_data,
+  method = "ranger",
+  importance = 'permutation',
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the best mtry
+best_mtry <- rf_model$bestTune$mtry
+
+final_rf_model <- ranger(
+  formula = log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
+  data = train_data,
+  num.trees = 500, # need to manualy modify this parameter
+  mtry = best_mtry,
+  importance = 'permutation',
+  seed = 123
+)
+
+# Get predictions on the test data
+predictions <- predict(final_rf_model, data = test_data)$predictions
+
+# Evaluate model performance
+mse <- mean((predictions - log10(test_data$tPCB))^2)
+rmse <- sqrt(mse)
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared)) # R2 < 0.0
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+comparison <- data.frame(observed = test_data$tPCB,
+                         predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+comparison$factor2 <- comparison$observed/comparison$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
+                                      , ])/nrow(comparison)*100
+
+# Print Factor2
+print(paste("Factor2:", factor2_percentage))
 
 # Create the data frame directly
-performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
-                             Value = c(rmse.1, r_squared.1,
-                                       factor2_percentage.1))
-
-# Remove unnecessary columns
-performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
-
-# Print the modified data frame
-print(performance_df)
+performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
+                             Value = c(rmse, r_squared,
+                                       factor2_percentage))
 
 # Export results
-write.csv(performance_df,
-          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFPerformancetPCB.csv",
+write.csv(performance_RF,
+          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFtPCB.csv",
           row.names = FALSE)
 
-# Feature Importance
-importance.1 <- importance(rf_model.1)
-# Plot features
-barplot(importance.1[, 1], names.arg = rownames(importance.1),
-        main = "Feature Importance", las = 2, cex.names = 0.7)
-
 # Create a data frame for plotting
-plot_data.1 <- data.frame(
+plot_data <- data.frame(
   Location = rep("Lake Washington", nrow(test_data)),
   Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
+  Predicted = predictions
 )
 
 # Export results
-write.csv(plot_data.1,
+write.csv(plot_data,
           file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
@@ -170,9 +200,9 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -185,8 +215,7 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Individual PCB Analysis -------------------------------------------------
-# Prepare data.frame
+# Random Forest Model individual PCBs -------------------------------------
 {
   lwa.pcb <- subset(lwa, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
@@ -200,22 +229,19 @@ ggsave("Output/Plots/Sites/ObsPred/LakeWashington/LakeWashingtonRFtPCB.png",
   # Remove individual PCB that have 30% or less NA values
   lwa.pcb.1 <- lwa.pcb[,
                        -which(colSums(is.na(lwa.pcb))/nrow(lwa.pcb) > 0.7)]
-  # Create individual code for each site sampled
-  site.numb <- factor(lwa$SiteID %>% as.factor() %>% as.numeric)
   # Change date format
   SampleDate <- as.Date(lwa$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  time.day <- as.numeric(difftime(as.Date(SampleDate),
+                                  min(as.Date(SampleDate)), units = "days"))
   # Add distance to the centroid
   centroid <- lwa$DistanceToCentroid
-  # Change name time.day to time
-  colnames(time.day) <- "time"
   # Include season
   yq.s <- as.yearqtr(as.yearmon(lwa$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to lwa.pcb.1
-  lwa.pcb.1 <- cbind(lwa.pcb.1, data.frame(time.day), site.numb,
+  lwa.pcb.1 <- cbind(lwa.pcb.1, as.factor(lwa$SiteID), data.frame(time.day),
                      season.s, centroid)
 }
 
@@ -242,8 +268,7 @@ all_results <- data.frame()
 # Iterate over each numeric column
 for (i in seq_along(pcb_numeric_columns)) {
   # Combine numeric and character data
-  combined_data <- cbind(lwa.pcb.1[, pcb_numeric_columns[i],
-                                   drop = FALSE], lwa.pcb.1[, char_columns])
+  combined_data <- cbind(lwa.pcb.1[, pcb_numeric_columns[i], drop = FALSE], lwa.pcb.1[, char_columns])
   
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
@@ -255,39 +280,37 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using randomForest
-  fit <- randomForest(train_data[, 1] ~ ., data = train_data)
-  
-  # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
-  
-  # Calculate mean squared error (mse) for illustration
-  mse <- mean((predictions - test_data[, 1])^2)
-  
-  # Calculate R-squared
-  r_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
-  
-  # Calculate factor2_percentage within the loop
-  compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
+  # Train the ranger model with specified hyperparameters
+  ranger_model <- ranger(
+    dependent.variable.name = pcb_numeric_columns[i],
+    data = train_data,
+    num.trees = 400,
+    mtry = 3,
+    min.node.size = 5,
+    seed = 123
   )
+  
+  # Predict on the test set
+  predictions <- predict(ranger_model, data = test_data)$predictions
+  
+  # Calculate evaluation metrics
+  mse <- mean((predictions - test_data[, pcb_numeric_columns[i]])^2)
+  r_squared <- 1 - sum((test_data[, pcb_numeric_columns[i]] - predictions)^2) / sum((test_data[, pcb_numeric_columns[i]] - mean(test_data[, pcb_numeric_columns[i]]))^2)
+  compare_df <- data.frame(observed = test_data[, pcb_numeric_columns[i]], predicted = predictions)
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
-  # Store the results in the matrix
-  rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
+  # Store the results
+  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)  
   
-  # Create a data frame for each column's results
+  # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("Lake Washington", length(test_data[, 1])),
-    Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
-    Actual = test_data[, 1],
+    Location = rep("Lake Washington", nrow(test_data)),
+    Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
+    Actual = test_data[, pcb_numeric_columns[i]],
     Predicted = predictions,
-    R_squared = r_squared  # Add R_squared column
+    R_squared = r_squared
   )
-  
-  # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
 
@@ -308,7 +331,7 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/LakeWashington/LakeWashingtonRFPCB.csv",
           row.names = FALSE)
 
 # Export combined results
