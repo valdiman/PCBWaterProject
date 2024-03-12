@@ -12,7 +12,6 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
-install.packages('patchwork')
 install.packages("scales")
 install.packages("sf")
 install.packages("units")
@@ -32,7 +31,6 @@ install.packages('caret')
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(tidyr) # function gather
-  library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
   library(ranger) # Random Forest functions
@@ -271,8 +269,6 @@ ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayRFtPCB.png",
   che.pcb.2 <- che.pcb.2[, !(names(che.pcb.2) %in% c("SampleDate"))]
 }
 
-# Trying to work on this.
-
 # Set the seed for reproducibility
 set.seed(123)
 
@@ -302,6 +298,13 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
   
+  # Define hyperparameter grid
+  param_grid <- expand.grid(
+    mtry = seq(2, ncol(combined_data) - 1, by = 1),
+    splitrule = c("variance", "extratrees"),
+    min.node.size = c(5, 10, 15)
+  )
+  
   # Sample indices for training
   train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
   
@@ -309,48 +312,43 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using ranger
-  rf_model <- ranger(
-    y = train_data[, 1],  # Response variable (first column)
-    x = train_data[, -1], # Predictor variables (all columns except the first)
-    num.trees = 5000,    # Adjust num.trees as needed
-    mtry = 5,
-    importance = 'permutation',
-    seed = 123
-  )  
+  # Prepare training control
+  ctrl <- trainControl(method = "cv", number = 5, search = "grid")
+  
+  # Modeling with hyperparameter optimization
+  rf_model <- train(
+    x = train_data[, -1], 
+    y = train_data[, 1],
+    method = "ranger",
+    trControl = ctrl,
+    tuneGrid = param_grid,
+    num_trees = 5000 # manually specifying num.trees
+  )
+  
+  # Get the best model parameters
+  best_model <- rf_model$finalModel
   
   # Get predictions on the test set
-  predictions <- predict(rf_model, data = test_data)$predictions
+  predictions <- predict(best_model, data = test_data[, -1])$predictions
   
-  # Calculate mean squared error (mse)
+  # Evaluation metrics
   mse <- mean((predictions - test_data[, 1])^2)
-  
-  # Calculate R-squared
-  ss_res <- sum((test_data[, 1] - predictions)^2)
-  ss_tot <- sum((test_data[, 1] - mean(test_data[, 1]))^2)
-  r_squared <- 1 - (ss_res / ss_tot)
-  
-  # Calculate factor2_percentage within the loop
-  compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
-  )
+  r_squared <- 1 - sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2)
+  compare_df <- data.frame(observed = test_data[, 1], predicted = predictions)
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
-  # Store the results in the matrix
+  # Store the results
   rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
   
-  # Create a data frame for each column's results
+  # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("Chesapeake Bay", length(test_data[, 1])),
-    Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
+    Location = rep("Chesapeake Bay", nrow(test_data)),
+    Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
     Actual = test_data[, 1],
     Predicted = predictions,
-    R_squared = r_squared  # Add R_squared column
+    R_squared = r_squared
   )
-  
-  # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
 
