@@ -2,7 +2,6 @@
 ## Hudson River
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -18,6 +17,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -34,7 +35,8 @@ install.packages("sfheaders")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
@@ -88,7 +90,8 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   # Change date format
   hud$SampleDate <- as.Date(hud$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(hud$SampleDate) - min(as.Date(hud$SampleDate)))
+  time.day <- as.numeric(difftime(as.Date(hud$SampleDate),
+                                  min(as.Date(hud$SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -150,71 +153,107 @@ hud.tpcb.1 <- subset(hud.tpcb.1, SiteID != c("WCPCB-HUD010"))
   hud.tpcb.2 <- na.omit(hud.tpcb.1)
 }
 
-# Random Forest Model -----------------------------------------------------
-# Train-Test Split
+# Random Forest Model tPCB ------------------------------------------------
+# Remove columns not used here
+# Use flow.2 and DistanceSource1
+hud.tpcb.2 <- select(hud.tpcb.2, -c(date, flow.1, flow.3, flow.4,
+                                    DistanceSource2))
+
+# Set seed for reproducibility
 set.seed(123)
+
+# Train-Test Split
 train_indices <- sample(1:nrow(hud.tpcb.2), 0.8 * nrow(hud.tpcb.2))
 train_data <- hud.tpcb.2[train_indices, ]
 test_data <- hud.tpcb.2[-train_indices, ]
 
-# Fit the Model (4)
-rf_model.1 <- randomForest(log10(tPCB) ~ time + SiteID + season + flow.3 +
-                             temp + DistanceSource1, data = train_data)
+# Define hyperparameter grid
+param_grid <- expand.grid(
+  mtry = seq(1, ncol(train_data) - 1),  # Adjust mtry values based on your data
+  splitrule = c("gini", "extratrees"),
+  min.node.size = c(5, 10, 20)
+)
 
-# Make Predictions
-predictions.1 <- predict(rf_model.1, newdata = test_data)
+# Prepare training control
+ctrl <- trainControl(method = "cv", number = 5, search = "grid")
 
-# Evaluate Model Performance
-mse.1 <- mean((predictions.1 - log10(test_data$tPCB))^2)
-rmse.1 <- sqrt(mse.1)
-r_squared.1 <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+# Perform grid search with cross-validation using ranger
+rf_model <- train(
+  log10(tPCB) ~ time + SiteID + season + flow.2 + temp + DistanceSource1,
+  data = train_data,
+  method = "ranger",
+  importance = 'permutation',
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the best mtry
+best_mtry <- rf_model$bestTune$mtry
+
+final_rf_model <- ranger(
+  formula = log10(tPCB) ~ time + SiteID + season + flow.2 + temp + DistanceSource1,
+  data = train_data,
+  num.trees = 5000, # need to manualy modify this parameter
+  mtry = best_mtry,
+  importance = 'permutation',
+  seed = 123
+)
+
+# Get predictions on the test data
+predictions <- predict(final_rf_model, data = test_data)$predictions
+
+# Evaluate model performance
+mse <- mean((predictions - log10(test_data$tPCB))^2)
+rmse <- sqrt(mse)
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+comparison <- data.frame(observed = test_data$tPCB,
+                         predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+comparison$factor2 <- comparison$observed/comparison$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
+                                      , ])/nrow(comparison)*100
+
+# Print Factor2
+print(paste("Factor2:", factor2_percentage))
 
 # Create the data frame directly
-performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
-                             Value = c(rmse.1, r_squared.1,
-                                       factor2_percentage.1))
-
-# Remove unnecessary columns
-performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
-
-# Print the modified data frame
-print(performance_df)
+performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
+                             Value = c(rmse, r_squared,
+                                       factor2_percentage))
 
 # Export results
-write.csv(performance_df,
-          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFPerformancetPCB.csv",
+write.csv(performance_RF,
+          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFtPCB.csv",
           row.names = FALSE)
 
-# Feature Importance
-importance.1 <- importance(rf_model.1)
-barplot(importance.1[, 1], names.arg = rownames(importance.1),
-        main = "Feature Importance", las = 2, cex.names = 0.7)
-
 # Create a data frame for plotting
-plot_data.1 <- data.frame(
+plot_data <- data.frame(
   Location = rep("Hudson River", nrow(test_data)),
   Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
+  Predicted = predictions
 )
 
 # Export results
-write.csv(plot_data.1,
+write.csv(plot_data,
           file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10^2, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
@@ -225,9 +264,9 @@ plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -240,10 +279,8 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Individual PCB Analysis -------------------------------------------------
-# Prepare data.frame
+# Random Forest Model individual PCBs -----------------------------------
 {
-  # Remove metadata
   hud.pcb <- subset(hud, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
   hud.pcb <- subset(hud.pcb, select = -c(A1016:DistanceToSource2))
@@ -256,14 +293,11 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCB.png",
   # Remove individual PCB that have 30% or less NA values
   hud.pcb.1 <- hud.pcb[,
                        -which(colSums(is.na(hud.pcb))/nrow(hud.pcb) > 0.7)]
-  # Add site ID
-  SiteID <- factor(hud$SiteID)
   # Change date format
   SampleDate <- as.Date(hud$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
-  # Change name time.day to time
-  colnames(time.day) <- "time"
+  time.day <- as.numeric(difftime(as.Date(SampleDate),
+                                  min(as.Date(SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -271,13 +305,14 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCB.png",
   # Add distance to source
   DistanceToSource1 <- hud$DistanceToSource1
   # Add date and time to hud.pcb.1
-  hud.pcb.1 <- cbind(hud.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     season.s, DistanceToSource1)
+  hud.pcb.1 <- cbind(hud.pcb.1, as.factor(hud$SiteID), SampleDate,
+                     data.frame(time.day), season.s, DistanceToSource1)
   # Remove site Bakers Falls. Upstream source
   # North Bakers Falls = WCPCB-HUD006 and
-  # South Bakers Falls = WCPCB-HUD006.
-  hud.pcb.1 <- subset(hud.pcb.1, SiteID != c("WCPCB-HUD006"))
-  hud.pcb.1 <- subset(hud.pcb.1, SiteID != c("WCPCB-HUD010"))
+  # South Bakers Falls = WCPCB-HUD010.
+  # Remove rows with SiteID equal to "WCPCB-HUD006" or "WCPCB-HUD010"
+  hud.pcb.1 <- hud.pcb.1[!(hud.pcb.1$`as.factor(hud$SiteID)` %in% c("WCPCB-HUD006",
+                                                              "WCPCB-HUD010")), ]
   # Include flow data from USGS station Hudson River
   # sitehudN3 for flow and sitehudN5 for water temperature
   sitehudN3 <- "01328770" # HUDSON RIVER AT THOMSON NY, no temp!
@@ -287,19 +322,19 @@ ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverRFtPCB.png",
   paramtemp <- "00010" # water temperature, C Not available
   # Retrieve USGS data
   # Flow (ft3/s)
-  flow.3 <- readNWISdv(sitehudN3, paramflow,
+  flow.2 <- readNWISdv(sitehudN2, paramflow,
                        min(hud.pcb.1$SampleDate), max(hud.pcb.1$SampleDate))
   # Water temperature in Celsius
   temp <- readNWISdv(sitehudN5, paramtemp,
                      min(hud.pcb.1$SampleDate), max(hud.pcb.1$SampleDate))
   
   # Add USGS data to hud.tpcb.1 matching dates
-  hud.pcb.1$flow.3 <- 0.03*flow.3$X_00060_00003[match(hud.pcb.1$SampleDate,
-                                                      flow.3$Date)]
+  hud.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(hud.pcb.1$SampleDate,
+                                                      flow.2$Date)]
   hud.pcb.1$temp <- 273.15 + temp$X_00010_00003[match(hud.pcb.1$SampleDate,
                                                       temp$Date)]
-  # Remove samples with flow.3 = NA
-  hud.pcb.2 <- hud.pcb.1[!is.na(hud.pcb.1$flow.3), ]
+  # Remove samples with flow.2 = NA
+  hud.pcb.2 <- hud.pcb.1[!is.na(hud.pcb.1$flow.2), ]
   # Remove metadata not use in the random forest
   hud.pcb.2 <- hud.pcb.2[, !(names(hud.pcb.2) %in% c("SampleDate"))]
 }
@@ -333,6 +368,13 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
   
+  # Define hyperparameter grid
+  param_grid <- expand.grid(
+    mtry = seq(2, ncol(combined_data) - 1, by = 1),
+    splitrule = c("variance", "extratrees"),
+    min.node.size = c(5, 10, 15)
+  )
+  
   # Sample indices for training
   train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
   
@@ -340,39 +382,43 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Modeling code using randomForest
-  fit <- randomForest(train_data[, 1] ~ ., data = train_data)
+  # Prepare training control
+  ctrl <- trainControl(method = "cv", number = 5, search = "grid")
   
-  # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
-  
-  # Calculate mean squared error (mse) for illustration
-  mse <- mean((predictions - test_data[, 1])^2)
-  
-  # Calculate R-squared
-  r_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
-  
-  # Calculate factor2_percentage within the loop
-  compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
+  # Modeling with hyperparameter optimization
+  rf_model <- train(
+    x = train_data[, -1], 
+    y = train_data[, 1],
+    method = "ranger",
+    trControl = ctrl,
+    tuneGrid = param_grid,
+    num_trees = 5000 # manually specifying num.trees
   )
+  
+  # Get the best model parameters
+  best_model <- rf_model$finalModel
+  
+  # Get predictions on the test set
+  predictions <- predict(best_model, data = test_data[, -1])$predictions
+  
+  # Evaluation metrics
+  mse <- mean((predictions - test_data[, 1])^2)
+  r_squared <- 1 - sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2)
+  compare_df <- data.frame(observed = test_data[, 1], predicted = predictions)
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
-  # Store the results in the matrix
-  rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
+  # Store the results
+  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
   
-  # Create a data frame for each column's results
+  # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("Hudson River", length(test_data[, 1])),
-    Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
+    Location = rep("Hudson River", nrow(test_data)),
+    Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
     Actual = test_data[, 1],
     Predicted = predictions,
-    R_squared = r_squared  # Add R_squared column
+    R_squared = r_squared
   )
-  
-  # Bind the data frame to the overall results
   all_results <- rbind(all_results, col_results)
 }
 
@@ -393,7 +439,7 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/HudsonRiver/HudsonRiverRFPCB.csv",
           row.names = FALSE)
 
 # Export combined results
