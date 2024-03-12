@@ -79,10 +79,10 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
 # Data preparation --------------------------------------------------------
 {
   # Change date format
-  SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
+  fox$SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- as.numeric(as.Date(SampleDate),
-                         min(as.Date(SampleDate), units = "days"))
+  time.day <- as.numeric(difftime(as.Date(fox$SampleDate),
+                                  min(as.Date(fox$SampleDate)), units = "days"))
   # Include season
   yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
@@ -326,13 +326,6 @@ for (i in seq_along(pcb_numeric_columns)) {
   # Exclude rows with missing values
   combined_data <- na.omit(combined_data)
   
-  # Define hyperparameter grid
-  param_grid <- expand.grid(
-    mtry = seq(2, ncol(combined_data) - 1, by = 1),
-    splitrule = c("variance", "extratrees"),
-    min.node.size = c(5, 10, 15)
-  )
-  
   # Sample indices for training
   train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
   
@@ -340,40 +333,34 @@ for (i in seq_along(pcb_numeric_columns)) {
   train_data <- combined_data[train_indices, ]
   test_data <- combined_data[-train_indices, ]
   
-  # Prepare training control
-  ctrl <- trainControl(method = "cv", number = 5, search = "grid")
-  
-  # Modeling with hyperparameter optimization
-  rf_model <- train(
-    x = train_data[, -1], 
-    y = train_data[, 1],
-    method = "ranger",
-    trControl = ctrl,
-    tuneGrid = param_grid,
-    num_trees = 5000 # manually specifying num.trees
+  # Train the ranger model with specified hyperparameters
+  ranger_model <- ranger(
+    dependent.variable.name = pcb_numeric_columns[i],
+    data = train_data,
+    num.trees = 5000,
+    mtry = 3,
+    min.node.size = 5,
+    seed = 123
   )
   
-  # Get the best model parameters
-  best_model <- rf_model$finalModel
+  # Predict on the test set
+  predictions <- predict(ranger_model, data = test_data)$predictions
   
-  # Get predictions on the test set
-  predictions <- predict(best_model, data = test_data[, -1])$predictions
-  
-  # Evaluation metrics
-  mse <- mean((predictions - test_data[, 1])^2)
-  r_squared <- 1 - sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2)
-  compare_df <- data.frame(observed = test_data[, 1], predicted = predictions)
+  # Calculate evaluation metrics
+  mse <- mean((predictions - test_data[, pcb_numeric_columns[i]])^2)
+  r_squared <- 1 - sum((test_data[, pcb_numeric_columns[i]] - predictions)^2) / sum((test_data[, pcb_numeric_columns[i]] - mean(test_data[, pcb_numeric_columns[i]]))^2)
+  compare_df <- data.frame(observed = test_data[, pcb_numeric_columns[i]], predicted = predictions)
   compare_df$factor2 <- compare_df$observed / compare_df$predicted
   factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
   
   # Store the results
-  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)
+  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)  
   
   # Append to the all_results dataframe
   col_results <- data.frame(
     Location = rep("Fox River", nrow(test_data)),
     Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
-    Actual = test_data[, 1],
+    Actual = test_data[, pcb_numeric_columns[i]],
     Predicted = predictions,
     R_squared = r_squared
   )
