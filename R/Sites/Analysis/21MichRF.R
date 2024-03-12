@@ -314,7 +314,7 @@ for (i in seq_along(pcb_numeric_columns)) {
   
   # Append to the all_results dataframe
   col_results <- data.frame(
-    Location = rep("Lake Washington", nrow(test_data)),
+    Location = rep("DEQ Mich", nrow(test_data)),
     Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
     Actual = test_data[, pcb_numeric_columns[i]],
     Predicted = predictions,
