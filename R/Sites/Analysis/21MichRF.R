@@ -274,7 +274,6 @@ rf_results <- data.frame(
 all_results <- data.frame()
 
 # Define parameter grid. More values can be included.
-# These are the best ones.
 num_trees_grid <- c(500, 700, 1000)
 mtry_grid <- c(2, 3)
 min_node_size_grid <- c(3, 4, 5)
