@@ -156,7 +156,7 @@ write.csv(plot_data,
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data, aes(x = 10^(Observed), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
+  geom_point(shape = 21, size = 1, fill = "white") +
   scale_y_log10(limits = c(0.1, 10^8),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -212,7 +212,6 @@ ggsave("Output/Plots/Global/RFtPCB.png",
                      season.s)
 }
 
-
 # Set seed for reproducibility
 set.seed(123)
 
@@ -234,14 +233,14 @@ rf_results <- data.frame(
 all_results <- data.frame()
 
 # Define parameter grid. More values can be included.
-# These are the best one.
-num_trees_grid <- c(5000)
+# These are the best ones.
+num_trees_grid <- c(500, 700, 5000)
 mtry_grid <- c(3)
-min_node_size_grid <- c(3)
+min_node_size_grid <- c(3, 5)
 
 # Initialize variables to store best parameters and performance
-best_params <- NULL
-best_performance <- c(Inf, -Inf, -Inf)  # Lower MSE, higher R-squared, higher factor2_percentage
+best_params <- c(Inf, Inf, Inf)  # Initial best performance (lower is better)
+best_performance <- c(Inf, -Inf, -Inf)  # Initial best performance (higher is better)
 
 # Perform grid search
 for (num_trees in num_trees_grid) {
@@ -256,7 +255,8 @@ for (num_trees in num_trees_grid) {
       # Iterate over each numeric column
       for (i in seq_along(pcb_numeric_columns)) {
         # Combine numeric and character data
-        combined_data <- cbind(wdc.pcb.1[, pcb_numeric_columns[i], drop = FALSE], wdc.pcb.1[, char_columns])
+        combined_data <- cbind(wdc.pcb.1[, pcb_numeric_columns[i], drop = FALSE],
+                               wdc.pcb.1[, char_columns])
         
         # Exclude rows with missing values
         combined_data <- na.omit(combined_data)
@@ -308,15 +308,24 @@ for (num_trees in num_trees_grid) {
         rf_results$R_squared[i] <- r_squared
         rf_results$Factor2_Percentage[i] <- factor2_percentage
       }
+      
+      # Average performance metrics across all numeric columns
+      avg_mse <- avg_mse / length(pcb_numeric_columns)
+      avg_r_squared <- avg_r_squared / length(pcb_numeric_columns)
+      avg_factor2_percentage <- avg_factor2_percentage / length(pcb_numeric_columns)
+      
+      # Update best parameters and performance if better
+      if (avg_mse < best_performance[1] && avg_r_squared > best_performance[2] && avg_factor2_percentage > best_performance[3]) {
+        best_params <- c(num_trees, mtry, min_node_size)
+        best_performance <- c(avg_mse, avg_r_squared, avg_factor2_percentage)
+      }
     }
   }
 }
 
-# Output best parameters and performance
+# Output best parameters
 print("Best Parameters:")
 print(best_params)
-print("Best Performance (MSE, R-squared, Factor2 Percentage):")
-print(best_performance)
 
 # Remove congeners w/R2 < 0
 rf_results <- rf_results %>%
@@ -341,7 +350,7 @@ write.csv(all_results,
 
 # Plot
 plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
+  geom_point(shape = 21, size = 1, fill = "white") +
   scale_y_log10(limits = c(0.001, 10^7),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
