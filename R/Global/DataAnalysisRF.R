@@ -212,6 +212,7 @@ ggsave("Output/Plots/Global/RFtPCB.png",
                      season.s)
 }
 
+
 # Set seed for reproducibility
 set.seed(123)
 
@@ -232,54 +233,90 @@ rf_results <- data.frame(
 # Create an empty data frame to store all predicted and actual data
 all_results <- data.frame()
 
-# Iterate over each numeric column
-for (i in seq_along(pcb_numeric_columns)) {
-  # Combine numeric and character data
-  combined_data <- cbind(wdc.pcb.1[, pcb_numeric_columns[i], drop = FALSE], wdc.pcb.1[, char_columns])
-  
-  # Exclude rows with missing values
-  combined_data <- na.omit(combined_data)
-  
-  # Sample indices for training
-  train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
-  
-  # Create separate training and testing sets
-  train_data <- combined_data[train_indices, ]
-  test_data <- combined_data[-train_indices, ]
-  
-  # Train the ranger model with specified hyperparameters
-  ranger_model <- ranger(
-    dependent.variable.name = pcb_numeric_columns[i],
-    data = train_data,
-    num.trees = 5000,
-    mtry = 3,
-    min.node.size = 5,
-    seed = 123
-  )
-  
-  # Predict on the test set
-  predictions <- predict(ranger_model, data = test_data)$predictions
-  
-  # Calculate evaluation metrics
-  mse <- mean((predictions - test_data[, pcb_numeric_columns[i]])^2)
-  r_squared <- 1 - sum((test_data[, pcb_numeric_columns[i]] - predictions)^2) / sum((test_data[, pcb_numeric_columns[i]] - mean(test_data[, pcb_numeric_columns[i]]))^2)
-  compare_df <- data.frame(observed = test_data[, pcb_numeric_columns[i]], predicted = predictions)
-  compare_df$factor2 <- compare_df$observed / compare_df$predicted
-  factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
-  
-  # Store the results
-  rf_results[i, 2:4] <- c(sqrt(mse), r_squared, factor2_percentage)  
-  
-  # Append to the all_results dataframe
-  col_results <- data.frame(
-    Location = rep("USA", nrow(test_data)),
-    Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
-    Actual = test_data[, pcb_numeric_columns[i]],
-    Predicted = predictions,
-    R_squared = r_squared
-  )
-  all_results <- rbind(all_results, col_results)
+# Define parameter grid. More values can be included.
+# These are the best one.
+num_trees_grid <- c(5000)
+mtry_grid <- c(3)
+min_node_size_grid <- c(3)
+
+# Initialize variables to store best parameters and performance
+best_params <- NULL
+best_performance <- c(Inf, -Inf, -Inf)  # Lower MSE, higher R-squared, higher factor2_percentage
+
+# Perform grid search
+for (num_trees in num_trees_grid) {
+  for (mtry in mtry_grid) {
+    for (min_node_size in min_node_size_grid) {
+      
+      # Initialize performance metrics
+      avg_mse <- 0
+      avg_r_squared <- 0
+      avg_factor2_percentage <- 0
+      
+      # Iterate over each numeric column
+      for (i in seq_along(pcb_numeric_columns)) {
+        # Combine numeric and character data
+        combined_data <- cbind(wdc.pcb.1[, pcb_numeric_columns[i], drop = FALSE], wdc.pcb.1[, char_columns])
+        
+        # Exclude rows with missing values
+        combined_data <- na.omit(combined_data)
+        
+        # Sample indices for training
+        train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
+        
+        # Create separate training and testing sets
+        train_data <- combined_data[train_indices, ]
+        test_data <- combined_data[-train_indices, ]
+        
+        # Train the ranger model with specified hyperparameters
+        ranger_model <- ranger(
+          dependent.variable.name = pcb_numeric_columns[i],
+          data = train_data,
+          num.trees = num_trees,
+          mtry = mtry,
+          min.node.size = min_node_size,
+          seed = 123
+        )
+        
+        # Predict on the test set
+        predictions <- predict(ranger_model, data = test_data)$predictions
+        
+        # Calculate evaluation metrics
+        mse <- mean((predictions - test_data[, pcb_numeric_columns[i]])^2)
+        r_squared <- 1 - sum((test_data[, pcb_numeric_columns[i]] - predictions)^2) / sum((test_data[, pcb_numeric_columns[i]] - mean(test_data[, pcb_numeric_columns[i]]))^2)
+        compare_df <- data.frame(observed = test_data[, pcb_numeric_columns[i]], predicted = predictions)
+        compare_df$factor2 <- compare_df$observed / compare_df$predicted
+        factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
+        
+        # Update average performance metrics
+        avg_mse <- avg_mse + mse
+        avg_r_squared <- avg_r_squared + r_squared
+        avg_factor2_percentage <- avg_factor2_percentage + factor2_percentage
+        
+        # Append to the all_results dataframe
+        col_results <- data.frame(
+          Location = rep("USA", nrow(test_data)),
+          Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
+          Actual = test_data[, pcb_numeric_columns[i]],
+          Predicted = predictions,
+          R_squared = r_squared
+        )
+        all_results <- rbind(all_results, col_results)
+        
+        # Update rf_results with the average performance metrics for the current Congener
+        rf_results$RMSE[i] <- sqrt(mse)
+        rf_results$R_squared[i] <- r_squared
+        rf_results$Factor2_Percentage[i] <- factor2_percentage
+      }
+    }
+  }
 }
+
+# Output best parameters and performance
+print("Best Parameters:")
+print(best_params)
+print("Best Performance (MSE, R-squared, Factor2 Percentage):")
+print(best_performance)
 
 # Remove congeners w/R2 < 0
 rf_results <- rf_results %>%
