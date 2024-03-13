@@ -137,7 +137,7 @@ best_mtry <- rf_model$bestTune$mtry
 final_rf_model <- ranger(
   formula = log10(tPCB) ~ time + SiteID + season + DistanceToCentroid,
   data = train_data,
-  num.trees = 5000, # need to manualy modify this parameter
+  num.trees = 5000, # need to manually modify this parameter
   mtry = best_mtry,
   importance = 'permutation',
   seed = 123
@@ -198,7 +198,7 @@ write.csv(plot_data,
 
 # Create the scatter plot
 plotRF <- ggplot(plot_data, aes(x = 10^(Observed), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
+  geom_point(shape = 21, size = 1, fill = "white") +
   scale_y_log10(limits = c(1, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -391,7 +391,7 @@ write.csv(all_results,
 
 # Plot
 plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
+  geom_point(shape = 21, size = 1, fill = "white") +
   scale_y_log10(limits = c(0.001, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
