@@ -134,7 +134,7 @@ pas <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
 
 # Remove site -------------------------------------------------------------
 # Remove site located in the ocean. Possible typo in original coordinates.
-pas.tpcb.1 <- subset(pas.tpcb, SiteID != c("WCPCB-PASS022"))
+pas.tpcb.1 <- subset(pas.tpcb, SiteID != c("WCPCB-PAS022"))
 
 # Random Forest Model tPCB ------------------------------------------------
 # Remove columns not used here
@@ -291,7 +291,7 @@ ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicRiverRFtPCB.png",
   pas.pcb.1 <- cbind(pas.pcb.1, as.factor(pas$SiteID), SampleDate,
                       data.frame(time.day), season.s, DistanceToSource)
   # Remove site located in the ocean. Possible typo in original coordinates.
-  pas.pcb.1 <- subset(pas.pcb.1, !(as.factor(pas$SiteID) %in% c("WCPCB-PASS022")))
+  pas.pcb.1 <- subset(pas.pcb.1, !(as.factor(pas$SiteID) %in% c("WCPCB-PAS022")))
   # Include flow data from USGS station Passaic River
   sitepasN1 <- "01381900" # No temp
   sitepasN3 <- "01389005" # No flow
