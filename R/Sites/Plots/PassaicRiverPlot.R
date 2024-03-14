@@ -120,7 +120,7 @@ ggplot(pass.tpcb, aes(x = factor(SiteID), y = tPCB)) +
 
 # Remove site -------------------------------------------------------------
 # Remove site located in the ocean.Possible typo in original coordinates.
-pass.tpcb.1 <- subset(pass.tpcb, SiteID != c("WCPCB-PASS022"))
+pass.tpcb.1 <- subset(pass.tpcb, SiteID != c("WCPCB-PAS022"))
 
 # (5) Time trend plots
 ggplot(pass.tpcb.1, aes(y = tPCB, x = format(date, '%Y'))) +
