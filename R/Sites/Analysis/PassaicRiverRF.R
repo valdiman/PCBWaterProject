@@ -3,7 +3,6 @@
 ## Source: Diamond Alkali. 80-120 Lister Avenue, Newark, NJ.
 
 # Install packages
-install.packages("randomForest")
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -19,6 +18,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -35,7 +36,8 @@ install.packages("sfheaders")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
@@ -43,7 +45,7 @@ install.packages("sfheaders")
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Passaic River data ---------------------------------------------------
-pass <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
+pas <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
 
 # Add distance to source --------------------------------------------------
 {
@@ -56,165 +58,197 @@ pass <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
   # Transform source1_sf to UTM Zone 18N (EPSG:32618)
   source_sf_utm <- st_transform(source_sf, 32618)
   # Convert the data frame to an sf object
-  sf_pass <- st_as_sf(pass, coords = c("Longitude", "Latitude"))
+  sf_pas <- st_as_sf(pas, coords = c("Longitude", "Latitude"))
   # Set the CRS to WGS 84 (EPSG:4326)
-  sf_pass <- st_set_crs(sf_pass, 4326)
+  sf_pas <- st_set_crs(sf_pas, 4326)
   # Transform to UTM Zone 18N
-  sf_pass_utm <- st_transform(sf_pass, 32618)
+  sf_pas_utm <- st_transform(sf_pas, 32618)
   # Calculate distances in meters from each location to source
-  distances_meters <- st_distance(sf_pass_utm, source_sf_utm)
+  distances_meters <- st_distance(sf_pas_utm, source_sf_utm)
   # Convert distances to kilometers
   distances_km <- units::set_units(distances_meters, "km")
   # Extract numeric values and assign to the DistanceToSource column
-  pass$DistanceToSource <- as.numeric(distances_km[, 1])
+  pas$DistanceToSource <- as.numeric(distances_km[, 1])
 }
 
 # Data preparation --------------------------------------------------------
 {
   # Change date format
-  pass$SampleDate <- as.Date(pass$SampleDate, format = "%m/%d/%y")
+  pas$SampleDate <- as.Date(pas$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(pass$SampleDate) - min(as.Date(pass$SampleDate)))
-  # Create individual code for each site sampled
-  site.numb <- pass$SiteID %>% as.factor() %>% as.numeric
+  time.day <- as.numeric(difftime(as.Date(pas$SampleDate),
+                                  min(as.Date(pas$SampleDate)), units = "days"))
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(pass$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(pas$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  pass.tpcb <- cbind(factor(pass$SiteID), pass$SampleDate, as.matrix(pass$tPCB),
-                    data.frame(time.day), site.numb, season.s, pass$DistanceToSource)
+  pas.tpcb <- cbind(factor(pas$SiteID), pas$SampleDate, as.matrix(pas$tPCB),
+                    data.frame(time.day), season.s, pas$DistanceToSource)
   # Add column names
-  colnames(pass.tpcb) <- c("SiteID", "date", "tPCB", "time", "site.code",
-                           "season", "DistanceToSource")
+  colnames(pas.tpcb) <- c("SiteID", "date", "tPCB", "time", "season",
+                           "DistanceToSource")
 }
 
 # Include USGS flow and temperature data --------------------------------------------------
 {
   # Include flow data from USGS station Passaic River
-  sitepassN1 <- "01381900" # No temp
-  sitepassN2 <- "01379500" # No temp
-  sitepassN3 <- "01389005" # No flow
-  sitepassN4 <- "01389010" # No temp
-  sitepassN5 <- "01389500" # No temp
-  sitepassN6 <- "01389890" # No temp
+  sitepasN1 <- "01381900" # No temp
+  sitepasN2 <- "01379500" # No temp
+  sitepasN3 <- "01389005" # No flow
+  sitepasN4 <- "01389010" # No temp
+  sitepasN5 <- "01389500" # No temp
+  sitepasN6 <- "01389890" # No temp
 
   # Codes to retrieve data
   paramflow <- "00060" # discharge, ft3/s
   paramtemp <- "00010" # water temperature, C
   # Retrieve USGS data
-  flow.1 <- readNWISdv(sitepassN1, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.2 <- readNWISdv(sitepassN2, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.3 <- readNWISdv(sitepassN4, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.4 <- readNWISdv(sitepassN5, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  flow.5 <- readNWISdv(sitepassN6, paramflow,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
-  temp <- readNWISdv(sitepassN3, paramtemp,
-                     min(pass.tpcb$date), max(pass.tpcb$date))
+  flow.1 <- readNWISdv(sitepasN1, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.2 <- readNWISdv(sitepasN2, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.3 <- readNWISdv(sitepasN4, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.4 <- readNWISdv(sitepasN5, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  flow.5 <- readNWISdv(sitepasN6, paramflow,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
+  temp <- readNWISdv(sitepasN3, paramtemp,
+                     min(pas.tpcb$date), max(pas.tpcb$date))
   
   # Add USGS data to pass.tpcb.2, matching dates, conversion to m3/s
-  pass.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.1$Date)]
-  pass.tpcb$flow.2 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.2 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.2$Date)]
-  pass.tpcb$flow.3 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.3 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.3$Date)]
-  pass.tpcb$flow.4 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.4 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.4$Date)]
-  pass.tpcb$flow.5 <- 0.03*flow.1$X_00060_00003[match(pass.tpcb$date,
+  pas.tpcb$flow.5 <- 0.03*flow.1$X_00060_00003[match(pas.tpcb$date,
                                                       flow.5$Date)]
-  pass.tpcb$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pass.tpcb$date,
+  pas.tpcb$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pas.tpcb$date,
                                                        temp$Date)]
 }
 
 # Remove site -------------------------------------------------------------
 # Remove site located in the ocean. Possible typo in original coordinates.
-pass.tpcb.1 <- subset(pass.tpcb, SiteID != c("WCPCB-PASS022"))
+pas.tpcb.1 <- subset(pas.tpcb, SiteID != c("WCPCB-PASS022"))
 
-# Random Forest Model -----------------------------------------------------
+# Random Forest Model tPCB ------------------------------------------------
+# Remove columns not used here
 # Using flow.1
+pas.tpcb.1 <- select(pas.tpcb.1, -c(date, flow.2, flow.3, flow.4, flow.5))
 # Train-Test Split
 set.seed(123)
-train_indices <- sample(1:nrow(pass.tpcb.1), 0.8 * nrow(pass.tpcb.1))
-train_data <- pass.tpcb.1[train_indices, ]
-test_data <- pass.tpcb.1[-train_indices, ]
 
-# Fit the Model
-rf_model.1 <- randomForest(log10(tPCB) ~ time + site.code + season +
-                             flow.1 + temp + DistanceToSource,
-                           data = train_data)
+# Train-test split
+train_indices <- sample(1:nrow(pas.tpcb.1), 0.8 * nrow(pas.tpcb.1))
+train_data <- pas.tpcb.1[train_indices, ]
+test_data <- pas.tpcb.1[-train_indices, ]
 
-# Make Predictions
-predictions.1 <- predict(rf_model.1, newdata = test_data)
+# Define hyperparameter grid
+param_grid <- expand.grid(
+  mtry = seq(1, ncol(train_data) - 1),  # Adjust mtry values based on your data
+  splitrule = c("gini", "extratrees"),
+  min.node.size = c(3, 4, 5)
+)
 
-# Evaluate Model Performance
-mse <- mean((predictions.1 - log10(test_data$tPCB))^2)
+# Prepare training control
+ctrl <- trainControl(method = "cv", number = 5, search = "grid")
+
+# Perform grid search with cross-validation using ranger
+rf_model <- train(
+  log10(tPCB) ~ time + SiteID + season + flow.1 + temp + DistanceToSource,
+  data = train_data,
+  method = "ranger",
+  importance = 'permutation',
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the best mtry
+best_mtry <- rf_model$bestTune$mtry
+
+final_rf_model <- ranger(
+  formula = log10(tPCB) ~ time + SiteID + season + flow.1 + temp +
+    DistanceToSource,
+  data = train_data,
+  num.trees = 5000, # need to manually modify this parameter
+  mtry = best_mtry,
+  importance = 'permutation',
+  seed = 123
+)
+
+# Get predictions on the test data
+predictions <- predict(final_rf_model, data = test_data)$predictions
+
+# Evaluate model performance
+mse <- mean((predictions - log10(test_data$tPCB))^2)
 rmse <- sqrt(mse)
-r_squared <- 1 - (sum((log10(test_data$tPCB) - predictions.1)^2)/sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2))
+
+# Calculate R-squared
+ss_res <- sum((log10(test_data$tPCB) - predictions)^2)
+ss_tot <- sum((log10(test_data$tPCB) - mean(log10(test_data$tPCB)))^2)
+r_squared <- 1 - (ss_res / ss_tot)
+
+# Print RMSE and R-squared
+print(paste("RMSE:", rmse))
+print(paste("R-squared:", r_squared))
 
 # Estimate a factor of 2 between observations and predictions
 # Create a data frame with observed and predicted values
-compare_df.1 <- data.frame(observed = test_data$tPCB,
-                           predicted = 10^predictions.1)
+comparison <- data.frame(observed = test_data$tPCB,
+                         predicted = 10^predictions)
 
 # Estimate a factor of 2 between observations and predictions
-compare_df.1$factor2 <- compare_df.1$observed/compare_df.1$predicted
+comparison$factor2 <- comparison$observed/comparison$predicted
 
 # Calculate the percentage of observations within the factor of 2
-factor2_percentage.1 <- nrow(compare_df.1[compare_df.1$factor2 > 0.5 & compare_df.1$factor2 < 2, ])/nrow(compare_df.1)*100
+factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$factor2 < 2
+                                      , ])/nrow(comparison)*100
+
+# Print Factor2
+print(paste("Factor2:", factor2_percentage))
 
 # Create the data frame directly
-performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
+performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
                              Value = c(rmse, r_squared,
-                                       factor2_percentage.1))
-
-# Remove unnecessary columns
-performance_df <- performance_df[, !(names(performance_df) %in% c("V1", "V2", "V3"))]
-
-# Print the modified data frame
-print(performance_df)
+                                       factor2_percentage))
 
 # Export results
-write.csv(performance_df,
-          file = "Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPerformancetPCB.csv",
+write.csv(performance_RF,
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFtPCB.csv",
           row.names = FALSE)
 
-# Feature Importance
-importance.1 <- importance(rf_model.1)
-barplot(importance.1[, 1], names.arg = rownames(importance.1),
-        main = "Feature Importance", las = 2, cex.names = 0.7)
-
 # Create a data frame for plotting and exporting
-plot_data.1 <- data.frame(
+plot_data <- data.frame(
   Location = rep("Passaic River", nrow(test_data)),
   Actual = log10(test_data$tPCB),
-  Predicted = predictions.1
+  Predicted = predictions
 )
 
 # Export results
-write.csv(plot_data.1,
+write.csv(plot_data,
           file = "Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFObsPredtPCB.csv",
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data.1, aes(x = 10^(Actual), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^6),
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
+  geom_point(shape = 21, size = 1, fill = "white") +
+  scale_y_log10(limits = c(1, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^6),
+  scale_x_log10(limits = c(1, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(2), slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue",
               linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -227,71 +261,65 @@ print(plotRF)
 ggsave("Output/Plots/Sites/ObsPred/PassaicRiver/PassaicRiverRFtPCB.png",
        plot = plotRF, width = 6, height = 5, dpi = 500)
 
-# Individual PCB Analysis -------------------------------------------------
-# Prepare data.frame
+# Random Forest Model individual PCBs -------------------------------------
 {
   # Remove metadata
-  pass.pcb <- subset(pass, select = -c(SampleID:AroclorCongener))
+  pas.pcb <- subset(pas, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  pass.pcb <- subset(pass.pcb, select = -c(A1016:DistanceToSource))
+  pas.pcb <- subset(pas.pcb, select = -c(A1016:DistanceToSource))
   # Log10 individual PCBs 
-  pass.pcb <- log10(pass.pcb)
+  pas.pcb <- log10(pas.pcb)
   # Replace -inf to NA
-  pass.pcb <- do.call(data.frame,
-                     lapply(pass.pcb,
+  pas.pcb <- do.call(data.frame,
+                     lapply(pas.pcb,
                             function(x) replace(x, is.infinite(x), NA)))
   # Remove individual PCB that have 30% or less NA values
-  pass.pcb.1 <- pass.pcb[,
-                       -which(colSums(is.na(pass.pcb))/nrow(pass.pcb) > 0.7)]
-  # Add site ID
-  SiteID <- factor(pass$SiteID)
-  # Create individual code for each site sampled
-  site.numb <- pass$SiteID %>% as.factor() %>% as.numeric
+  pas.pcb.1 <- pas.pcb[,
+                       -which(colSums(is.na(pas.pcb))/nrow(pas.pcb) > 0.7)]
   # Change date format
-  SampleDate <- as.Date(pass$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(pas$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
-  # Change name time.day to time
-  colnames(time.day) <- "time"
+  time.day <- as.numeric(difftime(as.Date(SampleDate),
+                                  min(as.Date(SampleDate)), units = "days"))
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(pass$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(pas$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add distance to source
-  DistanceToSource <- pass$DistanceToSource
-  # Add date and time to pass.pcb.1
-  pass.pcb.1 <- cbind(pass.pcb.1, SiteID, site.numb, SampleDate,
+  DistanceToSource <- pas$DistanceToSource
+  # Add date and time to pas.pcb.1
+  pas.pcb.1 <- cbind(pas.pcb.1, as.factor(pas$SiteID), SampleDate,
                       data.frame(time.day), season.s, DistanceToSource)
   # Remove site located in the ocean. Possible typo in original coordinates.
-  pass.pcb.1 <- subset(pass.pcb.1, SiteID != c("WCPCB-PASS022"))
+  pas.pcb.1 <- subset(pas.pcb.1, !(as.factor(pas$SiteID) %in% c("WCPCB-PASS022")))
   # Include flow data from USGS station Passaic River
-  sitepassN1 <- "01381900" # No temp
-  sitepassN3 <- "01389005" # No flow
+  sitepasN1 <- "01381900" # No temp
+  sitepasN3 <- "01389005" # No flow
   # Codes to retrieve data
   paramflow <- "00060" # discharge, ft3/s
   paramtemp <- "00010" # water temperature, C
   # Retrieve USGS data
-  flow.1 <- readNWISdv(sitepassN1, paramflow,
-                       min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
-  temp <- readNWISdv(sitepassN3, paramtemp,
-                     min(pass.pcb.1$SampleDate), max(pass.pcb.1$SampleDate))
-  # Add USGS data to pass.tpcb.1, matching dates, conversion to m3/s
-  pass.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(pass.pcb.1$SampleDate,
+  flow.1 <- readNWISdv(sitepasN1, paramflow,
+                       min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
+  temp <- readNWISdv(sitepasN3, paramtemp,
+                     min(pas.pcb.1$SampleDate), max(pas.pcb.1$SampleDate))
+  # Add USGS data to pas.tpcb.1, matching dates, conversion to m3/s
+  pas.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(pas.pcb.1$SampleDate,
                                                       flow.1$Date)]
-  pass.pcb.1$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pass.pcb.1$SampleDate,
+  pas.pcb.1$temp <- 273.15 + temp$X_.from.middle.intake_00010_00003[match(pas.pcb.1$SampleDate,
                                                                           temp$Date)]
   # Remove metadata not use in the random forest
-  pass.pcb.1 <- pass.pcb.1[, !(names(pass.pcb.1) %in% c("SiteID", "SampleDate"))]
+  pas.pcb.1 <- pas.pcb.1[, !(names(pas.pcb.1) %in% c("SampleDate"))]
 }
 
 # Set the seed for reproducibility
 set.seed(123)
 
 # Find the numeric columns (columns starting with "PCB")
-pcb_numeric_columns <- grep("^PCB", colnames(pass.pcb.1), value = TRUE)
+pcb_numeric_columns <- grep("^PCB", colnames(pas.pcb.1), value = TRUE)
 
 # Find the corresponding character columns
-char_columns <- setdiff(colnames(pass.pcb.1), pcb_numeric_columns)
+char_columns <- setdiff(colnames(pas.pcb.1), pcb_numeric_columns)
 
 # Initialize the results matrix
 rf_results <- data.frame(
@@ -304,57 +332,99 @@ rf_results <- data.frame(
 # Create an empty data frame to store all predicted and actual data
 all_results <- data.frame()
 
-# Iterate over each numeric column
-for (i in seq_along(pcb_numeric_columns)) {
-  # Combine numeric and character data
-  combined_data <- cbind(pass.pcb.1[, pcb_numeric_columns[i],
-                                   drop = FALSE], pass.pcb.1[, char_columns])
-  
-  # Exclude rows with missing values
-  combined_data <- na.omit(combined_data)
-  
-  # Sample indices for training
-  train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
-  
-  # Create separate training and testing sets
-  train_data <- combined_data[train_indices, ]
-  test_data <- combined_data[-train_indices, ]
-  
-  # Modeling code using randomForest
-  fit <- randomForest(train_data[, 1] ~ ., data = train_data)
-  
-  # Example: Make predictions on the test set
-  predictions <- predict(fit, newdata = test_data)
-  
-  # Calculate mean squared error (mse) for illustration
-  mse <- mean((predictions - test_data[, 1])^2)
-  
-  # Calculate R-squared
-  r_squared <- 1 - (sum((test_data[, 1] - predictions)^2) / sum((test_data[, 1] - mean(test_data[, 1]))^2))
-  
-  # Calculate factor2_percentage within the loop
-  compare_df <- data.frame(
-    observed = test_data[, 1],
-    predicted = predictions
-  )
-  compare_df$factor2 <- compare_df$observed / compare_df$predicted
-  factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
-  
-  # Store the results in the matrix
-  rf_results[i, 2:4] <- c(mse, r_squared, factor2_percentage)
-  
-  # Create a data frame for each column's results
-  col_results <- data.frame(
-    Location = rep("Passaic River", length(test_data[, 1])),
-    Congener = rep(pcb_numeric_columns[i], length(test_data[, 1])),
-    Actual = test_data[, 1],
-    Predicted = predictions,
-    R_squared = r_squared  # Add R_squared column
-  )
-  
-  # Bind the data frame to the overall results
-  all_results <- rbind(all_results, col_results)
+# Define parameter grid. More values can be included.
+num_trees_grid <- c(500, 750, 1000)
+mtry_grid <- c(4, 5)
+min_node_size_grid <- c(4, 5, 6)
+
+# Initialize variables to store best parameters and performance
+best_params <- c(Inf, Inf, Inf)  # Initial best performance (lower is better)
+best_performance <- c(Inf, -Inf, -Inf)  # Initial best performance (higher is better)
+
+# Perform grid search
+for (num_trees in num_trees_grid) {
+  for (mtry in mtry_grid) {
+    for (min_node_size in min_node_size_grid) {
+      
+      # Initialize performance metrics
+      avg_mse <- 0
+      avg_r_squared <- 0
+      avg_factor2_percentage <- 0
+      
+      # Iterate over each numeric column
+      for (i in seq_along(pcb_numeric_columns)) {
+        # Combine numeric and character data
+        combined_data <- cbind(pas.pcb.1[, pcb_numeric_columns[i], drop = FALSE],
+                               pas.pcb.1[, char_columns])
+        
+        # Exclude rows with missing values
+        combined_data <- na.omit(combined_data)
+        
+        # Sample indices for training
+        train_indices <- sample(1:nrow(combined_data), 0.8 * nrow(combined_data))
+        
+        # Create separate training and testing sets
+        train_data <- combined_data[train_indices, ]
+        test_data <- combined_data[-train_indices, ]
+        
+        # Train the ranger model with specified hyperparameters
+        ranger_model <- ranger(
+          dependent.variable.name = pcb_numeric_columns[i],
+          data = train_data,
+          num.trees = num_trees,
+          mtry = mtry,
+          min.node.size = min_node_size,
+          seed = 123
+        )
+        
+        # Predict on the test set
+        predictions <- predict(ranger_model, data = test_data)$predictions
+        
+        # Calculate evaluation metrics
+        mse <- mean((predictions - test_data[, pcb_numeric_columns[i]])^2)
+        r_squared <- 1 - sum((test_data[, pcb_numeric_columns[i]] - predictions)^2) / sum((test_data[, pcb_numeric_columns[i]] - mean(test_data[, pcb_numeric_columns[i]]))^2)
+        compare_df <- data.frame(observed = test_data[, pcb_numeric_columns[i]], predicted = predictions)
+        compare_df$factor2 <- compare_df$observed / compare_df$predicted
+        factor2_percentage <- sum(compare_df$factor2 > 0.5 & compare_df$factor2 < 2) / nrow(compare_df) * 100
+        
+        # Update average performance metrics
+        avg_mse <- avg_mse + mse
+        avg_r_squared <- avg_r_squared + r_squared
+        avg_factor2_percentage <- avg_factor2_percentage + factor2_percentage
+        
+        # Append to the all_results dataframe
+        col_results <- data.frame(
+          Location = rep("Passaic River", nrow(test_data)),
+          Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
+          Actual = test_data[, pcb_numeric_columns[i]],
+          Predicted = predictions,
+          R_squared = r_squared
+        )
+        all_results <- rbind(all_results, col_results)
+        
+        # Update rf_results with the average performance metrics for the current Congener
+        rf_results$RMSE[i] <- sqrt(mse)
+        rf_results$R_squared[i] <- r_squared
+        rf_results$Factor2_Percentage[i] <- factor2_percentage
+      }
+      
+      # Average performance metrics across all numeric columns
+      avg_mse <- avg_mse / length(pcb_numeric_columns)
+      avg_r_squared <- avg_r_squared / length(pcb_numeric_columns)
+      avg_factor2_percentage <- avg_factor2_percentage / length(pcb_numeric_columns)
+      
+      # Update best parameters and performance if better
+      if (avg_mse < best_performance[1] && avg_r_squared > best_performance[2] && avg_factor2_percentage > best_performance[3]) {
+        best_params <- c(num_trees, mtry, min_node_size)
+        best_performance <- c(avg_mse, avg_r_squared, avg_factor2_percentage)
+      }
+    }
+  }
 }
+
+# Output best parameters and performance
+print("Best Parameters:")
+print(best_params)
 
 # Remove congeners w/R2 < 0
 rf_results <- rf_results %>%
@@ -373,7 +443,7 @@ all_results <- all_results %>% select(-R_squared)
 
 # Export results
 write.csv(rf_results,
-          file = "Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPerformancePCB.csv",
+          file = "Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPCB.csv",
           row.names = FALSE)
 
 # Export combined results
@@ -383,18 +453,18 @@ write.csv(all_results,
 
 # Plot
 plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(0.1, 10^5),
+  geom_point(shape = 21, size = 1, fill = "white") +
+  scale_y_log10(limits = c(0.01, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.1, 10^5),
+  scale_x_log10(limits = c(0.01, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
