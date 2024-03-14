@@ -266,7 +266,7 @@ rf_results <- data.frame(
 all_results <- data.frame()
 
 # Define parameter grid. More values can be included.
-num_trees_grid <- c(500, 750, 1000)
+num_trees_grid <- c(200, 300, 500)
 mtry_grid <- c(2, 3, 4)
 min_node_size_grid <- c(3, 4, 5)
 
@@ -327,7 +327,7 @@ for (num_trees in num_trees_grid) {
         
         # Append to the all_results dataframe
         col_results <- data.frame(
-          Location = rep("USA", nrow(test_data)),
+          Location = rep("Lake Washington", nrow(test_data)),
           Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
           Actual = test_data[, pcb_numeric_columns[i]],
           Predicted = predictions,
@@ -396,8 +396,8 @@ plotRFPCBi <- ggplot(all_results, aes(x = 10^(Actual), y = 10^(Predicted))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = 0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.30103, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
