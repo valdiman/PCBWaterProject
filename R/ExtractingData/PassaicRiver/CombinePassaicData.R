@@ -61,7 +61,7 @@ unique_combinations <- merged_pass %>%
 # Function to generate SiteID based on LATITUDE and LONGITUDE
 generate_SiteID <- function(lat, lon) {
   index <- which(unique_combinations$Latitude == lat & unique_combinations$Longitude == lon)
-  SiteID <- paste("WCPCB-PASS", sprintf("%03d", index), sep = "")
+  SiteID <- paste("WCPCB-PAS", sprintf("%03d", index), sep = "")
   return(SiteID)
 }
 
