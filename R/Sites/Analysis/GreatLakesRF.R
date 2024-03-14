@@ -299,7 +299,7 @@ rf_results <- data.frame(
 all_results <- data.frame()
 
 # Define parameter grid. More values can be included.
-num_trees_grid <- c(500, 750, 1000)
+num_trees_grid <- c(50, 100, 200)
 mtry_grid <- c(3, 4, 5)
 min_node_size_grid <- c(3, 4, 5)
 
@@ -360,7 +360,7 @@ for (num_trees in num_trees_grid) {
         
         # Append to the all_results dataframe
         col_results <- data.frame(
-          Location = rep("USA", nrow(test_data)),
+          Location = rep("Great Lakes", nrow(test_data)),
           Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
           Actual = test_data[, pcb_numeric_columns[i]],
           Predicted = predictions,
