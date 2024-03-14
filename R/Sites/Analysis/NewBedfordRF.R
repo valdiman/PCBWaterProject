@@ -14,8 +14,7 @@
 ## https://19january2021snapshot.epa.gov/new-bedford-harbor/general-information-about-new-bedford-harbor-cleanup_.html
 ## https://semspub.epa.gov/work/01/100013466.pdf
 
-# Install packages
-install.packages("randomForest")
+## Install packages
 install.packages("tidyverse")
 install.packages("ggplot2")
 install.packages("robustbase")
@@ -31,6 +30,8 @@ install.packages("scales")
 install.packages("sf")
 install.packages("units")
 install.packages("sfheaders")
+install.packages('ranger')
+install.packages('caret')
 
 # Load libraries
 {
@@ -47,7 +48,8 @@ install.packages("sfheaders")
   library(patchwork) # combine plots
   library(sf) # Create file to be used in Google Earth
   library(units)
-  library(randomForest)
+  library(ranger) # Random Forest functions
+  library(caret) # For cross-validation
 }
 
 # Read data ---------------------------------------------------------------
