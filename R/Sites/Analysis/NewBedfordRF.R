@@ -176,13 +176,13 @@ factor2_percentage <- nrow(comparison[comparison$factor2 > 0.5 & comparison$fact
 print(paste("Factor2:", factor2_percentage))
 
 # Create the data frame directly
-performance_df <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
+performance_RF <- data.frame(Heading = c("RMSE", "R2", "Factor2"),
                              Value = c(rmse, r_squared,
                                        factor2_percentage))
 
 # Export results
-write.csv(performance_df,
-          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHRFPerformancetPCB.csv",
+write.csv(performance_RF,
+          file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHRFtPCB.csv",
           row.names = FALSE)
 
 # Create a data frame for plotting and exporting
