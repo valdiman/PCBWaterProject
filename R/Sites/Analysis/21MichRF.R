@@ -187,7 +187,7 @@ write.csv(performance_RF,
 # Create a data frame for plotting Observations vs Predictions
 plot_data <- data.frame(
   Location = rep("21 Mich", nrow(test_data)),
-  Observed = log10(test_data$tPCB),
+  Actual = log10(test_data$tPCB),
   Predicted = predictions
 )
 
@@ -197,7 +197,7 @@ write.csv(plot_data,
           row.names = FALSE)
 
 # Create the scatter plot
-plotRF <- ggplot(plot_data, aes(x = 10^(Observed), y = 10^(Predicted))) +
+plotRF <- ggplot(plot_data, aes(x = 10^(Actual), y = 10^(Predicted))) +
   geom_point(shape = 21, size = 1, fill = "white") +
   scale_y_log10(limits = c(1, 10^6),
                 breaks = trans_breaks("log10", function(x) 10^x),
