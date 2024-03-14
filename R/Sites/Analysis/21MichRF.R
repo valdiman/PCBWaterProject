@@ -371,6 +371,10 @@ print(best_params)
 rf_results <- rf_results %>%
   filter(R_squared >= 0)
 
+# Add location name
+rf_results <- cbind(Location = rep("DEQ MI", nrow(rf_results)),
+                    rf_results)
+
 # Remove rows in all_results where R_squared < 0
 all_results <- all_results %>%
   filter(R_squared >= 0)
