@@ -106,7 +106,7 @@ pas <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
 
 # Remove site -------------------------------------------------------------
 # Remove site located in the ocean.Possible typo in original coordinates.
-pas.tpcb.1 <- subset(pas.tpcb, SiteID != c("WCPCB-PASS022"))
+pas.tpcb.1 <- subset(pas.tpcb, SiteID != c("WCPCB-PAS022"))
 
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
@@ -146,7 +146,7 @@ shapiro.test(resid(lme.pas.tpcb)) # Lme doesn't work.
 # Prepare data.frame
 {
   # Remove site located in the ocean. Possible typo in original coordinates.
-  pas.pcb <- subset(pas, SiteID != c("WCPCB-PASS022"))
+  pas.pcb <- subset(pas, SiteID != c("WCPCB-PAS022"))
   # Remove metadata
   pas.pcb.1 <- subset(pas.pcb, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
