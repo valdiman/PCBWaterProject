@@ -351,7 +351,7 @@ for (num_trees in num_trees_grid) {
         
         # Append to the all_results dataframe
         col_results <- data.frame(
-          Location = rep("USA", nrow(test_data)),
+          Location = rep("Chesapeake Bay", nrow(test_data)),
           Congener = rep(pcb_numeric_columns[i], nrow(test_data)),
           Actual = test_data[, pcb_numeric_columns[i]],
           Predicted = predictions,
