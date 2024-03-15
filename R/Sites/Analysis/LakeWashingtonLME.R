@@ -3,7 +3,6 @@
 
 # Install packages
 install.packages("tidyverse")
-install.packages("ggplot2")
 install.packages("robustbase")
 install.packages("dplyr")
 install.packages("tibble")
@@ -15,12 +14,10 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
-install.packages('patchwork')
 install.packages("scales")
 
 # Load libraries
 {
-  library(ggplot2)
   library(scales) # function trans_breaks
   library(stringr) # str_detect
   library(robustbase) # function colMedians
@@ -33,7 +30,6 @@ install.packages("scales")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(tidyr) # function gather
-  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
