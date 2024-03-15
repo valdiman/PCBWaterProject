@@ -4,7 +4,6 @@
 
 # Install packages
 install.packages("tidyverse")
-install.packages("ggplot2")
 install.packages("robustbase")
 install.packages("dplyr")
 install.packages("tibble")
@@ -15,12 +14,10 @@ install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
-install.packages('patchwork')
 install.packages("scales")
 
 # Load libraries
 {
-  library(ggplot2)
   library(scales) # function trans_breaks
   library(stringr) # str_detect
   library(robustbase) # function colMedians
@@ -32,7 +29,6 @@ install.packages("scales")
   library(zoo) # yields seasons
   library(dataRetrieval) # read data from USGS
   library(reshape)
-  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
@@ -364,11 +360,8 @@ lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
 congeners <- colnames(fox.pcb.3)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 
-# Add Location Name
-lme.pcb <- cbind(LocationName = rep("Fox River", nrow(lme.pcb)), lme.pcb)
-
 # Add column names
-colnames(lme.pcb) <- c("LocationName", "Congeners", "Intercept", "Intercept.error",
+colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "flow", "flow.error", "flow.pv", "temperature",
                        "temperature.error", "temperature.pv", "season2",
@@ -376,6 +369,9 @@ colnames(lme.pcb) <- c("LocationName", "Congeners", "Intercept", "Intercept.erro
                        "season3.error", "season3.pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
                        "RMSE", "Factor2")
+
+# Add Location Name
+lme.pcb <- cbind(LocationName = rep("Fox River", nrow(lme.pcb)), lme.pcb)
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
