@@ -306,8 +306,11 @@ lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
 congeners <- colnames(hud.pcb.4)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 
+# Add Location Name
+lme.pcb <- cbind(LocationName = rep("Hudson River", nrow(lme.pcb)), lme.pcb)
+
 # Add column names
-colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
+colnames(lme.pcb) <- c("LocationName", "Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "flow", "flow.error", "flow.pv", "flow2", "flow2.error",
                        "flow2.pv", "temperature", "temperature.error",
@@ -322,6 +325,6 @@ lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
 # Get the congeners that are not showing normality
 lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
-
-# Results are similar or worst than using a linear flow function. 
-
+# Select only congeners with significant time coefficients
+lme.pcb.t <- lme.pcb[lme.pcb$time.pv < 0.05, ]
+# No significance found
