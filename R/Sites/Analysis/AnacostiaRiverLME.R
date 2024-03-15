@@ -91,7 +91,7 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
   #                                                                    temp.2$Date)]
 }
 
-# tPCB Regressions --------------------------------------------------------
+# LME Model tPCB ----------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- anr.tpcb$tPCB
@@ -173,15 +173,6 @@ fit.lme.values.anr.tpcb <- as.data.frame(fitted(lme.anr.tpcb))
 colnames(fit.lme.values.anr.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 anr.tpcb$predicted <- 10^(fit.lme.values.anr.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = anr.tpcb$tPCB, predicted = anr.tpcb$predicted)
-predic.obs <- data.frame(Location = anr$LocationName[1], predic.obs)
-colnames(predic.obs) <- c("location", "observed", "predicted")
-# Save observations vs predictions
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmeObsPredtPCB.csv",
-          row.names = FALSE)
-
 # Estimate a factor of 2 between observations and predictions
 anr.tpcb$factor2 <- anr.tpcb$tPCB/anr.tpcb$predicted
 factor2.tpcb <- nrow(anr.tpcb[anr.tpcb$factor2 > 0.5 & anr.tpcb$factor2 < 2,
@@ -207,10 +198,19 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "t05.error", "RandonEffectSiteStdDev", "R2nR", "R2R",
                         "Normality", "RMSE", "Factor2")
 
+# Add Location Name
+lme.tpcb <- cbind(LocationName = rep("Anacostia River",
+                                     nrow(lme.tpcb)), lme.tpcb)
+# Select relevant columns
+lme.tpcb.t <- lme.tpcb[, c("LocationName", "t05", "t05.error",
+                           "R2R", "RMSE", "Factor2")]
+
 # Export results
-write.csv(lme.tpcb,
+write.csv(lme.tpcb.t,
           file = "Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmetPCB.csv",
           row.names = FALSE)
+
+# Not sure about this!
 
 # Modeling plots
 # Plot prediction vs. observations, 1:1 line
