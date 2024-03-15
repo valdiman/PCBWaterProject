@@ -62,7 +62,7 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
                           "tPCB", "time", "season")
 }
 
-# tPCB Regressions --------------------------------------------------------
+# LME Model tPCB --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- bfc.tpcb$tPCB
@@ -272,17 +272,17 @@ lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
 congeners <- colnames(bfc.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 
-# Add Location Name
-lme.pcb <- cbind(LocationName = rep("Bannister Fed Complex",
-                                     nrow(lme.tpcb)), lme.pcb)
-
 # Add column names
-colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
+colnames(lme.pcb) <- c("Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "season2", "season2.error", "season2, pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
                        "RMSE", "Factor2")
+
+# Add Location Name
+lme.pcb <- cbind(LocationName = rep("Bannister Fed Complex",
+                                    nrow(lme.tpcb)), lme.pcb)
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
