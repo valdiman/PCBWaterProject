@@ -4,7 +4,6 @@
 
 # Install packages
 install.packages("tidyverse")
-install.packages("ggplot2")
 install.packages("robustbase")
 install.packages("dplyr")
 install.packages("tibble")
@@ -16,12 +15,10 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
-install.packages('patchwork')
 install.packages("scales")
 
 # Load libraries
 {
-  library(ggplot2)
   library(scales) # function trans_breaks
   library(stringr) # str_detect
   library(robustbase) # function colMedians
@@ -34,7 +31,6 @@ install.packages("scales")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(tidyr) # function gather
-  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
@@ -63,7 +59,7 @@ rhr <- wdc[str_detect(wdc$LocationName, 'Richardson Hill Road Landfill'),]
                           "tPCB", "time", "season")
 }
 
-# tPCB Regressions --------------------------------------------------------
+# LME Model tPCB --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- rhr.tpcb$tPCB
@@ -129,15 +125,6 @@ fit.lme.values.rhr.tpcb <- as.data.frame(fitted(lme.rhr.tpcb))
 colnames(fit.lme.values.rhr.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 rhr.tpcb$predicted <- 10^(fit.lme.values.rhr.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = rhr.tpcb$tPCB, predicted = rhr.tpcb$predicted)
-predic.obs <- data.frame(Location = rhr$LocationName[1], predic.obs)
-colnames(predic.obs) <- c("location", "observed", "predicted")
-# Save new data
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/Richardson/RichardsonLmeObsPredtPCB.csv",
-          row.names = FALSE)
-
 # Estimate a factor of 2 between observations and predictions
 rhr.tpcb$factor2 <- rhr.tpcb$tPCB/rhr.tpcb$predicted
 factor2.tpcb <- nrow(rhr.tpcb[rhr.tpcb$factor2 > 0.5 & rhr.tpcb$factor2 < 2,
@@ -159,53 +146,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "t05.error", "RandonEffectSiteStdDev", "R2nR", "R2R",
                         "Normality", "RMSE", "Factor2")
 
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/Richardson/RichardsonLmetPCB.csv",
-          row.names = FALSE)
-
-# Modeling plots
-# Plot prediction vs. observations, 1:1 line
-p <- ggplot(rhr.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10^4, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10^4, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# See plot
-print(p)
-
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/Richardson/RichardsonLmeObsPredtPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
-
-# Plot residuals vs. predictions
-{
-  # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeRichardsontPCB.png", width = 800,
-      height = 600)
-  # Create plot
-  plot(rhr.tpcb$predicted, resid(lme.rhr.tpcb),
-       points(rhr.tpcb$predicted, resid(lme.rhr.tpcb), pch = 16, 
-              col = "white"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  # Add lines to the plot
-  abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(0, 1400000, 100000), col = "grey")
-  # Close the PNG graphics device
-  dev.off()
-}
-
+# Add Location Name
+lme.tpcb <- cbind(LocationName = rep("Richardson LME",
+                                     nrow(lme.tpcb)), lme.tpcb)
+# Time coefficient not significant.
