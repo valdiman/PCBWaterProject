@@ -4,7 +4,6 @@
 
 # Install packages
 install.packages("tidyverse")
-install.packages("ggplot2")
 install.packages("robustbase")
 install.packages("dplyr")
 install.packages("tibble")
@@ -16,12 +15,10 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
-install.packages('patchwork')
 install.packages("scales")
 
 # Load libraries
 {
-  library(ggplot2)
   library(scales) # function trans_breaks
   library(stringr) # str_detect
   library(robustbase) # function colMedians
@@ -34,7 +31,6 @@ install.packages("scales")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(tidyr) # function gather
-  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
@@ -107,7 +103,7 @@ spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
   spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR015")) # Hangman Creek
 }
 
-# tPCB Regressions --------------------------------------------------------
+# LME Model tPCB --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- spo.tpcb.1$tPCB
@@ -184,15 +180,6 @@ fit.lme.values.spo.tpcb <- as.data.frame(fitted(lme.spo.tpcb))
 colnames(fit.lme.values.spo.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 spo.tpcb.1$predicted <- 10^(fit.lme.values.spo.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = spo.tpcb.1$tPCB, predicted = spo.tpcb.1$predicted)
-predic.obs <- data.frame(Location = spo$LocationName[1], predic.obs)
-colnames(predic.obs) <- c("location", "observed", "predicted")
-# Save observations vs. predictions
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadObsPredtPCB.csv",
-          row.names = FALSE)
-
 # Estimate a factor of 2 between observations and predictions
 spo.tpcb.1$factor2 <- spo.tpcb.1$tPCB/spo.tpcb.1$predicted
 factor2.tpcb <- nrow(spo.tpcb.1[spo.tpcb.1$factor2 > 0.5 & spo.tpcb.1$factor2 < 2,
@@ -217,59 +204,10 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
                         "RMSE", "Factor2")
 
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadtPCB.csv",
-          row.names = FALSE)
-
-# Modeling plots
-# Plot prediction vs. observations, 1:1 line
-tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 30, y = 10^3.4,
-           label = expression(atop("Spokane River (R"^2*"= 0.58)",
-                                   paste(""))),
-           size = 4, fontface = 2)
-
-# Print plot
-print(tPCBObsPred)
-
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadObsPredtPCB.png",
-       plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
-
-# Plot residuals vs. predictions
-{
-  # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotSpokaneRiverQuadtPCB.png", width = 800,
-      height = 600)
-  # Create plot
-  plot(spo.tpcb.1$predicted, resid(lme.spo.tpcb),
-       points(spo.tpcb.1$predicted, resid(lme.spo.tpcb), pch = 16, 
-              col = "white"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  # Add lines to the plot
-  abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(0, 500, 50), col = "grey")
-  # Close the PNG graphics device
-  dev.off()
-  }
+# Add Location Name
+lme.tpcb <- cbind(LocationName = rep("Spokane River",
+                                     nrow(lme.tpcb)), lme.tpcb)
+# No significant on time coefficient.
 
 # LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
@@ -436,175 +374,23 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
                        "RMSE", "Factor2")
 
+# Add Location Name
+lme.pcb <- cbind(LocationName = rep("Spokane River", nrow(lme.pcb)), lme.pcb)
+
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
 # Get the congeners that are not showing normality
 lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
+# Select only congeners with significant time coefficients
+lme.pcb.t <- lme.pcb[lme.pcb$time.pv < 0.05, ]
+# Select relevant columns
+lme.pcb.t <- lme.pcb.t[, c("LocationName", "Congeners", "t05", "t05.error",
+                           "R2R", "RMSE", "Factor2")]
 
 # Export results
-write.csv(lme.pcb,
+write.csv(lme.pcb.t,
           file = "Output/Data/Sites/csv/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadPCB.csv",
           row.names = FALSE)
-
-# Obtain observations vs predictions
-# Select congeners that are not showing normality to be remove from spo.pcb.2
-df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
-# Get column indices to remove
-cols_to_remove <- which(names(spo.pcb.3) %in% df$names_to_remove)
-# Remove columns from che.pcb.2 with congeners that don't show normality
-spo.pcb.4 <- spo.pcb.3[, -cols_to_remove]
-
-# Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(spo.pcb.4[,1]),
-                      ncol = length(spo.pcb.4[1,]))
-
-for (i in 1:length(spo.pcb.4[1,])) {
-  fit <- lmer(spo.pcb.4[,i] ~ 1 + time + poly(flow, 2) + season + (1|site),
-              REML = FALSE,
-              control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                    check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"),
-              na.action = na.exclude)
-  lme.fit.pcb[,i] <- fitted(fit)
-}
-
-# Individual PCB congener plots -------------------------------------------
-# (1) Plot 1:1 for all congeners
-# Transform lme.fit.pcb to data.frame
-lme.fit.pcb <- as.data.frame(lme.fit.pcb)
-# Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(spo.pcb.4)
-# Add code number to first column
-df1 <- cbind(code = row.names(spo.pcb.4), spo.pcb.4)
-df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
-
-for (i in 2:length(df1)) {
-  col_name <- if (i == 1) {
-    ""  # leave the name empty for the first plot
-  } else {
-    names(df1)[i] # use the column name for other plots
-  }
-  
-  # create plot for each pair of columns
-  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
-              aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "white") +
-    scale_y_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
-    theme_bw() +
-    theme(aspect.ratio = 15/15) +
-    annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
-    annotate('text', x = 1, y = 10^2.7, label = gsub("\\.", "+", names(df1)[i]),
-             size = 3, fontface = 2)
-  # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/", col_name, ".png"), plot = p,
-         width = 6, height = 6, dpi = 500)
-}
-
-# (2) All plots in one page
-# Create a list to store all the plots
-plot_list <- list()
-
-# loop over the columns of df1 and df2
-for (i in 2:length(df1)) {
-  col_name <- paste(names(df1)[i], sep = "")  # use the column name for plot title
-  # create plot for each pair of columns and add to plot_list
-  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
-              aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 2, fill = "white") +
-    scale_y_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    xlab(expression(bold("Observed conc. PCBi (pg/L)"))) +
-    ylab(expression(bold("Predicted lme conc. PCBi (pg/L)"))) +
-    theme_bw() +
-    theme(aspect.ratio = 15/15,
-          axis.title = element_text(size = 6),
-          axis.text = element_text(size = 6)) +
-    annotation_logticks(sides = "bl") +
-    annotate('text', x = 1, y = 10^2.7, label = gsub("\\.", "+", col_name),
-             size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
-  
-  plot_list[[i-1]] <- p  # add plot to list
-}
-# Combine all the plots using patchwork
-combined_plot <- wrap_plots(plotlist = plot_list, ncol = 7)
-# Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/LmeQuadCombined_plot.png", combined_plot,
-       width = 15, height = 15, dpi = 500)
-
-# (3) Create a list to store all the cleaned data frames
-cleaned_df_list <- list()
-# Loop over the columns of df1 and df2
-for (i in 2:length(df1)) {
-  # Create a new data frame by binding the columns of df1 and df2 for each pair of columns
-  df_pair <- cbind(df1[,1], df1[,i], df2[,i])
-  colnames(df_pair) <- c("code", "observed", "predicted")
-  # Remove the rows with missing values
-  cleaned_df_pair <- na.omit(df_pair)
-  # Add the cleaned data frame to the list
-  cleaned_df_list[[i-1]] <- cleaned_df_pair
-}
-
-{
-  # Modify data to be plotted
-  # Combine all the cleaned data frames using rbind
-  combined_cleaned_df <- do.call(rbind, cleaned_df_list)
-  # Convert the matrix to a data frame
-  combined_cleaned_df <- as.data.frame(combined_cleaned_df)
-  # Convert the code column to a factor
-  combined_cleaned_df$code <- as.factor(combined_cleaned_df$code)
-  # Convert the observed and predicted columns to numeric
-  combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
-}
-
-# Export results for plotting
-# Add column LocationName
-combined_cleaned_df$LocationName <- "Spokane River"
-write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadObsPredPCB.csv",
-          row.names = FALSE)
-
-# Plot all the pairs together
-p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 2.5, fill = "white") +
-  scale_y_log10(limits = c(0.01, 10^3), 
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.01, 10^3), 
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
-  theme_bw() +
-  theme(aspect.ratio = 15/15, 
-        axis.title = element_text(size = 10)) +
-  annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
-  annotate("text", x = 1, y = 10^2.7,
-           label = expression(atop("Spokane River",
-                                   paste("74 PCB congeners (n = 3182 pairs)"))),
-           size = 4, fontface = 2)
-
-# Print plot
-print(p)
-
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadObsPredPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
 
