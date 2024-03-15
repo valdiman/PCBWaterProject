@@ -54,15 +54,13 @@ mic <- wdc[str_detect(wdc$LocationName, '21Mich'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  mic.tpcb <- cbind(factor(mic$SiteID), mic$SampleDate,
-                    mic$Latitude, mic$Longitude, as.matrix(mic$tPCB),
+  mic.tpcb <- cbind(factor(mic$SiteID), mic$SampleDate, as.matrix(mic$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(mic.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(mic.tpcb) <- c("SiteID", "tPCB", "time", "season")
 }
 
-# tPCB Regressions --------------------------------------------------------
+# LME Model tPCB ----------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- mic.tpcb$tPCB
@@ -124,8 +122,7 @@ shapiro.test(resid(lme.mic.tpcb))
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Add date and time to fox.pcb.1
-  mic.pcb.1 <- cbind(mic.pcb.1, SiteID, SampleDate, data.frame(time.day),
-                     season.s)
+  mic.pcb.1 <- cbind(mic.pcb.1, SiteID, data.frame(time.day), season.s)
   # Remove metadata
   mic.pcb.2 <- subset(mic.pcb.1, select = -c(SiteID:season.s))
 }
@@ -209,8 +206,11 @@ lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
 congeners <- colnames(mic.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 
+# Add Location Name
+lme.pcb <- cbind(LocationName = rep("DEQ MI", nrow(lme.pcb)), lme.pcb)
+
 # Add column names
-colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
+colnames(lme.pcb) <- c("LocationName", "Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
                        "season2", "season2.error", "season2.pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
@@ -223,10 +223,16 @@ lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
 # Get the congeners that are not showing normality
 lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
-
+# Select only congeners with significant time coefficients
+lme.pcb.t <- lme.pcb[lme.pcb$time.pv < 0.05, ]
+# Select relevant columns
+lme.pcb.t <- lme.pcb.t[, c("LocationName", "Congeners", "t05", "t05.error",
+                               "R2R", "RMSE", "Factor2")]
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/21Mich/21MichLmePCB.csv",
+write.csv(lme.pcb.t, file = "Output/Data/Sites/csv/21Mich/21MichLmePCB.csv",
           row.names = FALSE)
+
+# It seems that i dont need anything below!!
 
 # Obtain observations vs predictions
 # Select congeners that are not showing normality to be remove from mic.pcb.2
