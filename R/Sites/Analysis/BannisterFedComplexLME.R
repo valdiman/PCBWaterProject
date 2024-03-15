@@ -130,15 +130,6 @@ fit.lme.values.bfc.tpcb <- as.data.frame(fitted(lme.bfc.tpcb))
 colnames(fit.lme.values.bfc.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 bfc.tpcb$predicted <- 10^(fit.lme.values.bfc.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = bfc.tpcb$tPCB, predicted = bfc.tpcb$predicted)
-predic.obs <- data.frame(Location = bfc$LocationName[1], predic.obs)
-colnames(predic.obs) <- c("location", "observed", "predicted")
-# Save observations vs. predictions
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmeObsPredtPCB.csv",
-          row.names = FALSE)
-
 # Estimate a factor of 2 between observations and predictions
 bfc.tpcb$factor2 <- bfc.tpcb$tPCB/bfc.tpcb$predicted
 factor2.tpcb <- nrow(bfc.tpcb[bfc.tpcb$factor2 > 0.5 & bfc.tpcb$factor2 < 2,
@@ -161,55 +152,11 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "t05.error", "RandonEffectSiteStdDev", "R2nR", "R2R",
                         "Normality", "RMSE", "Factor2")
 
-# Export results
-write.csv(lme.tpcb,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmetPCB.csv",
-          row.names = FALSE)
+# Add Location Name
+lme.tpcb <- cbind(LocationName = rep("Bannister Fed Complex",
+                                     nrow(lme.tpcb)), lme.tpcb)
 
-# Modeling plots
-# Plot prediction vs. observations, 1:1 line
-p <- ggplot(bfc.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(1, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^7), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# See plot
-print(p)
-
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexLmeObsPredtPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
-
-# Plot residuals vs. predictions
-{
-  # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeBannisterFedComplextPCB.png", width = 800,
-      height = 600)
-  # Create your plot
-  plot(bfc.tpcb$predicted, resid(lme.bfc.tpcb),
-       points(bfc.tpcb$predicted, resid(lme.bfc.tpcb), pch = 16, 
-              col = "white"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  # Add lines to the plot
-  abline(0, 0)
-  abline(h = seq(-2, 2, 1), col = "grey")
-  abline(v = seq(0, 10^5, 10^4), col = "grey")
-  # Close the PNG graphics device
-  dev.off()
-}
+# Time coefficients not significant.
 
 # LME for individual PCBs -------------------------------------------------
 # Prepare data.frame
@@ -325,6 +272,10 @@ lme.pcb$factor2 <- formatC(signif(lme.pcb$factor2, digits = 3))
 congeners <- colnames(bfc.pcb.2)
 lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 
+# Add Location Name
+lme.pcb <- cbind(LocationName = rep("Bannister Fed Complex",
+                                     nrow(lme.tpcb)), lme.pcb)
+
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
@@ -339,170 +290,6 @@ lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
 # Get the congeners that are not showing normality
 lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
-
-# Export results
-write.csv(lme.pcb,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmePCB.csv",
-          row.names = FALSE)
-
-# Obtain observations vs predictions
-# Select congeners that are not showing normality to be remove from bfc.pcb.2
-df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
-# Get column indices to remove
-cols_to_remove <- which(names(bfc.pcb.2) %in% df$names_to_remove)
-# Remove columns from bfc.pcb.2 with congeners that don't show normality
-bfc.pcb.3 <- bfc.pcb.2[, -cols_to_remove]
-
-# Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(bfc.pcb.3[,1]),
-                      ncol = length(bfc.pcb.3[1,]))
-
-for (i in 1:length(bfc.pcb.3[1,])) {
-  fit <- lmer(bfc.pcb.3[,i] ~ 1 + time + season + (1|site),
-              REML = FALSE,
-              control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                    check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"),
-              na.action = na.exclude)
-  lme.fit.pcb[,i] <- fitted(fit)
-}
-
-# Individual PCB congener plots -------------------------------------------
-# (1) Plot 1:1 for all congeners
-# Transform lme.fit.pcb to data.frame
-lme.fit.pcb <- as.data.frame(lme.fit.pcb)
-# Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(bfc.pcb.3)
-# Add code number to first column
-df1 <- cbind(code = row.names(bfc.pcb.3), bfc.pcb.3)
-df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
-
-for (i in 2:length(df1)) {
-  col_name <- if (i == 1) {
-    ""  # leave the name empty for the first plot
-  } else {
-    names(df1)[i] # use the column name for other plots
-  }
-  
-  # create plot for each pair of columns
-  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
-              aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "white") +
-    scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
-    theme_bw() +
-    theme(aspect.ratio = 15/15) +
-    annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
-    annotate('text', x = 10^2, y = 10^6, label = gsub("\\.", "+", names(df1)[i]),
-             size = 3, fontface = 2)
-  # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/BannisterFedComplex/", col_name, ".png"),
-         plot = p, width = 6, height = 6, dpi = 500)
-}
-
-# (2) All plots in one page
-# Create a list to store all the plots
-plot_list <- list()
-
-# Loop over the columns of df1 and df2
-for (i in 2:length(df1)) {
-  col_name <- paste(names(df1)[i], sep = "")  # use the column name for plot title
-  # Create plot for each pair of columns and add to plot_list
-  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
-              aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "white") +
-    scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = trans_format("log10", math_format(10^.x))) +
-    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
-    theme_bw() +
-    theme(aspect.ratio = 15/15, 
-          axis.title = element_text(size = 8)) +
-    annotation_logticks(sides = "bl") +
-    annotate('text', x = 10^2, y = 10^6, label = gsub("\\.", "+", col_name),
-             size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "white", linewidth = 0.7) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
-  
-  plot_list[[i-1]] <- p  # add plot to list
-}
-# Combine all the plots using patchwork
-combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
-# Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/LmeCombined_plot.png", combined_plot,
-       width = 15, height = 15, dpi = 500)
-
-# (3) Plot all the pairs together
-# Create a list to store all the cleaned data frames
-cleaned_df_list <- list()
-# Loop over the columns of df1 and df2
-for (i in 2:length(df1)) {
-  # Create a new data frame by binding the columns of df1 and df2 for each pair of columns
-  df_pair <- cbind(df1[,1], df1[,i], df2[,i])
-  colnames(df_pair) <- c("code", "observed", "predicted")
-  # Remove the rows with missing values
-  cleaned_df_pair <- na.omit(df_pair)
-  # Add the cleaned data frame to the list
-  cleaned_df_list[[i-1]] <- cleaned_df_pair
-}
-
-{
-  # Modify data to be plotted
-  # Combine all the cleaned data frames using rbind
-  combined_cleaned_df <- do.call(rbind, cleaned_df_list)
-  # Convert the matrix to a data frame
-  combined_cleaned_df <- as.data.frame(combined_cleaned_df)
-  # Convert the code column to a factor
-  combined_cleaned_df$code <- as.factor(combined_cleaned_df$code)
-  # Convert the observed and predicted columns to numeric
-  combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
-}
-
-# Export results for plotting
-# Add column LocationName
-combined_cleaned_df$LocationName <- "Bannister Fed Complex"
-write.csv(combined_cleaned_df,
-          file = "Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmeObsPredPCB.csv",
-          row.names = FALSE)
-
-# Plot all the pairs together
-p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^6), 
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^6), 
-                breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
-  theme_bw() +
-  theme(aspect.ratio = 15/15, 
-        axis.title = element_text(size = 10)) +
-  annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
-  annotate("text", x = 10^2, y = 10^5.7,
-           label = expression(atop("Blue River",
-                                   paste("8 PCB congeners (n = 89 pairs)"))),
-           size = 4, fontface = 2)
-
-# See plot
-print(p)
-
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/BannisterFedComplex/BannisterFedComplexLmeObsPredPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
-
-         
+# Select only congeners with significant time coefficients
+lme.pcb.t <- lme.pcb[lme.pcb$time.pv < 0.05, ]
+# No congeners!
