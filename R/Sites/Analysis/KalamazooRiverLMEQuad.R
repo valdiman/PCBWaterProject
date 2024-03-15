@@ -95,7 +95,7 @@ kal.tpcb.1 <- subset(kal.tpcb, SiteID != c("WCPCB-KAL023"))
   kal.tpcb.2 <- na.omit(kal.tpcb.1)
 }
 
-# Regressions -------------------------------------------------------------
+# LME Model tPCB -------------------------------------------------------------
 # Perform Linear Mixed-Effects Model (LMEM)
 # Use kal.tpcb.2
 tpcb <- kal.tpcb.2$tPCB
@@ -173,15 +173,6 @@ fit.lme.values.kal.tpcb <- as.data.frame(fitted(lme.kal.tpcb))
 colnames(fit.lme.values.kal.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
-# Create overall plot prediction vs. observations
-predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicted)
-predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
-colnames(predic.obs) <- c("location", "observed", "predicted")
-# Save new data
-write.csv(predic.obs,
-          "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverLmeObsPredtPCB.csv",
-          row.names = FALSE)
-
 # Estimate a factor of 2 between observations and predictions
 kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
 factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
@@ -206,52 +197,16 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality",
                         "RMSE", "Factor2")
 
+# Add Location Name
+lme.tpcb <- cbind(LocationName = rep("Kalamazoo River",
+                                     nrow(lme.tpcb)), lme.tpcb)
+
+# Select relevant columns
+lme.tpcb.t <- lme.tpcb[, c("LocationName", "t05", "t05.error",
+                           "R2R", "RMSE", "Factor2")]
+
 # Export results
-write.csv(lme.tpcb,
+write.csv(lme.tpcb.t,
           file = "Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverLmetPCB.csv",
           row.names = FALSE)
-
-# Modeling plots
-# Plot prediction vs. observations, 1:1 line
-p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "white") +
-  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# See plot
-print(p)
-
-# Save plot
-ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/Quadratic/KalamazooRiverLmeQuadObsPredtPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
-
-# Plot residuals vs. predictions
-{
-  # Create pdf file
-  png("Output/Plots/Sites/Residual/res_plotlmeKalamazooRivertPCBQuad.png", width = 800,
-      height = 600)
-  # Create plot
-  plot(kal.tpcb.2$predicted, resid(lme.kal.tpcb),
-       points(kal.tpcb.2$predicted, resid(lme.kal.tpcb), pch = 16, 
-              col = "white"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(1, 200000, 10000), col = "grey")
-  # Close the PNG graphics device
-  dev.off()
-  }
 
