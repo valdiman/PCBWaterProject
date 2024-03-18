@@ -14,14 +14,14 @@ install.packages("RColorBrewer")
 # Read generated data for total PCB ---------------------------------------
 # Data only with R2 > 0. See file AllRFtPCB.csv
 {
-  # 21 Mich
-  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFObsPredtPCB.csv")
   # Anacostia River
   anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFObsPredtPCB.csv")
   # Bannister Federal Complex
   bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFObsPredtPCB.csv")
   # Chesapeake Bay data
   che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredtPCB.csv")
+  # DEQ MI
+  dmi <- read.csv("Output/Data/Sites/csv/DEQMichigan/DEQMIRFObsPredtPCB.csv")
   # Fox River data
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredtPCB.csv")
   # Housatonic River
@@ -39,7 +39,7 @@ install.packages("RColorBrewer")
   # Spokane River data
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredtPCB.csv")
   # Combine the data frames
-  combined_data_tPCB <- rbind(anr, bfc, che, fox, hou, hud, kal, mic, nbh, pas,
+  combined_data_tPCB <- rbind(anr, bfc, che, dmi, fox, hou, hud, kal, nbh, pas,
                               por, spo)
 }
 
@@ -88,12 +88,12 @@ ggsave("Output/Plots/Sites/ObsPred/Summary/CombineRFObsPredtPCB.png",
 # Read generated data for PCBs --------------------------------------------
 # Data only with R2 > 0
 {
-  # 21 Mich
-  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFObsPredtPCB.csv")
   # Bannister Federal Complex
   bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFObsPredPCB.csv")
   # Chesapeake Bay data
   che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeBayRFObsPredPCB.csv")
+  # DEQ MI
+  dmi <- read.csv("Output/Data/Sites/csv/DEQMichigan/DEQMIRFObsPredPCB.csv")
   # Fox River data
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverRFObsPredPCB.csv")
   # Great Lakes (Lake Michigan)
@@ -111,11 +111,11 @@ ggsave("Output/Plots/Sites/ObsPred/Summary/CombineRFObsPredtPCB.png",
   # Spokane River data
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFObsPredPCB.csv")
   # Combine the data frames
-  combined_data_PCB <- rbind(bfc, che, fox, grl, hud, lwa, nbh, pas, por, spo)
+  combined_data_PCB <- rbind(bfc, che, dmi, fox, grl, hud, lwa, nbh, pas, por, spo)
 }
 
 # Create a custom color palette with 9 different colors
-n_colors <- 10
+n_colors <- 11
 custom_palette <- colorRampPalette(brewer.pal(9, "Set1"))(n_colors)
 
 # Add a new column with the number of rows for each Location
@@ -153,5 +153,6 @@ CombinePredObsPlot <- ggplot(combined_data_PCB,
 print(CombinePredObsPlot)
 
 # Save plot
-ggsave("Output/Figures/Sites/CombineRFObsPredPCB.png",
+ggsave("Output/Plots/Sites/ObsPred/Summary/CombineRFObsPredPCB.png",
        plot = CombinePredObsPlot, width = 18, height = 8, dpi = 500)
+
