@@ -259,7 +259,7 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "RMSE", "Factor2")
 
 # Add Location Name
-lme.pcb <- cbind(LocationName = rep("Fox River", nrow(lme.pcb)), lme.pcb)
+lme.pcb <- cbind(LocationName = rep("Fox River Q", nrow(lme.pcb)), lme.pcb)
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
@@ -274,6 +274,6 @@ lme.pcb.t <- lme.pcb.t[, c("LocationName", "Congeners", "t05", "t05.error",
                            "R2R", "RMSE", "Factor2")]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverLmeQuadPCB.csv",
+write.csv(lme.pcb.t, file = "Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverLmeQuadPCB.csv",
           row.names = FALSE)
 

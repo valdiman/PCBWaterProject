@@ -350,6 +350,6 @@ lme.pcb.t <- lme.pcb.t[, c("LocationName", "Congeners", "t05", "t05.error",
                            "R2R", "RMSE", "Factor2")]
 
 # Export results
-write.csv(lme.pcb,
+write.csv(lme.pcb.t,
           file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv",
           row.names = FALSE)

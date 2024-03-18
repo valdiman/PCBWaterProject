@@ -93,7 +93,7 @@ summary(lme.grl.tpcb)
 # Shapiro test
 shapiro.test(resid(lme.grl.tpcb))  # Lme doesn't work, p-value < 0.05
 
-# (2) Samples from lake Michigan
+# (2) Samples from Lake Michigan
 grl.tpcb.1 <- subset(grl.tpcb, grepl("LMM", SiteID))
 
 # Using grl.tpcb.1
@@ -264,6 +264,6 @@ lme.pcb.t <- lme.pcb.t[, c("LocationName", "Congeners", "t05", "t05.error",
                            "R2R", "RMSE", "Factor2")]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv",
+write.csv(lme.pcb.t, file = "Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv",
           row.names = FALSE)
 
