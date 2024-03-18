@@ -194,7 +194,7 @@ lme.tpcb.t <- lme.tpcb[, c("LocationName", "t05", "t05.error",
                            "R2R", "RMSE", "Factor2")]
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCB.csv",
+write.csv(lme.tpcb.t, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCB.csv",
           row.names = FALSE)
 
 # Plot residuals vs. predictions
@@ -386,6 +386,6 @@ lme.pcb.t <- lme.pcb.t[, c("LocationName", "Congeners", "t05", "t05.error",
                            "R2R", "RMSE", "Factor2")]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv",
+write.csv(lme.pcb.t, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv",
           row.names = FALSE)
 
