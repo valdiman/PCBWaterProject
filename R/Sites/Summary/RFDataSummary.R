@@ -2,6 +2,12 @@
 # for both tPCB and individual PCBs. RSME, R2, and factor or 2.
 # For individual PCBs, only model that yielded R2 > 0 are included.
 
+# Install packages
+install.packages('dplyr')
+
+# Load libraries
+library(dplyr)
+
 # Read generated data for total PCB ---------------------------------------
 {
   # DEQ MI
@@ -96,5 +102,27 @@ print(combined_PCB)
 # Export results
 write.csv(combined_PCB, file = "Output/Data/Sites/csv/Summary/AllRFPCB.csv")
 
+# Summary of individual PCBs ----------------------------------------------
+# Calculate the number of congeners per Location
+congeners_per_location <- combined_PCB %>%
+  group_by(Location) %>%
+  summarize(NumberOfCongeners = n())
 
+# View the results
+print(congeners_per_location)
+
+# Calculate the mean and standard deviation for RMSE, R_squared, and Factor2_Percentage per Location
+stats_per_location <- combined_PCB %>%
+  group_by(Location) %>%
+  summarize(
+    Mean_RMSE = mean(RMSE, na.rm = TRUE),
+    SD_RMSE = sd(RMSE, na.rm = TRUE),
+    Mean_R_squared = mean(R_squared, na.rm = TRUE),
+    SD_R_squared = sd(R_squared, na.rm = TRUE),
+    Mean_Factor2_Percentage = mean(Factor2_Percentage, na.rm = TRUE),
+    SD_Factor2_Percentage = sd(Factor2_Percentage, na.rm = TRUE)
+  )
+
+# View the results
+print(stats_per_location)
 
