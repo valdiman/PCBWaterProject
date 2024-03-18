@@ -191,7 +191,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RMSE", "Factor2")
 
 # Add Location Name
-lme.tpcb <- cbind(LocationName = rep("Portland Harbor",
+lme.tpcb <- cbind(LocationName = rep("Portland Harbor Q",
                                      nrow(lme.tpcb)), lme.tpcb)
 # No significance on time coefficient.
 
@@ -353,7 +353,7 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "RMSE", "Factor2")
 
 # Add Location Name
-lme.pcb <- cbind(LocationName = rep("Portland Harbor", nrow(lme.pcb)), lme.pcb)
+lme.pcb <- cbind(LocationName = rep("Portland Harbor Q", nrow(lme.pcb)), lme.pcb)
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
