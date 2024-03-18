@@ -55,12 +55,10 @@ hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate,
-                    hud$Latitude, hud$Longitude, as.matrix(hud$tPCB),
+  hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate, as.matrix(hud$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(hud.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(hud.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Remove site -------------------------------------------------------------

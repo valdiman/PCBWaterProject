@@ -51,12 +51,10 @@ pas <- wdc[str_detect(wdc$LocationName, 'Passaic River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  pas.tpcb <- cbind(factor(pas$SiteID), pas$SampleDate,
-                    pas$Latitude, pas$Longitude, as.matrix(pas$tPCB),
+  pas.tpcb <- cbind(factor(pas$SiteID), pas$SampleDate, as.matrix(pas$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(pas.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(pas.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Include USGS flow and temperature data --------------------------------------------------

@@ -54,12 +54,10 @@ bfc <- wdc[str_detect(wdc$LocationName, 'Bannister Fed Complex'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  bfc.tpcb <- cbind(factor(bfc$SiteID), bfc$SampleDate,
-                    bfc$Latitude, bfc$Longitude, as.matrix(bfc$tPCB),
+  bfc.tpcb <- cbind(factor(bfc$SiteID), bfc$SampleDate, as.matrix(bfc$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(bfc.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(bfc.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # LME Model tPCB --------------------------------------------------------

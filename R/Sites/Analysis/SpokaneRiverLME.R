@@ -50,12 +50,10 @@ spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  spo.tpcb <- cbind(factor(spo$SiteID), spo$SampleDate,
-                    spo$Latitude, spo$Longitude, as.matrix(spo$tPCB),
+  spo.tpcb <- cbind(factor(spo$SiteID), spo$SampleDate, as.matrix(spo$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(spo.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(spo.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Include USGS flow data --------------------------------------------------

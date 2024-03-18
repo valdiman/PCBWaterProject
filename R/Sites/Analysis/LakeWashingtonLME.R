@@ -50,12 +50,10 @@ lwa <- wdc[str_detect(wdc$LocationName, 'Lake Washington'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  lwa.tpcb <- cbind(factor(lwa$SiteID), lwa$SampleDate,
-                    lwa$Latitude, lwa$Longitude, as.matrix(lwa$tPCB),
+  lwa.tpcb <- cbind(factor(lwa$SiteID), lwa$SampleDate, as.matrix(lwa$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(lwa.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(lwa.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # LME Model tPCB --------------------------------------------------------

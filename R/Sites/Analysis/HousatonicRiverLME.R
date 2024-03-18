@@ -53,12 +53,10 @@ hou <- wdc[str_detect(wdc$LocationName, 'Housatonic River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  hou.tpcb <- cbind(factor(hou$SiteID), hou$SampleDate,
-                    hou$Latitude, hou$Longitude, as.matrix(hou$tPCB),
+  hou.tpcb <- cbind(factor(hou$SiteID), hou$SampleDate, as.matrix(hou$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(hou.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(hou.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Include USGS flow data --------------------------------------------------

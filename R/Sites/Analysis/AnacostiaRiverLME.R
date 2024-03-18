@@ -55,12 +55,10 @@ anr <- wdc[str_detect(wdc$LocationName, 'Anacostia River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  anr.tpcb <- cbind(factor(anr$SiteID), anr$SampleDate,
-                    anr$Latitude, anr$Longitude, as.matrix(anr$tPCB),
+  anr.tpcb <- cbind(factor(anr$SiteID), anr$SampleDate, as.matrix(anr$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(anr.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(anr.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Include USGS flow and temperature data --------------------------------------------------

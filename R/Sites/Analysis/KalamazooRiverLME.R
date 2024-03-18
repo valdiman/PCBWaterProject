@@ -55,12 +55,10 @@ kal <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  kal.tpcb <- cbind(factor(kal$SiteID), kal$SampleDate,
-                    kal$Latitude, kal$Longitude, as.matrix(kal$tPCB),
+  kal.tpcb <- cbind(factor(kal$SiteID), kal$SampleDate, as.matrix(kal$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(kal.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(kal.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Remove site -------------------------------------------------------------

@@ -51,12 +51,10 @@ por <- wdc[str_detect(wdc$LocationName, 'Portland Harbor'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  por.tpcb <- cbind(factor(por$SiteID), por$SampleDate,
-                    por$Latitude, por$Longitude, as.matrix(por$tPCB),
+  por.tpcb <- cbind(factor(por$SiteID), por$SampleDate, as.matrix(por$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(por.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(por.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Include USGS flow data --------------------------------------------------

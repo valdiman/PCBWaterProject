@@ -49,12 +49,10 @@ fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  fox.tpcb <- cbind(factor(fox$SiteID), fox$SampleDate,
-                    fox$Latitude, fox$Longitude, as.matrix(fox$tPCB),
+  fox.tpcb <- cbind(factor(fox$SiteID), fox$SampleDate, as.matrix(fox$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(fox.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(fox.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Remove site -------------------------------------------------------------

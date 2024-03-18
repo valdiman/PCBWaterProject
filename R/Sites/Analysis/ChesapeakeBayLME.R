@@ -50,12 +50,10 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  che.tpcb <- cbind(factor(che$SiteID), che$SampleDate,
-                    che$Latitude, che$Longitude, as.matrix(che$tPCB),
+  che.tpcb <- cbind(factor(che$SiteID), che$SampleDate, as.matrix(che$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(che.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(che.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Add water temperature data ----------------------------------------------

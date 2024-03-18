@@ -63,12 +63,10 @@ nbh <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  nbh.tpcb <- cbind(factor(nbh$SiteID), nbh$SampleDate,
-                    nbh$Latitude, nbh$Longitude, as.matrix(nbh$tPCB),
+  nbh.tpcb <- cbind(factor(nbh$SiteID), nbh$SampleDate, as.matrix(nbh$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(nbh.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(nbh.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # LME Model tPCB --------------------------------------------------------
