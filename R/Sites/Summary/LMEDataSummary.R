@@ -7,102 +7,67 @@
 {
   # Anacostia River
   anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverLmetPCB.csv")
-  # Chesapeake Bay data
+  # Chesapeake Bay
   che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmetPCB.csv")
   # Fox River
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCB.csv")
   # Kalamazoo River
   kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooRiverLmetPCB.csv")
-  # Lake Washington
-  lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmetPCB.csv")
+  # Kalamazoo River (quadratic flow function)
+  kal.2 <- read.csv("Output/Data/Sites/csv/KalamazooRiver/Quadratic/KalamazooRiverLmetPCB.csv")
   # New Bedford Harbor
-  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHRFPerformancetPCB.csv")
-  nbh <- nbh[, 2]
-  
-  
-  
-  # Passaic River
-  pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicRiverRFPerformancetPCB.csv")
-  pas <- pas[, 2]
-  # Portland Harbor
-  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborRFPerformancetPCB.csv")
-  por <- por[, 2]
-  # Richardson Hill Road Landfill
-  rhl <- read.csv("Output/Data/Sites/csv/Richardson/RichardsonRFPerformancetPCB.csv")
-  rhl <- rhl[, 2]
-  # Spokane River
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPerformancetPCB.csv")
-  spo <- spo[, 2]
+  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHLmetPCB.csv")
   # Combine the data frames
-  combined_tPCB <- rbind(anr, bfc,  che, mic, fox, lmi, hou, hud, kal, nbh,
-                         lwa, pas, por, rhl, spo)
-  colnames(combined_tPCB) <- c("RMSE", "R2", "Factor2")
+  combined_tPCB <- rbind(anr, che,  fox, kal, kal.2, nbh)
+  colnames(combined_tPCB) <- c("LocationName", "t05", "t05.error", "R2",
+                               "RMSE", "Factor2")
 }
+
+print(combined_tPCB)
+
+# Export results
+write.csv(combined_tPCB, file = "Output/Data/Sites/csv/Summary/AllLmetPCB.csv",
+          row.names = FALSE)
 
 # Read generated data for PCB ---------------------------------------------
-
 {
-  # 21 Mich
-  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichLmePCB.csv")
-  mic.r2r <- mic$R2R
-  # Bannister Federal Complex
-  bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexLmePCB.csv")
-  bfc.r2r <- bfc$R2R
-  # Chesapeake Bay data
+  # DEQ MI
+  dmi <- read.csv("Output/Data/Sites/csv/DEQMichigan/DEQMILmePCB.csv")
+  # Chesapeake Bay
   che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv")
-  che.r2r <- che$R2R
-  # Fox River data
+  # Fox River
   fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverLmePCB.csv")
-  fox.r2r <- fox$R2R
-  # Great Lakes
+  # Fox River (Quadratic flow function)
+  fox.2 <- read.csv("Output/Data/Sites/csv/FoxRiver/Quadratic/FoxRiverLmeQuadPCB.csv")
+  # Lake Michigan
   grl <- read.csv("Output/Data/Sites/csv/GreatLakes/GreatLakesLmePCB.csv")
-  grl.r2r <- grl$R2R
   # Hudson River
   hud <- read.csv("Output/Data/Sites/csv/HudsonRiver/HudsonRiverLmePCB.csv")
-  hud.r2r <- hud$R2R
   # Lake Washington
   lwa <- read.csv("Output/Data/Sites/csv/LakeWashington/LakeWashingtonLmePCB.csv")
-  lwa.r2r <- lwa$R2R
-  # Tributaries to Lake Michigan
-  glt <- read.csv("Output/Data/Sites/csv/GreatLakes/TributariesLmePCB.csv")
-  glt.r2r <- glt$R2R
-  # New Bedford Harbor data
+  # New Bedford Harbor
   nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHLmePCB.csv")
-  nbh.r2r <- nbh$R2R
   # Passaic River
   pas <- read.csv("Output/Data/Sites/csv/PassaicRiver/PassaicLmePCB.csv")
-  pas.r2r <- pas$R2R
-  # Portland Harbord data
+  # Passaic River (Quadratic flow function)
+  pas.2 <- read.csv("Output/Data/Sites/csv/PassaicRiver/Quadratic/PassaicLmePCB.csv")
+  # Portland Harbor
   por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmePCB.csv")
-  por.r2r <- por$R2R
-  # Spokane River data
-  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmePCB.csv")
-  spo.r2r <- spo$R2R
+  # Portland Harbor (Quadratic flow function)
+  por.2 <- read.csv("Output/Data/Sites/csv/PortlandHarbor/Quadratic/PortlandHarborLmeQuadPCB.csv")
+  # Spokane River (Quadratic flow function)
+  spo.2 <- read.csv("Output/Data/Sites/csv/SpokaneRiver/Quadratic/SpokaneRiverLmeQuadPCB.csv")
+  # Lake Michigan tributaries
+  trb <- read.csv("Output/Data/Sites/csv/GreatLakes/Tributaries/TributariesLmePCB.csv")
   # Combine the data frames
-  combined_data <- c(mic.r2r, bfc.r2r, che.r2r, fox.r2r, grl.r2r, glt.r2r,
-                     hud.r2r, lwa.r2r, nbh.r2r, pas.r2r, por.r2r, spo.r2r)
+  combined_PCB <- rbind(dmi, che, fox, fox.2, grl, hud, lwa, nbh, pas, pas.2,
+                     por, por.2, spo.2, trb)
+  colnames(combined_PCB) <- c("LocationName", "Congeners", "t05", "t05.error", "R2",
+                               "RMSE", "Factor2")
 }
 
-# R2R
-min(combined_data)*100
-max(combined_data)*100
-mean(combined_data)*100
-sd(combined_data)*100
+print(combined_PCB)
 
-# t05
-list_loc <- list(mic, bfc, che, fox, grl, glt, hud, lwa, nbh, pas, por, spo)
-
-t05 <- list2env(setNames(lapply(list_loc, function(df) {
-  df %>%
-    filter(time.pv < 0.05) %>%
-    select(Congeners, t05, t05.error)
-}), c("mic_t05", "bfc_t05", "che_t05", "fox_t05", "grl_t05", "glt_t05",
-      "hud_t05", "lwa_t05", "nbh_t05", "pas_t05", "por_t05", "spo_t05")))
-
-# Combine the data frames into a single data frame
-combined_t05 <- bind_rows(t05$bfc_t05, t05$che_t05)
-
-# Combine all data frames into a single data frame
-combined_t05 <- bind_rows(lapply(t05, function(df) as.data.frame(df)))
-
-
+# Export results
+write.csv(combined_PCB, file = "Output/Data/Sites/csv/Summary/AllLmePCB.csv",
+          row.names = FALSE)

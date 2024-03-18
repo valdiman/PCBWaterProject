@@ -4,9 +4,9 @@
 
 # Read generated data for total PCB ---------------------------------------
 {
-  # 21 Mich
-  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFtPCB.csv")
-  mic <- mic[, 2]
+  # DEQ MI
+  dmi <- read.csv("Output/Data/Sites/csv/DEQMichigan/DEQMIRFtPCB.csv")
+  dmi <- dmi[, 2]
   # Anacostia River
   anr <- read.csv("Output/Data/Sites/csv/AnacostiaRiver/AnacostiaRiverRFtPCB.csv")
   anr <- anr[, 2]
@@ -50,7 +50,7 @@
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFtPCB.csv")
   spo <- spo[, 2]
   # Combine the data frames
-  combined_tPCB <- rbind(anr, bfc,  che, mic, fox, lmi, hou, hud, kal, nbh,
+  combined_tPCB <- rbind(anr, bfc,  che, dmi, fox, lmi, hou, hud, kal, nbh,
                          lwa, pas, por, rhl, spo)
   colnames(combined_tPCB) <- c("RMSE", "R2", "Factor2")
 }
@@ -63,8 +63,8 @@ write.csv(combined_tPCB, file = "Output/Data/Sites/csv/Summary/AllRFtPCB.csv")
 
 # Read generated data for individual PCB ----------------------------------
 {
-  # 21 Mich
-  mic <- read.csv("Output/Data/Sites/csv/21Mich/21MichRFPCB.csv")
+  # DEQ MI
+  dmi <- read.csv("Output/Data/Sites/csv/DEQMichigan/DEQMIRFPCB.csv")
   # Bannister Federal Complex
   bfc <- read.csv("Output/Data/Sites/csv/BannisterFedComplex/BannisterFedComplexRFPCB.csv")
   # Chesapeake Bay data
@@ -87,7 +87,7 @@ write.csv(combined_tPCB, file = "Output/Data/Sites/csv/Summary/AllRFtPCB.csv")
   spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverRFPCB.csv")
   
   # Combine the data frames
-  combined_PCB <- rbind(mic, bfc, che, fox, grl, hud, lwa, nbh, pas, por, spo)
+  combined_PCB <- rbind(bfc, che, dmi, fox, grl, hud, lwa, nbh, pas, por, spo)
 }
 
 # see data
