@@ -54,12 +54,10 @@ grl <- grl[!grepl("^Tributary", grl$SiteName), ]
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  grl.tpcb <- cbind(factor(grl$SiteID), grl$SampleDate,
-                    grl$Latitude, grl$Longitude, as.matrix(grl$tPCB),
+  grl.tpcb <- cbind(factor(grl$SiteID), grl$SampleDate, as.matrix(grl$tPCB),
                     data.frame(time.day), season.s)
   # Add column names
-  colnames(grl.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                          "tPCB", "time", "season")
+  colnames(grl.tpcb) <- c("SiteID", "date", "tPCB", "time", "season")
 }
 
 # Add water temperature data ----------------------------------------------
