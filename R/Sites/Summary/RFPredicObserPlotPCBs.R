@@ -73,17 +73,18 @@ CombinePredObsPlot <- ggplot(combined_data_tPCB,
         axis.text = element_text(size = 18),
         axis.title = element_text(size = 20),
         legend.title = element_text(size = 18),
-        legend.text = element_text(size = 18),
-        legend.position = c(1.28, 0.78),  # Adjust the position (values are between 0 and 1)
+        legend.text = element_text(size = 14),
+        legend.position = c(0.25, 0.8),  # Adjust the position (values are between 0 and 1)
         legend.background = element_rect(fill = "transparent")) +  # Make the legend background transparent
-  annotation_logticks(sides = "bl")
+  annotation_logticks(sides = "bl") +
+  guides(fill = guide_legend(title = NULL))  # Remove the legend title
 
 # Print plot
 print(CombinePredObsPlot)
 
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/Summary/CombineRFObsPredtPCB.png",
-       plot = CombinePredObsPlot, width = 18, height = 8, dpi = 500)
+       plot = CombinePredObsPlot, width = 18, height = 8, dpi = 2000)
 
 # Read generated data for PCBs --------------------------------------------
 # Data only with R2 > 0
@@ -144,15 +145,16 @@ CombinePredObsPlot <- ggplot(combined_data_PCB,
         axis.text = element_text(size = 18),
         axis.title = element_text(size = 20),
         legend.title = element_text(size = 18),
-        legend.text = element_text(size = 18),
-        legend.position = c(1.3, 0.78),  # Adjust the position (values are between 0 and 1)
+        legend.text = element_text(size = 14),
+        legend.position = c(0.25, 0.82),  # Adjust the position (values are between 0 and 1)
         legend.background = element_rect(fill = "transparent")) +  # Make the legend background transparent
-  annotation_logticks(sides = "bl")
+  annotation_logticks(sides = "bl") +
+  guides(fill = guide_legend(title = NULL))  # Remove the legend title
 
 # Print plot
 print(CombinePredObsPlot)
 
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/Summary/CombineRFObsPredPCB.png",
-       plot = CombinePredObsPlot, width = 18, height = 8, dpi = 500)
+       plot = CombinePredObsPlot, width = 18, height = 8, dpi = 2000)
 
