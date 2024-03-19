@@ -98,7 +98,7 @@ che <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
 # See code: R/ExtractingData/ChesapeakeBay/WaterTemp.R
 {
   # Read water temperature
-  wtp <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/Watertemp/ChesapeakeBayWT.csv")
+  wtp <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/WaterTemp/ChesapeakeBayWT.csv")
   # Convert date columns to Date format
   wtp$Date <- as.Date(wtp$Date)
   # Add water temperature to grl.tpcb
