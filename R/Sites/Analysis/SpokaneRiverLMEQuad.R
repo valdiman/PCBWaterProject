@@ -373,7 +373,7 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "RMSE", "Factor2")
 
 # Add Location Name
-lme.pcb <- cbind(LocationName = rep("Spokane River", nrow(lme.pcb)), lme.pcb)
+lme.pcb <- cbind(LocationName = rep("Spokane River Q", nrow(lme.pcb)), lme.pcb)
 
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
