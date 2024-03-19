@@ -17,10 +17,26 @@ install.packages("tidyverse")
   library(stringr) # str_detect
 }
 
+# Read tPCB data ----------------------------------------------------------
+# Data in pg/L
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
+
+# Data.frame
+tPCB <- data.frame(
+  SiteID = with(wdc, SiteID),
+  LocationName = with(wdc, LocationName),
+  date = with(wdc, as.Date(SampleDate, format = "%m/%d/%y")),
+  Latitude = with(wdc, as.numeric(Latitude)),
+  Longitude = with(wdc, as.numeric(Longitude)),
+  tPCB = with(wdc, as.numeric(tPCB))
+)
+
 # Shiny app ---------------------------------------------------------------
 # Define the Shiny UI
 ui <- fluidPage(
   titlePanel("PCB Water Concentration Data Visualization"),
+  selectInput("location_select", "Select Location:", 
+              choices = c("All", unique(wdc$LocationName))),  # Include "All" option
   leafletOutput("map"),
   splitLayout(
     tableOutput("data"),
@@ -29,29 +45,21 @@ ui <- fluidPage(
   ),
   verbatimTextOutput("plot_text")
 )
-
 # Define the Shiny server
 server <- function(input, output, session) {
-  # Data in pg/L
-  wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
   
-  # Data preparation
-  # Remove samples (rows) with total PCBs = 0
-  wdc.1 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE) == 0), ]
-  # Calculate total PCB
-  tpcb <- rowSums(wdc.1[, c(14:117)], na.rm = TRUE)
-  # Create data.frame
-  wdc.2 <- data.frame(
-    SiteID = with(wdc.1, SiteID),
-    date = with(wdc.1, as.Date(SampleDate, format = "%m/%d/%y")),
-    Latitude = with(wdc.1, as.numeric(Latitude)),
-    Longitude = with(wdc.1, as.numeric(Longitude)),
-    tPCB = as.numeric(tpcb)
-  )
+  # Filter the data based on the selected location
+  filtered_data <- reactive({
+    if (input$location_select == "All") {
+      tPCB  # Return all data
+    } else {
+      subset(tPCB, LocationName == input$location_select)  # Filter by selected location
+    }
+  })
   
   # Render the map
   output$map <- renderLeaflet({
-    leaflet(wdc.2) %>%
+    leaflet(filtered_data()) %>%
       addTiles() %>%
       addMarkers(
         lng = ~Longitude,
@@ -65,9 +73,9 @@ server <- function(input, output, session) {
   output$data <- renderTable({
     if (!is.null(input$map_marker_click)) {
       siteid <- input$map_marker_click$id
-      filtered_data <- subset(wdc.2, SiteID == siteid)[, c("SiteID", "date", "tPCB")]
+      filtered_data <- subset(tPCB, SiteID == siteid)[, c("SiteID", "date", "tPCB")]
       filtered_data$date <- format(as.Date(filtered_data$date, format = "%m/%d/%y"), "%m-%d-%Y")
-      colnames(filtered_data)[3] <- paste("\u03A3", "PCB ", "(ng/L)", sep = "")
+      colnames(filtered_data)[3] <- paste("\u03A3", "PCB ", "(pg/L)", sep = "")
       
       # Sort the data by date
       filtered_data <- filtered_data[order(as.Date(filtered_data$date, format = "%m-%d-%Y")), ]
@@ -83,26 +91,27 @@ server <- function(input, output, session) {
     }
   })
   
+  # Render the plot
   output$plot <- renderPlot({
     if (!is.null(input$map_marker_click)) {
       siteid <- input$map_marker_click$id
-      filtered_data <- subset(wdc.2, SiteID == siteid)
+      site_data <- subset(filtered_data(), SiteID == siteid)
       
-      if (nrow(filtered_data) == 0) {
+      if (nrow(site_data) == 0) {
         # No data available for the selected SiteID
         return(NULL)
       }
       
       # Aggregate data by week and calculate the average of PCB values
-      filtered_data$week <- cut(filtered_data$date, breaks = "week")
-      data_agg <- aggregate(tPCB ~ week, data = filtered_data, mean)
+      site_data$week <- cut(site_data$date, breaks = "week")
+      data_agg <- aggregate(tPCB ~ week, data = site_data, mean)
       
       num_values <- nrow(data_agg)
       width <- ifelse(num_values > 5, 0.8, 0.2 + (num_values * 0.1))
       
       p <- ggplot(data_agg, aes(x = week, y = tPCB)) +
         geom_col(fill = "steelblue", width = width) +
-        labs(x = NULL, y = paste("\u03A3", "PCB (ng/L)", sep = "")) +
+        labs(x = NULL, y = paste("\u03A3", "PCB (pg/L)", sep = "")) +
         theme_bw() +
         theme(
           axis.text.x = element_text(angle = 90, hjust = 1),
@@ -125,24 +134,25 @@ server <- function(input, output, session) {
   
   output$plot_text <- renderPrint({
     if (!is.null(input$map_marker_click)) {
-      cat("Plots are showing the aggregated data per week.\n")
-      cat("If the maximum tPCB is too large (>80000 ng/L), the y-axis changes to log10 scale.\n")
+      cat("Plots are showing the mean data per week.\n")
+      cat("If the maximum tPCB is too large (>50,000 pg/L), the y-axis changes to log10 scale.\n")
       cat("Source:")
     }
   })  
   
   observe({
-    leafletProxy("map", data = wdc.2) %>%
+    leafletProxy("map", data = filtered_data()) %>%
       clearMarkers() %>%
       addMarkers(
         lng = ~Longitude,
         lat = ~Latitude,
         layerId = ~SiteID,
         popup = ~paste(
+          "Location Name: ", LocationName, "<br>",
           "SiteID: ", SiteID, "<br>",
           "Latitude: ", Latitude, "<br>",
           "Longitude: ", Longitude, "<br>",
-          "Number of Samples: ", as.character(table(wdc.2$SiteID)[as.character(SiteID)])
+          "Number of Samples: ", as.character(table(filtered_data()$SiteID)[as.character(SiteID)])
         )
       )
   })
