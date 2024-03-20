@@ -6,6 +6,7 @@ install.packages("dplyr")
 install.packages("ggplot2")
 install.packages("leaflet")
 install.packages("shiny")
+install.packages('rsconnect')
 install.packages("tidyverse")
 
 # Load libraries
@@ -14,6 +15,7 @@ install.packages("tidyverse")
   library(ggplot2)
   library(leaflet)
   library(shiny)
+  library(rsconnect)
   library(stringr) # str_detect
 }
 
@@ -160,3 +162,6 @@ server <- function(input, output, session) {
 
 # Run the Shiny app
 shinyApp(ui, server)
+
+rsconnect::deployApp()
+
