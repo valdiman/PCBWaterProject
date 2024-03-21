@@ -15,14 +15,14 @@ install.packages('factoextra')
 }
 
 # Read data
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Data preparation
 cong <- subset(wdc, AroclorCongener == "Congener")
 cong <- cong[!(rowSums(cong[, 14:117], na.rm = TRUE) == 0), ]
 cong.1 <- subset(cong, !LocationName == "New Bedford Harbor") # Only 18 congeners
 cong.1 <- subset(cong, select = -c(SampleID:AroclorCongener))
-cong.1 <- subset(cong.1, select = -c(A1016:A1260))
+cong.1 <- subset(cong.1, select = -c(A1016:tPCB))
 
 # Create an average PCB profile distribution
 tmp <- rowSums(cong.1, na.rm = TRUE)
@@ -36,34 +36,17 @@ prof.ave$congener <- factor(prof.ave$congener, levels = unique(congener))
 # Plot profiles -----------------------------------------------------------
 # Plot average PCB profile
 ggplot(prof.ave, aes(x = congener, y = mean)) +
-  geom_bar(position = position_dodge(), stat = "identity",
-           fill = "black") +
-  geom_errorbar(aes(ymin = mean, ymax = (mean+sd)), width = 0.9,
-                position = position_dodge(0.9)) +
-  xlab("") +
-  ylim(0, 0.5) +
+  geom_bar(stat = "identity", fill = "black") +
+  geom_errorbar(aes(ymin = mean, ymax = mean + sd), width = 0.2) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   theme_bw() +
-  theme(aspect.ratio = 4/12) +
+  theme(aspect.ratio = 5/20) +
   ylab(expression(bold("Mass fraction "*Sigma*"PCB"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 8),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) +
-  annotate("text", x = 5.4, y = 0.4, label = "PCBs 4+10", size = 2,
-           fontface = 1, angle = 90) +
-  annotate("text", x = 8, y = 0.36, label = "PCB 11", size = 2,
-           fontface = 1, angle = 90) +
-  annotate("text", x = 14, y = 0.32, label = "PCBs 18+30", size = 2,
-           fontface = 1, angle = 90) +
-  annotate("text", x = 18, y = 0.33, label = "PCBs 20+21+28+\n31+33+50+53",
-           size = 2, fontface = 1, angle = 90) +
-  annotate("text", x = 30.5, y = 0.25, label = "PCBs 43+49+\n52+69+73",
-           size = 2, fontface = 1, angle = 90) +
-  annotate("text", x = 39.3, y = 0.30, label = "PCBs 61+66+70+74+\n76+93+95+98+100+102",
-           size = 2, fontface = 1, angle = 90) +
-  annotate("text", x = 70.5, y = 0.33, label = "PCBs 132+153+\n161+168",
-           size = 2, fontface = 1, angle = 90)
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10),
+        axis.text.x = element_text(face = "bold", size = 7,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 7))
 
 # PCB congener analysis ---------------------------------------------------
 # Prepare data for PCA
@@ -90,7 +73,7 @@ cong.1668 <- subset(wdc, EPAMethod == "M1668")
 cong.1668 <- cong.1668[!(rowSums(cong.1668[, c(14:117)], na.rm = TRUE)==0), ]
 sampleID <- cong.1668$SampleID
 cong.1668 <- subset(cong.1668, select = -c(SampleID:AroclorCongener))
-cong.1668 <- subset(cong.1668, select = -c(A1016:A1260))
+cong.1668 <- subset(cong.1668, select = -c(A1016:tPCB))
 tmp <- rowSums(cong.1668, na.rm = TRUE)
 prof.1668 <- sweep(cong.1668, 1, tmp, FUN = "/")
 # Add sample names to first column
